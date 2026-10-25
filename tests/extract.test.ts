@@ -12,6 +12,9 @@ const raw = (over: Partial<RawExtraction> = {}): RawExtraction => ({
   budget: 50000,
   style: "Jungle",
   notes: "",
+  focus: [],
+  food: "",
+  guestNeeds: [],
   ...over,
 });
 

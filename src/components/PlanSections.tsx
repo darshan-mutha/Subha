@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatINR } from "@/lib/budget";
+import { formatINR, rebalance } from "@/lib/budget";
 import type { DayTimings } from "@/lib/muhurat";
 import type { Plan } from "@/lib/schemas";
 import { dueText, shortDate, type ScheduledItem } from "@/lib/schedule";
@@ -114,19 +114,93 @@ export function DoNextSection({ items, state }: { items: ScheduledItem[]; state:
   );
 }
 
+function AmountInput({
+  line,
+  index,
+  onCommit,
+}: {
+  line: Plan["budget"][number];
+  index: number;
+  onCommit: (index: number, amount: number) => void;
+}) {
+  const grouped = (n: number) => n.toLocaleString("en-IN");
+  const [draft, setDraft] = useState(grouped(line.amount));
+  const [seen, setSeen] = useState(line.amount);
+  if (seen !== line.amount) {
+    // The amount changed elsewhere (rebalance, AI update, teammate): show the new value.
+    setSeen(line.amount);
+    setDraft(grouped(line.amount));
+  }
+  const id = `amount-${index}`;
+  const commit = () => {
+    const digits = draft.replace(/[^\d]/g, "");
+    const value = Number(digits);
+    if (digits === "" || value === line.amount) {
+      setDraft(grouped(line.amount));
+      return;
+    }
+    onCommit(index, value);
+  };
+  return (
+    <>
+      <label htmlFor={id} className="sr-only">
+        Amount for {line.category} in rupees
+      </label>
+      <span className="amount-input no-print">
+        <span aria-hidden="true">₹</span>
+        <input
+          id={id}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          maxLength={14}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            }
+          }}
+        />
+      </span>
+      <span className="print-only">{formatINR(line.amount)}</span>
+    </>
+  );
+}
+
 export function BudgetSection({
   plan,
   total,
   booked,
   payments,
+  onBudgetChange,
 }: {
   plan: Plan;
   total: number;
   /** Booked vendor amounts per budget line. */
   booked?: Map<string, number>;
   payments?: PaymentSummary;
+  /** When set, the host can change amounts; the rest rebalance to keep the total. */
+  onBudgetChange?: (lines: Plan["budget"]) => void;
 }) {
+  const [status, setStatus] = useState("");
   const max = Math.max(...plan.budget.map((b) => b.amount), 1);
+  const commit = (index: number, amount: number) => {
+    if (!onBudgetChange) return;
+    const line = plan.budget[index];
+    const next = rebalance(plan.budget, index, amount, total);
+    const moved = next[index].amount - line.amount;
+    onBudgetChange(next);
+    setStatus(
+      moved === 0
+        ? ""
+        : `${line.category} ${moved > 0 ? "up" : "down"} by ${formatINR(Math.abs(moved))}. The other lines ${
+            moved > 0 ? "gave up" : "gained"
+          } ${formatINR(Math.abs(moved))} between them, so the total stays ${formatINR(total)}.`,
+    );
+  };
   const showBooked = Boolean(payments && payments.bookedCount > 0);
   const unmatched = booked?.get("Other") ?? 0;
   return (
@@ -134,6 +208,10 @@ export function BudgetSection({
       <h2 className="section-title">Budget split</h2>
       <p className="hint estimate-note">
         All amounts are estimates to plan with, not vendor quotes. Confirm prices before you book.
+        {onBudgetChange && " Change any amount and Shubā moves the difference across the other lines."}
+      </p>
+      <p role="status" className="small budget-status">
+        {status}
       </p>
       {showBooked && payments && (
         <>
@@ -173,7 +251,7 @@ export function BudgetSection({
               <th scope="col" className="num">
                 Amount
               </th>
-              <th scope="col" className="num">
+              <th scope="col" className="num share-col">
                 Share
               </th>
               {showBooked && (
@@ -184,7 +262,7 @@ export function BudgetSection({
             </tr>
           </thead>
           <tbody>
-            {plan.budget.map((line) => {
+            {plan.budget.map((line, index) => {
               const share = Math.round((line.amount / total) * 100);
               return (
                 <tr key={line.category}>
@@ -195,8 +273,14 @@ export function BudgetSection({
                     </span>
                     {line.note && <span className="muted small">{line.note}</span>}
                   </th>
-                  <td className="num">{formatINR(line.amount)}</td>
-                  <td className="num">{share}%</td>
+                  <td className="num">
+                    {onBudgetChange ? (
+                      <AmountInput line={line} index={index} onCommit={commit} />
+                    ) : (
+                      formatINR(line.amount)
+                    )}
+                  </td>
+                  <td className="num share-col">{share}%</td>
                   {showBooked && <BookedCell planned={line.amount} spent={booked?.get(line.category) ?? 0} />}
                 </tr>
               );
@@ -206,7 +290,7 @@ export function BudgetSection({
             <tr>
               <th scope="row">Total</th>
               <td className="num">{formatINR(total)}</td>
-              <td className="num">100%</td>
+              <td className="num share-col">100%</td>
               {showBooked && payments && <BookedCell planned={total} spent={payments.committed} />}
             </tr>
           </tfoot>

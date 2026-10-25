@@ -8,6 +8,8 @@ export interface PlanResponse {
   input: EventInput;
   plan: Plan;
   timings: DayTimings | null;
+  /** Present after a change request: what changed, in plain words. */
+  changes?: string[];
 }
 
 export class ApiError extends Error {

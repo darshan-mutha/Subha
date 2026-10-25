@@ -79,3 +79,27 @@ export function mergeWarnings(local: string[], ai: string[]): string[] {
     })
     .slice(0, 6);
 }
+
+/**
+ * The host sets one budget line by hand. The difference is spread across the
+ * other lines in proportion to their size, so the total stays the same and the
+ * host sees exactly what the change costs elsewhere. Amounts round to ₹100.
+ */
+export function rebalance(lines: Plan["budget"], index: number, amount: number, total: number): Plan["budget"] {
+  if (index < 0 || index >= lines.length || !Number.isFinite(amount)) return lines;
+  const fixed = Math.min(Math.max(0, Math.round(amount / 100) * 100), total);
+  const others = lines.map((l, i) => ({ l, i })).filter(({ i }) => i !== index);
+  if (others.length === 0) return lines.map((l) => ({ ...l, amount: total }));
+  const left = total - fixed;
+  const othersSum = others.reduce((acc, { l }) => acc + l.amount, 0);
+  const weight = (a: number) => (othersSum > 0 ? a / othersSum : 1 / others.length);
+  const next = lines.map((l, i) =>
+    i === index ? { ...l, amount: fixed } : { ...l, amount: Math.round((weight(l.amount) * left) / 100) * 100 },
+  );
+  // Put any rounding remainder in the largest other line so the total is exact.
+  const diff = total - next.reduce((acc, l) => acc + l.amount, 0);
+  let largest = others[0].i;
+  for (const { i } of others) if (next[i].amount > next[largest].amount) largest = i;
+  next[largest] = { ...next[largest], amount: Math.max(0, next[largest].amount + diff) };
+  return next;
+}

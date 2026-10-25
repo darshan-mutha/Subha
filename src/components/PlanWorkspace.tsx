@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { formatINR } from "@/lib/budget";
 import { ApiError, loadBlooms, requestAssign, requestRefine, saveBlooms, type LocalWorkspace } from "@/lib/client";
 import { progressOf } from "@/lib/palette";
-import { EVENT_TYPE_LABELS, LIMITS, todayIST } from "@/lib/schemas";
+import { EVENT_TYPE_LABELS, FOCUS_LABELS, FOOD_LABELS, GUEST_NEED_LABELS, LIMITS, todayIST } from "@/lib/schemas";
 import { bloomMessage, doNext, milestoneItems, petalsFilled, schedule } from "@/lib/schedule";
 import { bookedByLine, paymentSummary, pruneDeals, type Deal } from "@/lib/deals";
 import type { Member, SharedPlanContent } from "@/lib/team";
@@ -24,7 +24,15 @@ import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
 
-const REFINE_SUGGESTIONS = ["Reduce the budget by 20%", "Make it eco-friendly", "Add more fun for kids"];
+const REFINE_SUGGESTIONS = [
+  "We added 50 guests, the budget is 10% lower and the date moved 2 weeks earlier",
+  "Reduce the budget by 20%",
+  "Move the event 1 week later",
+  "Make it eco-friendly",
+];
+
+/** The plan as it was before the last change, so the host can undo it. */
+type Snapshot = Pick<SharedPlanContent, "input" | "plan" | "timings">;
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
@@ -78,6 +86,8 @@ export function PlanWorkspace({
   const [error, setError] = useState("");
   const [instruction, setInstruction] = useState("");
   const [announce, setAnnounce] = useState("");
+  const [lastChange, setLastChange] = useState<{ lines: string[]; before: Snapshot } | null>(null);
+  const changeRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const today = todayIST();
   const scheduled = useMemo(() => schedule(plan, input.date, today, done), [plan, input.date, today, done]);
@@ -162,16 +172,30 @@ export function PlanWorkspace({
       setError("Please describe what you want to change.");
       return;
     }
+    const before: Snapshot = { input, plan, timings };
+    let lines: string[] = [];
     const ok = await act(
       async () => {
         const next = await requestRefine(input, plan, text);
+        lines = next.changes?.length ? next.changes : ["Your plan has been updated."];
         // Keep quotes and bookings for vendors that are still in the refined plan.
         await onChange({ input: next.input, plan: next.plan, timings: next.timings, deals });
       },
       "Updating your plan…",
-      "Plan updated",
+      "Plan updated. See what changed above the tabs.",
     );
-    if (ok) setInstruction("");
+    if (ok) {
+      setInstruction("");
+      setLastChange({ lines, before });
+      requestAnimationFrame(() => changeRef.current?.focus());
+    }
+  }
+
+  async function undo() {
+    if (!lastChange) return;
+    const { before } = lastChange;
+    const ok = await act(() => onChange(before), "Undoing…", "Last change undone");
+    if (ok) setLastChange(null);
   }
 
   const autoAssign = () =>
@@ -221,7 +245,17 @@ export function PlanWorkspace({
     {
       id: "budget",
       label: "Budget",
-      content: <BudgetSection plan={plan} total={input.budget} booked={bookedLines} payments={payments} />,
+      content: (
+        <BudgetSection
+          plan={plan}
+          total={input.budget}
+          booked={bookedLines}
+          payments={payments}
+          onBudgetChange={(lines) =>
+            void act(() => onChange({ plan: { ...plan, budget: lines } }), "Saving…", "Budget updated")
+          }
+        />
+      ),
     },
     {
       id: "timeline",
@@ -263,6 +297,15 @@ export function PlanWorkspace({
           <li>{input.guests.toLocaleString("en-IN")} guests</li>
           <li>{formatINR(input.budget)}</li>
         </ul>
+        {(input.focus?.length > 0 || input.food || input.guestNeeds?.length > 0) && (
+          <ul className="personal-facts" aria-label="What this plan is shaped around">
+            {input.focus?.length > 0 && <li>Matters most: {input.focus.map((f) => FOCUS_LABELS[f]).join(", ")}</li>}
+            {input.food && <li>Food: {FOOD_LABELS[input.food]}</li>}
+            {input.guestNeeds?.map((g) => (
+              <li key={g}>{GUEST_NEED_LABELS[g]}</li>
+            ))}
+          </ul>
+        )}
         <p className="summary">{plan.summary}</p>
         <div className="row no-print">
           {onEdit && (
@@ -359,6 +402,28 @@ export function PlanWorkspace({
         <DoNextSection items={upNext} state={taskState} />
       )}
 
+      {lastChange && (
+        <section className="card what-changed no-print" aria-labelledby="changed-heading" ref={changeRef} tabIndex={-1}>
+          <h2 id="changed-heading" className="section-title">
+            What changed
+          </h2>
+          <ul className="list">
+            {lastChange.lines.map((line, i) => (
+              <li key={`${i}-${line}`}>{line}</li>
+            ))}
+          </ul>
+          <p className="muted small">Due dates, budget and vendor messages have been updated to match.</p>
+          <div className="row">
+            <button type="button" className="btn" onClick={() => void undo()} disabled={busy}>
+              Undo this change
+            </button>
+            <button type="button" className="btn btn-link" onClick={() => setLastChange(null)}>
+              Keep it
+            </button>
+          </div>
+        </section>
+      )}
+
       <div className="card">
         <Tabs items={tabs} label="Plan sections" />
       </div>
@@ -367,7 +432,10 @@ export function PlanWorkspace({
         <h2 id="refine-heading" className="section-title">
           Change your plan
         </h2>
-        <p className="muted">Tell Shubā what to change, in your own words.</p>
+        <p className="muted">
+          Plans change. Tell Shubā in your own words, such as more guests, a smaller budget or a new date, and it
+          updates the whole plan without starting over.
+        </p>
         <form onSubmit={refine} className="refine-form" aria-busy={busy}>
           <label htmlFor="refine-input" className="sr-only">
             What would you like to change?

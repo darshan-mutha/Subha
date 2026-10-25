@@ -1,8 +1,11 @@
 # Shubā — plan any celebration in minutes
 
+**Who it's for:** Indian families planning a celebration themselves (a wedding, a child's birthday, a griha pravesh) with a fixed budget, a guest list that keeps changing, and relatives who all want to help. **The hardest part for them** is keeping budget, dates, guests and vendors in step when something changes. Shubā keeps the whole plan connected, so one change updates everything.
+
 Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremonies, festivals, school, corporate and community events. **Start by speaking** in English, Hindi, Kannada, Tamil, Telugu, Marathi or Bengali (or type one line, or use the form), check the details Shubā understood, and get a complete, editable plan:
 
-- **Budget** split by category that always adds up to your total, with ways to save
+- **Make it yours** – pick what matters most (food, photos, rituals…), food preference (veg, Jain, no onion-garlic…) and **guest needs** (elderly guests, wheelchair access, young children, hearing or sight support, allergies, a quiet room). Priorities get more of the budget and are protected when money is short; guest needs go into the venue and caterer messages, the budget and the checklist. Voice picks these up too ("my grandmother uses a wheelchair")
+- **Budget** split by category that always adds up to your total, with ways to save. **Change any line** and Shubā moves the difference across the other lines, showing exactly what it cost elsewhere
 - **Timeline** of tasks from today to the event day, each with a **priority (High / Medium / Low)** and a **real due date**; overdue and due-this-week tasks are highlighted
 - **Do next** list: the most urgent unfinished tasks (overdue first, then by date and priority), for everyone or one person
 - **Vendor checklist** with questions to ask and a ready-to-send WhatsApp brief for each vendor
@@ -11,7 +14,7 @@ Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremoni
 - **Auspicious timings** (Rahu Kalam, Yamagandam, Gulika Kalam) calculated for the event city and date
 - **Warnings** for unrealistic budgets, short notice and seasonal risks
 - **Plan together** – add family and friends, let AI divide the tasks by role, share one private link; everyone ticks off their tasks and sees live progress, and each person can get their task list on WhatsApp
-- **Change the plan in plain words** ("Reduce the budget by 20%", "Make it eco-friendly")
+- **Change the plan mid-way in plain words** – "We added 50 guests, the budget is 10% lower and the date moved 2 weeks earlier" updates guests, budget and date together, re-plans the timeline and vendor deadlines, cuts the least important areas first, and shows a **What changed** card with **Undo**
 - **Download as PDF / print**, and the last plan is kept on your device
 
 Built for Hack2skill PromptWars Virtual — Challenge 5: Celebration & Event Planner.
@@ -46,7 +49,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 | `src/lib/schemas.ts`                                 | Input, plan and refine schemas shared by browser and server                     |
 | `src/lib/prompt.ts`                                  | System instruction, prompts and the JSON schema sent to Claude                  |
 | `src/lib/extract.ts`                                 | Voice / one-line description → validated form values                            |
-| `src/components/VoiceStart.tsx`                      | Microphone recorder (MediaRecorder, 60 s max) with typing fallback              |
+| `src/components/VoiceStart.tsx`                      | Browser speech-to-text (7 Indian languages) with typing fallback                |
 | `src/lib/team.ts`                                    | Team members, stable task ids, shared-plan schemas, WhatsApp messages           |
 | `src/lib/assign.ts`                                  | AI task split with even-load fallback                                           |
 | `src/lib/store.ts`                                   | Shared plan storage (Neon Postgres; in-memory for tests), optimistic versioning |
@@ -67,8 +70,9 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 - **Vendor agreement** – Claude writes the scope and simple terms (set-up time, guest changes, cancellation) for a one-page booking confirmation. Prices, dates and the payment schedule are always filled in by code from the host's own numbers, never by the AI. If the AI is busy, a standard template is used so the host still gets a draft.
 - **Task split** – given the helpers' names and roles ("cousin, knows caterers"), Claude assigns each task and vendor booking to the best person; anything left out is balanced evenly in code.
 - **Priorities and dates** – the plan returns each step's days-before-event and a priority per task; Shubā turns these into real dates in code (never before today) and builds the "Do next" list.
-- **Plan refinement** – the current plan plus the user's change request are sent back; Claude returns an updated plan and, if asked, a new total budget or guest count.
-- **What AI is _not_ trusted with** – the "Not sure? Help me decide" budget levels (Simple / Comfortable / Grand) come from rule-based per-guest ranges by event type and city, so they are instant, free and repeatable; budget totals are re-balanced in code, warnings for budget-per-guest and short notice are rule-based, and auspicious timings are calculated, never generated.
+- **Personal plans** – the host's top priorities, food preference and guest needs are part of the prompt; Claude weights the budget toward the priorities and builds access needs into briefs, questions, budget and tasks.
+- **Plan refinement** – the current plan plus the user's change request are sent back; Claude returns an updated plan, any new total budget, guest count or date, and plain lines on what changed and which trade-offs it made. The new date is re-checked with the form's rules, and Shubā adds its own factual lines (date, guests, budget before → after).
+- **What AI is _not_ trusted with** – the "Not sure? Help me decide" budget levels (Simple / Comfortable / Grand) come from rule-based per-guest ranges by event type and city, so they are instant, free and repeatable; budget totals are re-balanced in code (also when the host edits a line), warnings for budget-per-guest and short notice are rule-based, and auspicious timings are calculated, never generated.
 
 ### Prompt evolution
 
@@ -78,6 +82,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 4. **v4** – Each timeline step returns `daysBefore` and each task a `priority`, so Shubā can show real due dates, overdue items and a "Do next" list.
 5. **v5** – 3–5 tasks flagged as milestones; each fills a petal of the rangoli and plays a short celebration when done.
 6. **v6** – Every amount is framed as a planning estimate; the model may never call a price confirmed or quote a named vendor's rate.
+7. **v7** – Personal plans: priorities protected when cutting costs, guest needs built into briefs, budget and tasks, tasks ordered by dependency (venue before caterer and invitations), and change requests can move the date and must explain what changed.
 
 ## Security
 
@@ -132,6 +137,7 @@ npm run dev
 
 ## Changelog
 
+- **25 Oct 2026** – Make it yours (priorities, food, guest needs, also by voice); mid-way changes can move the date, with a What changed card and Undo; editable budget lines that rebalance the rest; prompt v7.
 - **25 Oct 2026** – Vendor quotes, booking and agreement: compare quotes against budget, book a vendor, track advance and balance, AI-drafted booking confirmation (WhatsApp / print). Booked amounts now show on the Budget tab.
 
 ## Roadmap

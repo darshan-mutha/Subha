@@ -45,6 +45,50 @@ export const TRADITIONAL_EVENT_TYPES: ReadonlySet<EventType> = new Set<EventType
   "festival",
 ]);
 
+/** Areas the host can rank as "what matters most". Protected when costs are cut. */
+export const FOCUS_AREAS = ["food", "decor", "photos", "venue", "entertainment", "rituals"] as const;
+export type FocusArea = (typeof FOCUS_AREAS)[number];
+export const FOCUS_LABELS: Record<FocusArea, string> = {
+  food: "Food",
+  decor: "Decor",
+  photos: "Photos & video",
+  venue: "Venue",
+  entertainment: "Music & fun",
+  rituals: "Rituals & traditions",
+};
+export const MAX_FOCUS = 3;
+
+export const FOOD_PREFS = ["", "veg", "jain", "no-onion-garlic", "veg-and-non-veg"] as const;
+export type FoodPref = (typeof FOOD_PREFS)[number];
+export const FOOD_LABELS: Record<FoodPref, string> = {
+  "": "No preference",
+  veg: "Vegetarian",
+  jain: "Jain",
+  "no-onion-garlic": "No onion or garlic",
+  "veg-and-non-veg": "Veg and non-veg",
+};
+
+/** Guest needs that change the venue, food and timeline. */
+export const GUEST_NEEDS = ["elderly", "wheelchair", "young-kids", "hearing-sight", "allergies", "quiet-room"] as const;
+export type GuestNeed = (typeof GUEST_NEEDS)[number];
+export const GUEST_NEED_LABELS: Record<GuestNeed, string> = {
+  elderly: "Elderly guests",
+  wheelchair: "Wheelchair or step-free access",
+  "young-kids": "Babies and young children",
+  "hearing-sight": "Hearing or sight support",
+  allergies: "Food allergies",
+  "quiet-room": "Quiet or rest room",
+};
+
+/** Keeps known values only, without duplicates, so old or odd input never breaks a plan. */
+function choiceList<T extends string>(values: readonly T[], max: number) {
+  return z
+    .array(z.string())
+    .default([])
+    .transform((list) => [...new Set(list)].filter((v): v is T => (values as readonly string[]).includes(v)))
+    .pipe(z.array(z.enum(values as unknown as [T, ...T[]])).max(max, `Choose up to ${max}`));
+}
+
 export const LIMITS = {
   minGuests: 1,
   maxGuests: 10000,
@@ -119,6 +163,9 @@ export function makeEventInputSchema(now: Date = new Date()) {
     style: safeText(60, "Style").optional().default(""),
     notes: safeText(LIMITS.maxNotes, "Notes").optional().default(""),
     includeMuhurat: z.boolean().optional().default(false),
+    focus: choiceList(FOCUS_AREAS, MAX_FOCUS),
+    food: z.enum(FOOD_PREFS).catch("").default(""),
+    guestNeeds: choiceList(GUEST_NEEDS, GUEST_NEEDS.length),
   });
 }
 
@@ -202,6 +249,10 @@ export type Plan = z.infer<typeof PlanSchema>;
 export const RefineReplySchema = PlanSchema.extend({
   newTotalBudget: z.number().nonnegative().default(0),
   newGuestCount: z.number().int().nonnegative().default(0),
+  /** New event date (YYYY-MM-DD) if the host moved it, otherwise "". */
+  newDate: z.string().trim().max(10).default(""),
+  /** Short plain lines on what changed and which trade-offs were made. */
+  changes: z.array(z.string().trim().min(1).max(220)).max(6).catch([]).default([]),
 });
 
 export function makeRefineSchema(now: Date = new Date()) {

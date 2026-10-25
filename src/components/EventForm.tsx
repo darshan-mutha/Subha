@@ -7,12 +7,22 @@ import { formatShortINR, perGuest, type BudgetOption } from "@/lib/budgetGuide";
 import {
   EVENT_TYPES,
   EVENT_TYPE_LABELS,
+  FOCUS_AREAS,
+  FOCUS_LABELS,
+  FOOD_LABELS,
+  FOOD_PREFS,
+  GUEST_NEEDS,
+  GUEST_NEED_LABELS,
   LIMITS,
+  MAX_FOCUS,
   TRADITIONAL_EVENT_TYPES,
   fieldErrors,
   makeEventInputSchema,
   type EventInput,
   type EventType,
+  type FocusArea,
+  type FoodPref,
+  type GuestNeed,
 } from "@/lib/schemas";
 
 export interface FormValues {
@@ -25,6 +35,9 @@ export interface FormValues {
   style: string;
   notes: string;
   includeMuhurat: boolean;
+  focus: FocusArea[];
+  food: FoodPref;
+  guestNeeds: GuestNeed[];
 }
 
 export const EMPTY_FORM: FormValues = {
@@ -37,6 +50,9 @@ export const EMPTY_FORM: FormValues = {
   style: "",
   notes: "",
   includeMuhurat: false,
+  focus: [],
+  food: "",
+  guestNeeds: [],
 };
 
 function daysFromNow(days: number): string {
@@ -57,6 +73,9 @@ export const EXAMPLES: { label: string; values: FormValues }[] = [
       style: "Royal Rajasthani",
       notes: "Mostly vegetarian guests, some need Jain food",
       includeMuhurat: true,
+      focus: ["food", "rituals", "photos"],
+      food: "veg",
+      guestNeeds: ["elderly", "wheelchair"],
     },
   },
   {
@@ -71,6 +90,9 @@ export const EXAMPLES: { label: string; values: FormValues }[] = [
       style: "Jungle safari",
       notes: "Afternoon party at home, 20 kids and 20 adults",
       includeMuhurat: false,
+      focus: ["entertainment", "food"],
+      food: "veg",
+      guestNeeds: ["young-kids", "allergies"],
     },
   },
   {
@@ -85,6 +107,9 @@ export const EXAMPLES: { label: string; values: FormValues }[] = [
       style: "Eco-friendly, no firecrackers",
       notes: "Stalls by residents, cultural programme for kids",
       includeMuhurat: false,
+      focus: ["entertainment", "decor"],
+      food: "",
+      guestNeeds: ["elderly", "young-kids"],
     },
   },
 ];
@@ -99,6 +124,7 @@ export function toInput(values: FormValues): unknown {
 
 export function fromInput(input: EventInput): FormValues {
   return {
+    ...EMPTY_FORM,
     ...input,
     guests: String(input.guests),
     budget: String(input.budget),
@@ -115,7 +141,7 @@ interface Props {
 }
 
 export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serverErrors = {}, onSubmit }: Props) {
-  const [values, setValues] = useState<FormValues>(initial);
+  const [values, setValues] = useState<FormValues>(() => ({ ...EMPTY_FORM, ...initial }));
   const [errors, setErrors] = useState<Record<string, string>>(initialErrors);
   const [muhuratTouched, setMuhuratTouched] = useState(initial !== EMPTY_FORM);
   const [helperOpen, setHelperOpen] = useState(false);
@@ -148,6 +174,16 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
       return next;
     });
   }
+
+  function toggle<K extends "focus" | "guestNeeds">(key: K, value: FormValues[K][number], on: boolean) {
+    setValues((v) => {
+      const list = v[key] as string[];
+      const next = on ? [...list.filter((x) => x !== value), value] : list.filter((x) => x !== value);
+      return { ...v, [key]: next };
+    });
+  }
+
+  const personalCount = values.focus.length + values.guestNeeds.length + (values.food ? 1 : 0);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -354,13 +390,94 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
           {errorText("style")}
         </div>
 
+        <details className="field span-2 personal" open={personalCount > 0}>
+          <summary>
+            Make it yours <span className="muted small">(optional)</span>
+            {personalCount > 0 && <span className="badge">{personalCount} chosen</span>}
+          </summary>
+
+          <fieldset className="choice-group">
+            <legend>What matters most? Pick up to {MAX_FOCUS}</legend>
+            <p className="muted small" id={`${id}-focus-hint`}>
+              Shubā gives these more of the budget and protects them if money gets tight.
+            </p>
+            <div className="choices">
+              {FOCUS_AREAS.map((area) => {
+                const checked = values.focus.includes(area);
+                const full = !checked && values.focus.length >= MAX_FOCUS;
+                const order = values.focus.indexOf(area) + 1;
+                return (
+                  <label key={area} className={`choice${checked ? " is-on" : ""}${full ? " is-off" : ""}`}>
+                    <input
+                      type="checkbox"
+                      name="focus"
+                      value={area}
+                      checked={checked}
+                      disabled={full}
+                      aria-describedby={`${id}-focus-hint`}
+                      onChange={(e) => toggle("focus", area, e.target.checked)}
+                    />
+                    {checked && (
+                      <span className="choice-order" aria-hidden="true">
+                        {order}
+                      </span>
+                    )}
+                    {FOCUS_LABELS[area]}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <div className="field">
+            <label htmlFor={`${id}-food`}>Food</label>
+            <select
+              id={`${id}-food`}
+              name="food"
+              value={values.food}
+              onChange={(e) => update("food", e.target.value as FoodPref)}
+            >
+              {FOOD_PREFS.map((f) => (
+                <option key={f || "none"} value={f}>
+                  {FOOD_LABELS[f]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <fieldset className="choice-group">
+            <legend>Guest needs</legend>
+            <p className="muted small" id={`${id}-needs-hint`}>
+              Shubā adds these to the venue and caterer messages, the budget and the checklist.
+            </p>
+            <div className="choices">
+              {GUEST_NEEDS.map((need) => {
+                const checked = values.guestNeeds.includes(need);
+                return (
+                  <label key={need} className={`choice${checked ? " is-on" : ""}`}>
+                    <input
+                      type="checkbox"
+                      name="guestNeeds"
+                      value={need}
+                      checked={checked}
+                      aria-describedby={`${id}-needs-hint`}
+                      onChange={(e) => toggle("guestNeeds", need, e.target.checked)}
+                    />
+                    {GUEST_NEED_LABELS[need]}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        </details>
+
         <div className="field span-2">
-          <label htmlFor={`${id}-notes`}>Anything else we should know?</label>
+          <label htmlFor={`${id}-notes`}>Must-haves, things to avoid, anything else?</label>
           <textarea
             {...field("notes")}
             rows={3}
             maxLength={LIMITS.maxNotes}
-            placeholder="Food preferences, venue already booked, special guests…"
+            placeholder="e.g. Live dosa counter is a must, no loud DJ, venue already booked…"
             value={values.notes}
             onChange={(e) => update("notes", e.target.value)}
           />

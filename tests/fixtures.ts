@@ -12,6 +12,9 @@ export const baseInput: EventInput = {
   style: "Jungle safari",
   notes: "Afternoon party",
   includeMuhurat: false,
+  focus: [],
+  food: "",
+  guestNeeds: [],
 };
 
 export const samplePlan: Plan = {
