@@ -447,6 +447,7 @@ h3 {
   margin-bottom: 6px;
 }
 input[type="text"],
+input[type="tel"],
 input[type="number"],
 input[type="date"],
 select,
@@ -1199,6 +1200,124 @@ summary {
   }
 }
 
+/* ---------------- Vendor quotes, booking and agreement ---------------- */
+.deal {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+.deal .row label {
+  font-weight: 500;
+}
+.deal .row select {
+  width: auto;
+  min-height: 38px;
+  padding: 4px 12px;
+}
+.quotes-table .badge {
+  margin-left: 8px;
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
+}
+.quotes-table tbody th .muted {
+  display: block;
+}
+.quote-booked {
+  background: color-mix(in oklab, var(--c-accent-soft) 45%, transparent);
+}
+.quote-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+.verdict {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.verdict-over {
+  color: var(--danger);
+}
+.verdict-over::before {
+  content: "▲ ";
+}
+.verdict-under,
+.verdict-on {
+  color: var(--success);
+}
+.verdict-under::before {
+  content: "▼ ";
+}
+.verdict-on::before {
+  content: "✓ ";
+}
+.quote-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius-md);
+}
+.quote-form .field-wide,
+.quote-form .row {
+  grid-column: span 2;
+}
+@media (max-width: 640px) {
+  .quote-form {
+    grid-template-columns: 1fr;
+  }
+  .quote-form .field-wide,
+  .quote-form .row {
+    grid-column: auto;
+  }
+}
+.booking {
+  display: grid;
+  gap: 8px;
+  border-left: 6px solid var(--c-primary);
+}
+.booking p {
+  margin: 0;
+}
+.advance-input {
+  max-width: 160px;
+}
+.agreement {
+  display: grid;
+  gap: 8px;
+}
+.agreement textarea {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.agreement-print {
+  display: none;
+}
+.payments {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.payments div {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+.payments dt {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.payments dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.over-budget {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 /* ---------------- Print / PDF: calm black and white, everything shown ---------------- */
 @media print {
   :root {
@@ -1240,6 +1359,34 @@ summary {
   .petal-mark .petal-gold,
   .petal-mark .petal-teal {
     fill: #000;
+  }
+  .agreement textarea {
+    display: none;
+  }
+  .agreement-print {
+    display: block;
+    white-space: pre-wrap;
+    font:
+      11pt/1.5 Georgia,
+      "Times New Roman",
+      serif;
+  }
+  /* "Print agreement": only that vendor's agreement is printed. */
+  body[data-print="agreement"] * {
+    visibility: hidden;
+  }
+  body[data-print="agreement"] .print-this,
+  body[data-print="agreement"] .print-this .agreement-print,
+  body[data-print="agreement"] .print-this .agreement-print * {
+    visibility: visible;
+  }
+  body[data-print="agreement"] .print-this {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+  }
+  body[data-print="agreement"] .print-this > :not(.agreement-print) {
+    display: none !important;
   }
 }
 

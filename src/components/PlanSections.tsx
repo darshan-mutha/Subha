@@ -6,6 +6,8 @@ import type { DayTimings } from "@/lib/muhurat";
 import type { Plan } from "@/lib/schemas";
 import { dueText, shortDate, type ScheduledItem } from "@/lib/schedule";
 import type { Assignments, Done, Member, PlanItem } from "@/lib/team";
+import type { PaymentSummary } from "@/lib/deals";
+import { VendorDeal, type DealState } from "./VendorDeal";
 
 /** Shared task state: ticks and owners, controlled by the workspace. */
 export interface TaskState {
@@ -112,14 +114,56 @@ export function DoNextSection({ items, state }: { items: ScheduledItem[]; state:
   );
 }
 
-export function BudgetSection({ plan, total }: { plan: Plan; total: number }) {
+export function BudgetSection({
+  plan,
+  total,
+  booked,
+  payments,
+}: {
+  plan: Plan;
+  total: number;
+  /** Booked vendor amounts per budget line. */
+  booked?: Map<string, number>;
+  payments?: PaymentSummary;
+}) {
   const max = Math.max(...plan.budget.map((b) => b.amount), 1);
+  const showBooked = Boolean(payments && payments.bookedCount > 0);
+  const unmatched = booked?.get("Other") ?? 0;
   return (
     <>
       <h2 className="section-title">Budget split</h2>
       <p className="hint estimate-note">
         All amounts are estimates to plan with, not vendor quotes. Confirm prices before you book.
       </p>
+      {showBooked && payments && (
+        <>
+          <h3>Vendor bookings</h3>
+          <dl className="payments">
+            <div>
+              <dt>Booked</dt>
+              <dd>{formatINR(payments.committed)}</dd>
+            </div>
+            <div>
+              <dt>Advance paid</dt>
+              <dd>{formatINR(payments.advancePaid)}</dd>
+            </div>
+            <div>
+              <dt>Balance due</dt>
+              <dd>{formatINR(payments.balanceDue)}</dd>
+            </div>
+            <div>
+              <dt>Left in budget</dt>
+              <dd className={payments.committed > total ? "over-budget" : undefined}>
+                {formatINR(total - payments.committed)}
+              </dd>
+            </div>
+          </dl>
+          <p className="small muted">
+            {payments.bookedCount} vendor{payments.bookedCount === 1 ? "" : "s"} booked. All other amounts are estimates
+            until you book.
+          </p>
+        </>
+      )}
       <div className="table-wrap">
         <table className="budget-table">
           <caption className="sr-only">Estimated budget by category, total {formatINR(total)}</caption>
@@ -132,6 +176,11 @@ export function BudgetSection({ plan, total }: { plan: Plan; total: number }) {
               <th scope="col" className="num">
                 Share
               </th>
+              {showBooked && (
+                <th scope="col" className="num">
+                  Booked
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -148,6 +197,7 @@ export function BudgetSection({ plan, total }: { plan: Plan; total: number }) {
                   </th>
                   <td className="num">{formatINR(line.amount)}</td>
                   <td className="num">{share}%</td>
+                  {showBooked && <BookedCell planned={line.amount} spent={booked?.get(line.category) ?? 0} />}
                 </tr>
               );
             })}
@@ -157,10 +207,16 @@ export function BudgetSection({ plan, total }: { plan: Plan; total: number }) {
               <th scope="row">Total</th>
               <td className="num">{formatINR(total)}</td>
               <td className="num">100%</td>
+              {showBooked && payments && <BookedCell planned={total} spent={payments.committed} />}
             </tr>
           </tfoot>
         </table>
       </div>
+      {showBooked && unmatched > 0 && (
+        <p className="small muted">
+          {formatINR(unmatched)} is booked with vendors not linked to a budget line. Choose a line on the Vendors tab.
+        </p>
+      )}
       {plan.budgetTips.length > 0 && (
         <>
           <h3>Ways to save</h3>
@@ -172,6 +228,17 @@ export function BudgetSection({ plan, total }: { plan: Plan; total: number }) {
         </>
       )}
     </>
+  );
+}
+
+function BookedCell({ planned, spent }: { planned: number; spent: number }) {
+  if (spent === 0) return <td className="num muted">–</td>;
+  const over = spent - planned;
+  return (
+    <td className="num">
+      {formatINR(spent)}
+      {over > 0 && <span className="over-budget small"> ({formatINR(over)} over)</span>}
+    </td>
   );
 }
 
@@ -237,7 +304,18 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-export function VendorsSection({ items, plan, state }: { items: ScheduledItem[]; plan: Plan; state: TaskState }) {
+export function VendorsSection({
+  items,
+  plan,
+  state,
+  deals,
+}: {
+  items: ScheduledItem[];
+  plan: Plan;
+  state: TaskState;
+  /** Quotes and bookings. Left out where the plan is read-only. */
+  deals?: DealState;
+}) {
   const booked = items.filter((i) => state.done[i.id]).length;
   const rows = plan.vendors.map((v, i) => ({ v, item: items[i] })).filter(({ item }) => visible(item, state));
   return (
@@ -264,6 +342,7 @@ export function VendorsSection({ items, plan, state }: { items: ScheduledItem[];
                 </ul>
               </>
             )}
+            {deals && <VendorDeal vendor={{ id: item.id, type: v.type }} brief={v.brief} state={deals} />}
             <details>
               <summary>Ready-to-send message for the {v.type.toLowerCase()}</summary>
               <p className="brief">{v.brief}</p>

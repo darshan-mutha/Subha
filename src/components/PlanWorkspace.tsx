@@ -6,7 +6,9 @@ import { ApiError, loadBlooms, requestAssign, requestRefine, saveBlooms, type Lo
 import { progressOf } from "@/lib/palette";
 import { EVENT_TYPE_LABELS, LIMITS, todayIST } from "@/lib/schemas";
 import { bloomMessage, doNext, milestoneItems, petalsFilled, schedule } from "@/lib/schedule";
+import { bookedByLine, paymentSummary, pruneDeals, type Deal } from "@/lib/deals";
 import type { Member, SharedPlanContent } from "@/lib/team";
+import type { DealState } from "./VendorDeal";
 import {
   BudgetSection,
   DoNextSection,
@@ -81,6 +83,20 @@ export function PlanWorkspace({
   const scheduled = useMemo(() => schedule(plan, input.date, today, done), [plan, input.date, today, done]);
   const items = useMemo(() => [...scheduled.timeline.flat(), ...scheduled.vendors], [scheduled]);
   const upNext = useMemo(() => doNext(items, assignments, viewer), [items, assignments, viewer]);
+  const vendorRefs = useMemo(
+    () => scheduled.vendors.map((item, i) => ({ id: item.id, type: plan.vendors[i]?.type ?? item.label })),
+    [scheduled.vendors, plan.vendors],
+  );
+  const deals = useMemo(
+    () =>
+      pruneDeals(
+        data.deals,
+        vendorRefs.map((v) => v.id),
+      ),
+    [data.deals, vendorRefs],
+  );
+  const payments = useMemo(() => paymentSummary(vendorRefs, deals), [vendorRefs, deals]);
+  const bookedLines = useMemo(() => bookedByLine(vendorRefs, deals, plan.budget), [vendorRefs, deals, plan.budget]);
 
   // "Comes alive": colour grows with the share of tasks done.
   const doneCount = items.filter((i) => i.status === "done").length;
@@ -149,7 +165,8 @@ export function PlanWorkspace({
     const ok = await act(
       async () => {
         const next = await requestRefine(input, plan, text);
-        await onChange({ input: next.input, plan: next.plan, timings: next.timings });
+        // Keep quotes and bookings for vendors that are still in the refined plan.
+        await onChange({ input: next.input, plan: next.plan, timings: next.timings, deals });
       },
       "Updating your plan…",
       "Plan updated",
@@ -189,8 +206,23 @@ export function PlanWorkspace({
     },
   };
 
+  const dealState: DealState = {
+    deals,
+    input,
+    budget: plan.budget,
+    vendors: vendorRefs,
+    onDeal: (vendorId: string, deal: Deal) => onChange({ deals: { ...deals, [vendorId]: deal } }),
+    onBooked: (vendorId: string, isBooked: boolean) => {
+      if (Boolean(done[vendorId]) !== isBooked) onToggle(vendorId, isBooked);
+    },
+  };
+
   const tabs: TabItem[] = [
-    { id: "budget", label: "Budget", content: <BudgetSection plan={plan} total={input.budget} /> },
+    {
+      id: "budget",
+      label: "Budget",
+      content: <BudgetSection plan={plan} total={input.budget} booked={bookedLines} payments={payments} />,
+    },
     {
       id: "timeline",
       label: "Timeline",
@@ -199,7 +231,7 @@ export function PlanWorkspace({
     {
       id: "vendors",
       label: "Vendors",
-      content: <VendorsSection items={scheduled.vendors} plan={plan} state={taskState} />,
+      content: <VendorsSection items={scheduled.vendors} plan={plan} state={taskState} deals={dealState} />,
     },
     { id: "ideas", label: "Ideas", content: <IdeasSection plan={plan} /> },
   ];

@@ -1,3 +1,4 @@
+import type { Quote } from "./deals";
 import type { ExtractResult } from "./extract";
 import type { DayTimings } from "./muhurat";
 import type { EventInput, Plan } from "./schemas";
@@ -68,6 +69,13 @@ export const requestRefine = (input: EventInput, plan: Plan, instruction: string
 
 export const requestAssign = (input: EventInput, plan: Plan, team: Member[]) =>
   postJson<{ assignments: Assignments }>("/api/assign", { input, plan, team }, (d) => Boolean(d.assignments));
+
+export const requestAgreement = (body: {
+  input: EventInput;
+  vendor: { type: string; brief: string };
+  quote: Quote;
+  advance: number;
+}) => postJson<{ text: string; source: "ai" | "standard" }>("/api/agreement", body, (d) => typeof d.text === "string");
 
 export const createShared = (content: SharedPlanContent, done: Done) =>
   postJson<{ id: string }>("/api/plans", { ...content, done }, (d) => Boolean(d.id));

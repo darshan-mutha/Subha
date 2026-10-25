@@ -10,8 +10,8 @@ import { PlanWorkspace } from "./PlanWorkspace";
 const POLL_MS = 15_000;
 
 function contentOf(plan: SharedPlan): SharedPlanContent {
-  const { input, plan: p, timings, team, assignments } = plan;
-  return { input, plan: p, timings, team, assignments };
+  const { input, plan: p, timings, team, assignments, deals = {} } = plan;
+  return { input, plan: p, timings, team, assignments, deals };
 }
 
 /**

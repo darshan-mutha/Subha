@@ -13,7 +13,8 @@ import {
   type LocalWorkspace,
 } from "@/lib/client";
 import { PlanSchema, type EventInput } from "@/lib/schemas";
-import { pruneState, type SharedPlanContent } from "@/lib/team";
+import { pruneDeals } from "@/lib/deals";
+import { planStructure, pruneState, type SharedPlanContent } from "@/lib/team";
 import { EventForm, fromInput, type FormValues } from "./EventForm";
 import { PlanWorkspace } from "./PlanWorkspace";
 import { VoiceStart, type VoicePayload } from "./VoiceStart";
@@ -34,6 +35,7 @@ function savedWorkspace(): LocalWorkspace | null {
     assignments: saved.assignments ?? {},
     done: saved.done ?? {},
     timings: saved.timings ?? null,
+    deals: saved.deals ?? {},
   };
 }
 
@@ -77,7 +79,11 @@ export function Planner() {
       // Keep the team when re-planning after editing details.
       const team = workspace?.team ?? [];
       const kept = workspace ? pruneState(result.plan, team, workspace.assignments, workspace.done) : null;
-      update({ ...result, team, assignments: kept?.assignments ?? {}, done: kept?.done ?? {} });
+      const deals = pruneDeals(
+        workspace?.deals,
+        planStructure(result.plan).vendors.map((v) => v.id),
+      );
+      update({ ...result, team, assignments: kept?.assignments ?? {}, done: kept?.done ?? {}, deals });
       setEditing(undefined);
       setHeard("");
       setMissing({});

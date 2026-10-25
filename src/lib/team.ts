@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DealsSchema, type Deals } from "./deals";
 import type { DayTimings } from "./muhurat";
 import { makeEventInputSchema, PlanSchema, type EventInput, type Plan } from "./schemas";
 
@@ -102,6 +103,8 @@ export interface SharedPlanContent {
   timings: DayTimings | null;
   team: Member[];
   assignments: Assignments;
+  /** Vendor quotes, bookings and agreements, by vendor item id. Older plans may not have it. */
+  deals?: Deals;
 }
 
 export interface SharedPlan extends SharedPlanContent {
@@ -138,6 +141,7 @@ export function makeSharedContentSchema(now: Date = new Date()) {
     timings: TimingsSchema.default(null),
     team: TeamSchema.default([]),
     assignments: AssignmentsSchema.default({}),
+    deals: DealsSchema.default({}),
   });
 }
 
