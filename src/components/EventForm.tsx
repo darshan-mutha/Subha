@@ -1,6 +1,9 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
+import { BudgetHelper } from "@/components/BudgetHelper";
+import { formatINR } from "@/lib/budget";
+import { formatShortINR, perGuest, type BudgetOption } from "@/lib/budgetGuide";
 import {
   EVENT_TYPES,
   EVENT_TYPE_LABELS,
@@ -115,7 +118,19 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<Record<string, string>>(initialErrors);
   const [muhuratTouched, setMuhuratTouched] = useState(initial !== EMPTY_FORM);
+  const [helperOpen, setHelperOpen] = useState(false);
+  const [budgetNote, setBudgetNote] = useState("");
   const id = useId();
+  const budgetRef = useRef<HTMLInputElement>(null);
+  const helpToggleRef = useRef<HTMLButtonElement>(null);
+  const each = perGuest(Number(values.budget), Number(values.guests));
+
+  function pickBudget(option: BudgetOption) {
+    update("budget", String(option.suggested));
+    setBudgetNote(`${option.label} budget of ${formatShortINR(option.suggested)} added. You can change it any time.`);
+    setHelperOpen(false);
+    budgetRef.current?.focus();
+  }
   const allErrors = { ...serverErrors, ...errors };
 
   function update<K extends keyof FormValues>(key: K, value: FormValues[K]) {
@@ -279,6 +294,7 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
           </label>
           <input
             {...field("budget")}
+            ref={budgetRef}
             type="number"
             inputMode="numeric"
             required
@@ -286,10 +302,44 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
             step={1000}
             placeholder="e.g. 500000"
             value={values.budget}
-            onChange={(e) => update("budget", e.target.value)}
+            onChange={(e) => {
+              setBudgetNote("");
+              update("budget", e.target.value);
+            }}
           />
           {errorText("budget")}
+          {each !== null && !allErrors.budget && <p className="hint per-guest">About {formatINR(each)} per guest</p>}
+          <p className="sr-only" role="status">
+            {budgetNote}
+          </p>
+          <button
+            type="button"
+            ref={helpToggleRef}
+            className="btn btn-link btn-small budget-help-toggle"
+            aria-expanded={helperOpen}
+            aria-controls={`${id}-budget-helper`}
+            onClick={() => setHelperOpen((o) => !o)}
+          >
+            Not sure? Help me decide
+          </button>
         </div>
+
+        {helperOpen && (
+          <div className="span-2">
+            <BudgetHelper
+              id={`${id}-budget-helper`}
+              eventType={values.eventType}
+              guests={values.guests}
+              city={values.city}
+              current={values.budget}
+              onPick={pickBudget}
+              onClose={() => {
+                setHelperOpen(false);
+                helpToggleRef.current?.focus();
+              }}
+            />
+          </div>
+        )}
 
         <div className="field span-2">
           <label htmlFor={`${id}-style`}>Style or theme</label>

@@ -1242,3 +1242,80 @@ summary {
     fill: #000;
   }
 }
+
+/* ---------------- Budget helper ("Not sure? Help me decide") ---------------- */
+.per-guest {
+  margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.budget-help-toggle {
+  margin-top: 4px;
+  padding-left: 0;
+  padding-right: 0;
+}
+.budget-helper {
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 20px;
+}
+.budget-helper-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.budget-helper-head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.budget-options {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 640px) {
+  .budget-options {
+    grid-template-columns: 1fr;
+  }
+}
+.budget-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  transition: border-color 200ms var(--ease);
+}
+.budget-option.is-chosen {
+  border-color: var(--c-primary);
+}
+.budget-option h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+.budget-range {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.budget-includes {
+  margin: 8px 0 12px;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  flex: 1;
+}
+.budget-includes li + li {
+  margin-top: 2px;
+}
+.budget-option .btn {
+  align-self: flex-start;
+}
+.estimate-note {
+  margin: 8px 0 0;
+}

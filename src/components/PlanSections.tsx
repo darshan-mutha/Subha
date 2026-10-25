@@ -117,9 +117,12 @@ export function BudgetSection({ plan, total }: { plan: Plan; total: number }) {
   return (
     <>
       <h2 className="section-title">Budget split</h2>
+      <p className="hint estimate-note">
+        All amounts are estimates to plan with, not vendor quotes. Confirm prices before you book.
+      </p>
       <div className="table-wrap">
         <table className="budget-table">
-          <caption className="sr-only">Budget by category, total {formatINR(total)}</caption>
+          <caption className="sr-only">Estimated budget by category, total {formatINR(total)}</caption>
           <thead>
             <tr>
               <th scope="col">Category</th>

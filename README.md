@@ -55,6 +55,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 | `src/lib/muhurat.ts`                                 | Sunrise/sunset (NOAA algorithm) and Rahu Kalam / Yamagandam / Gulika Kalam      |
 | `src/lib/locations.ts`                               | Built-in Indian city list with Open-Meteo geocoding fallback                    |
 | `src/lib/budget.ts`                                  | Rupee formatting, budget normalisation and rule-based warnings                  |
+| `src/lib/budgetGuide.ts`, `BudgetHelper.tsx`         | "Not sure? Help me decide": three estimated budget levels and per-guest spend   |
 | `src/lib/http.ts`                                    | Shared API handling: cross-site block, rate limits, body limit, validation      |
 | `src/components/*`                                   | Form, accessible tabs and plan sections                                         |
 
@@ -65,7 +66,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 - **Task split** – given the helpers' names and roles ("cousin, knows caterers"), Claude assigns each task and vendor booking to the best person; anything left out is balanced evenly in code.
 - **Priorities and dates** – the plan returns each step's days-before-event and a priority per task; Shubā turns these into real dates in code (never before today) and builds the "Do next" list.
 - **Plan refinement** – the current plan plus the user's change request are sent back; Claude returns an updated plan and, if asked, a new total budget or guest count.
-- **What AI is _not_ trusted with** – budget totals are re-balanced in code, warnings for budget-per-guest and short notice are rule-based, and auspicious timings are calculated, never generated.
+- **What AI is _not_ trusted with** – the "Not sure? Help me decide" budget levels (Simple / Comfortable / Grand) come from rule-based per-guest ranges by event type and city, so they are instant, free and repeatable; budget totals are re-balanced in code, warnings for budget-per-guest and short notice are rule-based, and auspicious timings are calculated, never generated.
 
 ### Prompt evolution
 
@@ -74,6 +75,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 3. **v3** – Rules for totals, today's date, ready-to-send vendor briefs, dietary notes and risk warnings; user text wrapped in `<user_details>` and declared as data (prompt-injection guard); explicit ban on inventing muhurat.
 4. **v4** – Each timeline step returns `daysBefore` and each task a `priority`, so Shubā can show real due dates, overdue items and a "Do next" list.
 5. **v5** – 3–5 tasks flagged as milestones; each fills a petal of the rangoli and plays a short celebration when done.
+6. **v6** – Every amount is framed as a planning estimate; the model may never call a price confirmed or quote a named vendor's rate.
 
 ## Security
 

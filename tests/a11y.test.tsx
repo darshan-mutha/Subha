@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { describe, expect, it, vi } from "vitest";
 import { EventForm } from "@/components/EventForm";
@@ -26,6 +27,14 @@ describe("accessibility (axe-core)", () => {
     const { container } = render(
       <EventForm busy={false} initialErrors={{ city: "Please enter a city" }} onSubmit={vi.fn()} />,
     );
+    expect(await violations(container)).toEqual([]);
+  });
+
+  it("budget helper with three options has no violations", async () => {
+    const { container } = render(<EventForm busy={false} onSubmit={vi.fn()} />);
+    await userEvent.selectOptions(screen.getByLabelText(/Event type/), "wedding");
+    await userEvent.type(screen.getByLabelText(/Number of guests/), "150");
+    await userEvent.click(screen.getByRole("button", { name: "Not sure? Help me decide" }));
     expect(await violations(container)).toEqual([]);
   });
 
