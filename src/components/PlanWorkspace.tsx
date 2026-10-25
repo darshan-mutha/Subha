@@ -5,9 +5,19 @@ import { formatINR } from "@/lib/budget";
 import { ApiError, loadBlooms, requestAssign, requestRefine, saveBlooms, type LocalWorkspace } from "@/lib/client";
 import { progressOf } from "@/lib/palette";
 import { EVENT_TYPE_LABELS, FOCUS_LABELS, FOOD_LABELS, GUEST_NEED_LABELS, LIMITS, todayIST } from "@/lib/schemas";
-import { bloomMessage, doNext, milestoneItems, petalsFilled, schedule } from "@/lib/schedule";
+import {
+  bloomMessage,
+  delayItem,
+  delayLines,
+  doNext,
+  milestoneItems,
+  petalsFilled,
+  pruneShifts,
+  schedule,
+  type ScheduledItem,
+} from "@/lib/schedule";
 import { bookedByLine, paymentSummary, pruneDeals, type Deal } from "@/lib/deals";
-import type { Member, SharedPlanContent } from "@/lib/team";
+import { planItems, type Member, type SharedPlanContent } from "@/lib/team";
 import type { DealState } from "./VendorDeal";
 import {
   BudgetSection,
@@ -33,7 +43,7 @@ const REFINE_SUGGESTIONS = [
 ];
 
 /** The plan as it was before the last change, so the host can undo it. */
-type Snapshot = Pick<SharedPlanContent, "input" | "plan" | "timings">;
+type Snapshot = Partial<SharedPlanContent>;
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
@@ -87,11 +97,22 @@ export function PlanWorkspace({
   const [error, setError] = useState("");
   const [instruction, setInstruction] = useState("");
   const [announce, setAnnounce] = useState("");
-  const [lastChange, setLastChange] = useState<{ lines: string[]; before: Snapshot } | null>(null);
+  const [lastChange, setLastChange] = useState<{ lines: string[]; before: Snapshot; note: string } | null>(null);
   const changeRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const today = todayIST();
-  const scheduled = useMemo(() => schedule(plan, input.date, today, done), [plan, input.date, today, done]);
+  const shifts = useMemo(
+    () =>
+      pruneShifts(
+        data.shifts,
+        planItems(plan).map((i) => i.id),
+      ),
+    [data.shifts, plan],
+  );
+  const scheduled = useMemo(
+    () => schedule(plan, input.date, today, done, shifts),
+    [plan, input.date, today, done, shifts],
+  );
   const items = useMemo(() => [...scheduled.timeline.flat(), ...scheduled.vendors], [scheduled]);
   const upNext = useMemo(() => doNext(items, assignments, viewer), [items, assignments, viewer]);
   const vendorRefs = useMemo(
@@ -173,21 +194,22 @@ export function PlanWorkspace({
       setError("Please describe what you want to change.");
       return;
     }
-    const before: Snapshot = { input, plan, timings };
+    const before: Snapshot = { input, plan, timings, shifts };
     let lines: string[] = [];
     const ok = await act(
       async () => {
         const next = await requestRefine(input, plan, text);
         lines = next.changes?.length ? next.changes : ["Your plan has been updated."];
         // Keep quotes and bookings for vendors that are still in the refined plan.
-        await onChange({ input: next.input, plan: next.plan, timings: next.timings, deals });
+        // A re-planned timeline starts fresh, so earlier delays are cleared.
+        await onChange({ input: next.input, plan: next.plan, timings: next.timings, deals, shifts: {} });
       },
       "Updating your plan…",
       "Plan updated. See what changed above the tabs.",
     );
     if (ok) {
       setInstruction("");
-      setLastChange({ lines, before });
+      setLastChange({ lines, before, note: "Due dates, budget and vendor messages have been updated to match." });
       requestAnimationFrame(() => changeRef.current?.focus());
     }
   }
@@ -197,6 +219,27 @@ export function PlanWorkspace({
     const { before } = lastChange;
     const ok = await act(() => onChange(before), "Undoing…", "Last change undone");
     if (ok) setLastChange(null);
+  }
+
+  /** A task is running late: move it and the tasks after it, then show what moved with an Undo. */
+  async function delay(item: ScheduledItem, days: number) {
+    const result = delayItem(items, shifts, item.id, days, today, input.date);
+    if (!result) return;
+    const before: Snapshot = { shifts };
+    const moved = result.later.length;
+    const ok = await act(
+      () => onChange({ shifts: result.shifts }),
+      "Moving tasks…",
+      `Moved ${moved + 1} ${moved === 0 ? "task" : "tasks"}. See what changed above the tabs.`,
+    );
+    if (ok) {
+      setLastChange({
+        lines: delayLines(result),
+        before,
+        note: "Due dates and the Do next list have been updated. Tasks already done did not move.",
+      });
+      requestAnimationFrame(() => changeRef.current?.focus());
+    }
   }
 
   const autoAssign = () =>
@@ -223,6 +266,8 @@ export function PlanWorkspace({
     assignments,
     viewer,
     today,
+    eventDate: input.date,
+    onDelay: (item, days) => void delay(item, days),
     onAssign: (itemId, memberId) => {
       const next = { ...assignments };
       if (memberId) next[itemId] = memberId;
@@ -418,7 +463,7 @@ export function PlanWorkspace({
               <li key={`${i}-${line}`}>{line}</li>
             ))}
           </ul>
-          <p className="muted small">Due dates, budget and vendor messages have been updated to match.</p>
+          <p className="muted small">{lastChange.note}</p>
           <div className="row">
             <button type="button" className="btn" onClick={() => void undo()} disabled={busy}>
               Undo this change

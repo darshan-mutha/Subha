@@ -1,10 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatINR, rebalance } from "@/lib/budget";
 import type { DayTimings } from "@/lib/muhurat";
 import type { Plan } from "@/lib/schemas";
-import { dueText, shortDate, type ScheduledItem } from "@/lib/schedule";
+import {
+  canDelay,
+  daysBetween,
+  DELAY_CHOICES,
+  delayedDate,
+  dueText,
+  shiftText,
+  shortDate,
+  type ScheduledItem,
+} from "@/lib/schedule";
 import type { Assignments, Done, Member, PlanItem } from "@/lib/team";
 import type { PaymentSummary } from "@/lib/deals";
 import { VendorDeal, type DealState } from "./VendorDeal";
@@ -20,6 +29,10 @@ export interface TaskState {
   viewer: string;
   /** Today's date (YYYY-MM-DD, India), for due-date labels. */
   today: string;
+  /** Event date (YYYY-MM-DD). With onDelay, tasks can be marked as running late. */
+  eventDate?: string;
+  /** Moves a late task, and the tasks after it, by this many days. */
+  onDelay?: (item: ScheduledItem, days: number) => void;
 }
 
 const PRIORITY_LABEL: Record<ScheduledItem["priority"], string> = { high: "High", medium: "Medium", low: "Low" };
@@ -60,6 +73,82 @@ function OwnerPicker({ item, state }: { item: PlanItem; state: TaskState }) {
   );
 }
 
+/** "Running late?" — pick a new date, and later tasks move with it. */
+function LateControl({ item, state, id }: { item: ScheduledItem; state: TaskState; id: string }) {
+  const [open, setOpen] = useState(false);
+  const { eventDate, onDelay, today } = state;
+  const options = eventDate
+    ? DELAY_CHOICES.map((days) => ({ days, date: delayedDate(item, days, today, eventDate) })).filter(
+        (o, i, all) => o.date > item.due && all.findIndex((x) => x.date === o.date) === i,
+      )
+    : [];
+  const [choice, setChoice] = useState(0);
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  // Keyboard and screen-reader users land in the panel when it opens, and back on the button when it closes.
+  useEffect(() => {
+    if (open) selectRef.current?.focus();
+    else if (wasOpen.current) toggleRef.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
+  if (!eventDate || !onDelay || !canDelay(item, eventDate) || options.length === 0) return null;
+  const selected = options[Math.min(choice, options.length - 1)];
+  if (!open) {
+    return (
+      <button
+        ref={toggleRef}
+        type="button"
+        className="btn btn-link btn-small late-toggle no-print"
+        aria-expanded="false"
+        aria-controls={`${id}-late`}
+        aria-label={`Running late? ${item.label}`}
+        onClick={() => setOpen(true)}
+      >
+        Running late?
+      </button>
+    );
+  }
+  return (
+    <div
+      className="late-panel no-print"
+      id={`${id}-late`}
+      role="group"
+      aria-labelledby={`${id}-late-label`}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setOpen(false);
+      }}
+    >
+      <label id={`${id}-late-label`} htmlFor={`${id}-late-date`}>
+        When will “{item.label}” be done?
+      </label>
+      <select ref={selectRef} id={`${id}-late-date`} value={choice} onChange={(e) => setChoice(Number(e.target.value))}>
+        {options.map((o, i) => (
+          <option key={o.date} value={i}>
+            By {shortDate(o.date)} ({daysBetween(item.due, o.date)} days later)
+          </option>
+        ))}
+      </select>
+      <p className="small muted">Tasks after this one will move by the same number of days. The event date stays.</p>
+      <div className="row">
+        <button
+          type="button"
+          className="btn btn-small"
+          onClick={() => {
+            setOpen(false);
+            onDelay(item, selected.days);
+          }}
+        >
+          Move it and later tasks
+        </button>
+        <button type="button" className="btn btn-link btn-small" onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function TaskRow({
   item,
   state,
@@ -86,9 +175,13 @@ export function TaskRow({
       <span className="task-meta" id={`${id}-meta`}>
         <PriorityBadge priority={item.priority} />
         <DueLabel item={item} today={state.today} />
+        {item.shifted > 0 && item.status !== "done" && (
+          <span className="small muted shifted">{shiftText(item.shifted)}</span>
+        )}
         {showOwnerName && <span className="small muted">{owner ? owner.name : "Unassigned"}</span>}
       </span>
       {!showOwnerName && <OwnerPicker item={item} state={state} />}
+      <LateControl item={item} state={state} id={id} />
     </li>
   );
 }

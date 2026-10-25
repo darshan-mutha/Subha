@@ -7,6 +7,7 @@ Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremoni
 - **Make it yours** – pick what matters most (food, photos, rituals…), food preference (veg, Jain, no onion-garlic…) and **guest needs** (elderly guests, wheelchair access, young children, hearing or sight support, allergies, a quiet room). Priorities get more of the budget and are protected when money is short; guest needs go into the venue and caterer messages, the budget and the checklist. Voice picks these up too ("my grandmother uses a wheelchair")
 - **Budget** split by category that always adds up to your total, with ways to save. **Change any line** and Shubā moves the difference across the other lines, showing exactly what it cost elsewhere
 - **Timeline** of tasks from today to the event day, each with a **priority (High / Medium / Low)** and a **real due date**; overdue and due-this-week tasks are highlighted
+- **Running late?** – mark any task or booking as late and pick when it will be done. Every unfinished task after it moves by the same number of days (venue before caterer, caterer before menu tasting), nothing moves onto the event day, tasks already done stay put, and a **What changed** card lists every move with **Undo**. Shared with the whole team
 - **Do next** list: the most urgent unfinished tasks (overdue first, then by date and priority), for everyone or one person
 - **Vendor checklist** with questions to ask and a ready-to-send WhatsApp brief for each vendor
 - **Quotes, booking and agreement** – add the quotes you get, compare them side by side against that vendor's share of the budget, book one, track advance paid and balance due (fed into the Budget tab), and get a one-page booking confirmation to send on WhatsApp or print
@@ -139,6 +140,7 @@ npm run dev
 
 ## Changelog
 
+- **25 Oct 2026** – Running late: mark a task late and the tasks after it shift by the same days (capped at the day before the event), with What changed and Undo. Saved with the plan and the team link.
 - **25 Oct 2026** – Make it yours (priorities, food, guest needs, also by voice); mid-way changes can move the date, with a What changed card and Undo; editable budget lines that rebalance the rest; prompt v7.
 - **25 Oct 2026** – Vendor quotes, booking and agreement: compare quotes against budget, book a vendor, track advance and balance, AI-drafted booking confirmation (WhatsApp / print). Booked amounts now show on the Budget tab.
 - **25 Oct 2026** – Invitation maker: AI-written invite in 7 languages, card drawn in the browser (1080×1350) in three looks, download / share / WhatsApp. Saved with the plan and shared with the team.

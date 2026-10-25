@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DealsSchema, type Deals } from "./deals";
 import { InviteSchema, type Invite } from "./invite";
 import type { DayTimings } from "./muhurat";
+import type { Shifts } from "./schedule";
 import { makeEventInputSchema, PlanSchema, type EventInput, type Plan } from "./schemas";
 
 /* ------------------------------------------------------------------ */
@@ -34,6 +35,8 @@ export const TeamSchema = z.array(MemberSchema).max(MAX_MEMBERS, `Up to ${MAX_ME
 const ItemId = z.string().regex(/^[tv]_[a-z0-9]{1,12}$/);
 export const AssignmentsSchema = z.record(ItemId, z.string().regex(/^m[a-z0-9]{1,12}$/));
 export const DoneSchema = z.record(ItemId, z.boolean());
+/** Extra days per task after something ran late (see schedule.ts). */
+export const ShiftsSchema = z.record(ItemId, z.number().int().min(1).max(400));
 
 export type Assignments = z.infer<typeof AssignmentsSchema>;
 export type Done = z.infer<typeof DoneSchema>;
@@ -108,6 +111,8 @@ export interface SharedPlanContent {
   deals?: Deals;
   /** The invitation card, once the host has made one. */
   invite?: Invite | null;
+  /** Days each task was pushed back after something ran late. Older plans may not have it. */
+  shifts?: Shifts;
 }
 
 export interface SharedPlan extends SharedPlanContent {
@@ -146,6 +151,7 @@ export function makeSharedContentSchema(now: Date = new Date()) {
     assignments: AssignmentsSchema.default({}),
     deals: DealsSchema.default({}),
     invite: InviteSchema.nullable().catch(null).default(null),
+    shifts: ShiftsSchema.catch({}).default({}),
   });
 }
 

@@ -101,7 +101,7 @@ describe("What changed", () => {
     await waitFor(() => expect(card).toHaveFocus());
 
     await userEvent.click(within(card).getByRole("button", { name: "Undo this change" }));
-    expect(props.onChange).toHaveBeenLastCalledWith({ input: data.input, plan: samplePlan, timings: null });
+    expect(props.onChange).toHaveBeenLastCalledWith({ input: data.input, plan: samplePlan, timings: null, shifts: {} });
     await waitFor(() => expect(screen.queryByRole("region", { name: "What changed" })).not.toBeInTheDocument());
   });
 

@@ -37,6 +37,7 @@ function savedWorkspace(): LocalWorkspace | null {
     done: saved.done ?? {},
     timings: saved.timings ?? null,
     deals: saved.deals ?? {},
+    shifts: saved.shifts ?? {},
     invite: InviteSchema.nullable()
       .catch(null)
       .parse(saved.invite ?? null),
@@ -93,6 +94,8 @@ export function Planner() {
         assignments: kept?.assignments ?? {},
         done: kept?.done ?? {},
         deals,
+        // A new plan has a new timeline, so earlier delays no longer apply.
+        shifts: {},
         invite: workspace?.invite ?? null,
       });
       setEditing(undefined);
