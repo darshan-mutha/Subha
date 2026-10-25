@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PlannerError, extractJson, generateStructured } from "@/lib/gemini";
+import { PlannerError, extractJson, generateStructured } from "@/lib/ai";
 import { PlanSchema } from "@/lib/schemas";
 import { samplePlan } from "./fixtures";
 

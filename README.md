@@ -1,6 +1,6 @@
 # Shubā — plan any celebration in minutes
 
-Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremonies, festivals, school, corporate and community events. **Start with a voice note** in English, Hindi or any Indian language (or type one line, or use the form), check the details Shubā understood, and get a complete, editable plan:
+Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremonies, festivals, school, corporate and community events. **Start by speaking** in English, Hindi, Kannada, Tamil, Telugu, Marathi or Bengali (or type one line, or use the form), check the details Shubā understood, and get a complete, editable plan:
 
 - **Budget** split by category that always adds up to your total, with ways to save
 - **Timeline** of tasks from today to the event day, each with a **priority (High / Medium / Low)** and a **real due date**; overdue and due-this-week tasks are highlighted
@@ -29,10 +29,10 @@ Shubā's logo is a petal rangoli: six petals, one always gold. A new plan starts
 ```
 Browser (React, Next.js)                     Server (Next.js route handlers)
 ┌────────────────────────┐   POST /api/extract┌──────────────────────────────────────────┐
-│ Voice note / form      │ ─────────────────▶ │ 1. Rate limit + size limit + JSON check   │
+│ Speak / type / form    │ ─────────────────▶ │ 1. Rate limit + size limit + JSON check   │
 │  (same zod schema as   │                    │ 2. Validate input (zod)                   │
 │   the server)          │                    │ 3. In parallel:                           │
-│ Plan view (tabs)       │ ◀───────────────── │    • Gemini, structured JSON output       │
+│ Plan view (tabs)       │ ◀───────────────── │    • Claude, structured JSON output       │
 │ Change-request box     │   POST /api/refine │    • City lookup → sunrise/sunset →       │
 └────────────────────────┘                    │      Rahu Kalam etc. (pure maths)         │
                                               │ 4. Validate AI reply (zod), retry once    │
@@ -43,28 +43,28 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 | Path                                                 | Purpose                                                                         |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `src/lib/schemas.ts`                                 | Input, plan and refine schemas shared by browser and server                     |
-| `src/lib/prompt.ts`                                  | System instruction, prompts and the JSON schema sent to Gemini                  |
+| `src/lib/prompt.ts`                                  | System instruction, prompts and the JSON schema sent to Claude                  |
 | `src/lib/extract.ts`                                 | Voice / one-line description → validated form values                            |
 | `src/components/VoiceStart.tsx`                      | Microphone recorder (MediaRecorder, 60 s max) with typing fallback              |
 | `src/lib/team.ts`                                    | Team members, stable task ids, shared-plan schemas, WhatsApp messages           |
 | `src/lib/assign.ts`                                  | AI task split with even-load fallback                                           |
 | `src/lib/store.ts`                                   | Shared plan storage (Neon Postgres; in-memory for tests), optimistic versioning |
 | `src/components/TeamPanel.tsx`, `SharedPlanView.tsx` | Plan together, team link page with live progress                                |
-| `src/lib/gemini.ts`                                  | Gemini client, JSON extraction, validation and retry                            |
+| `src/lib/ai.ts`                                      | Claude client, schema conversion, JSON extraction, validation and retry         |
 | `src/lib/planner.ts`                                 | Orchestrates AI call, timings, budget normalisation and warnings                |
 | `src/lib/muhurat.ts`                                 | Sunrise/sunset (NOAA algorithm) and Rahu Kalam / Yamagandam / Gulika Kalam      |
 | `src/lib/locations.ts`                               | Built-in Indian city list with Open-Meteo geocoding fallback                    |
 | `src/lib/budget.ts`                                  | Rupee formatting, budget normalisation and rule-based warnings                  |
-| `src/lib/http.ts`                                    | Shared API handling: rate limit, body limit, validation, safe errors            |
+| `src/lib/http.ts`                                    | Shared API handling: cross-site block, rate limits, body limit, validation      |
 | `src/components/*`                                   | Form, accessible tabs and plan sections                                         |
 
 ## Where GenAI is used
 
-- **Voice-first start** – the voice note (or a typed line) goes to Gemini as audio; Gemini returns a transcript and the event details as JSON (dates like "next Sunday" and amounts like "15 lakh" are converted). Every field is re-validated with the form's rules; anything missing or invalid is highlighted for the host to fill in. The form is always available as a fallback.
-- **Plan generation** – Gemini (`gemini-flash-latest`) receives the event details and returns a plan as JSON that must match a schema (`responseJsonSchema`).
-- **Task split** – given the helpers' names and roles ("cousin, knows caterers"), Gemini assigns each task and vendor booking to the best person; anything left out is balanced evenly in code.
+- **Voice-first start** – the browser turns speech into text as the host talks (the words appear in the box to check or edit; no audio reaches Shubā's server). The text goes to Claude, which returns the event details as JSON (dates like "next Sunday" and amounts like "15 lakh" are converted). Every field is re-validated with the form's rules; anything missing or invalid is highlighted for the host to fill in. The form is always available as a fallback.
+- **Plan generation** – Claude (`claude-sonnet-5-5`, low effort for speed) receives the event details and returns a plan as JSON that must match a schema (structured outputs, `output_config.format`). Zod re-validates every reply.
+- **Task split** – given the helpers' names and roles ("cousin, knows caterers"), Claude assigns each task and vendor booking to the best person; anything left out is balanced evenly in code.
 - **Priorities and dates** – the plan returns each step's days-before-event and a priority per task; Shubā turns these into real dates in code (never before today) and builds the "Do next" list.
-- **Plan refinement** – the current plan plus the user's change request are sent back; Gemini returns an updated plan and, if asked, a new total budget or guest count.
+- **Plan refinement** – the current plan plus the user's change request are sent back; Claude returns an updated plan and, if asked, a new total budget or guest count.
 - **What AI is _not_ trusted with** – budget totals are re-balanced in code, warnings for budget-per-guest and short notice are rule-based, and auspicious timings are calculated, never generated.
 
 ### Prompt evolution
@@ -77,12 +77,16 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 
 ## Security
 
-- Gemini API key is read only on the server from `GEMINI_API_KEY`; it never reaches the browser.
+- Claude API key is read only on the server from `ANTHROPIC_API_KEY`; it never reaches the browser. API errors are mapped to friendly messages that never include provider details.
 - All input is validated with zod on both client and server; text fields allow letters (any script), numbers and common punctuation only.
-- Request size limit (32 KB; voice notes up to ~1 MB, audio types whitelisted), JSON-only API, per-IP rate limit (10 requests/minute).
+- Request size limit (32 KB; 4 KB for the event description), JSON-only API, reply length capped per call.
+- Rate limits on AI calls: 10 per minute and 50 per day per visitor, plus an app-wide ceiling of 300 per hour as a cost safety net (all adjustable with environment variables). Saving ticks: 90 per minute.
+- Requests from other websites are refused (Origin and Sec-Fetch-Site checks), so another site cannot spend Shubā's AI quota through its visitors.
+- Kill switch: `AI_DISABLED=1` pauses AI planning instantly without a redeploy of code.
+- Plus a monthly spend limit set in the Claude Console.
 - AI output is validated against a schema before use; raw service errors are never shown to users.
 - Strict, nonce-based Content-Security-Policy generated per request (`'strict-dynamic'`, no inline scripts, no `eval` in production), plus X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, Cross-Origin-Opener-Policy and HSTS. API routes send `default-src 'none'`.
-- Voice notes are sent to Gemini for understanding only and are never stored by Shubā. No personal data is stored on the server.
+- Speech is turned into text by the browser; only that text is sent to Claude, and it is never stored by Shubā. No personal data is stored on the server.
 - Microphone is allowed only for this site (Permissions-Policy) and only while the host is recording.
 
 ## Accessibility
@@ -116,7 +120,7 @@ npm run check   # Prettier, ESLint, TypeScript strict, tests with coverage
 ## Run locally
 
 ```bash
-cp .env.example .env.local   # add GEMINI_API_KEY (free at https://aistudio.google.com/apikey)
+cp .env.example .env.local   # add ANTHROPIC_API_KEY (from https://platform.claude.com)
                              # and DATABASE_URL (Neon Postgres) to enable team sharing
 npm install
 npm run dev

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PlannerError } from "@/lib/gemini";
+import { PlannerError } from "@/lib/ai";
 import { errorResponse, handleJson, jsonResponse } from "@/lib/http";
 import { getStore } from "@/lib/store";
 import { SHARE_ID, makeSharedContentSchema } from "@/lib/team";

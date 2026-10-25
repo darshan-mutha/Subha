@@ -1,5 +1,5 @@
 import { errorResponse, handleJson } from "@/lib/http";
-import { PlannerError } from "@/lib/gemini";
+import { PlannerError } from "@/lib/ai";
 import { getStore } from "@/lib/store";
 import { ProgressSchema, SHARE_ID } from "@/lib/team";
 

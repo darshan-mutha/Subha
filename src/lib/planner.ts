@@ -1,5 +1,5 @@
 import { localWarnings, mergeWarnings, normalizeBudget } from "./budget";
-import { generateStructured, geminiGenerator, type TextGenerator } from "./gemini";
+import { generateStructured, claudeGenerator, type TextGenerator } from "./ai";
 import { findLocation } from "./locations";
 import { normalizeTimeline } from "./schedule";
 import { calculateTimings, type DayTimings } from "./muhurat";
@@ -40,7 +40,7 @@ function withinLimits(value: number, min: number, max: number): boolean {
 
 export async function createPlan(input: EventInput, deps: PlannerDeps = {}): Promise<PlanResult> {
   const now = deps.now ?? new Date();
-  const generate = deps.generate ?? geminiGenerator;
+  const generate = deps.generate ?? claudeGenerator;
   const locate = deps.locate ?? findLocation;
   // The AI call and the location lookup are independent, so run them together.
   const [plan, timings] = await Promise.all([
@@ -61,7 +61,7 @@ export async function refinePlan(
   deps: PlannerDeps = {},
 ): Promise<PlanResult> {
   const now = deps.now ?? new Date();
-  const generate = deps.generate ?? geminiGenerator;
+  const generate = deps.generate ?? claudeGenerator;
   const locate = deps.locate ?? findLocation;
   const [reply, timings] = await Promise.all([
     generateStructured(

@@ -655,6 +655,17 @@ input[type="checkbox"] {
   margin: 0 auto;
   max-width: 46ch;
 }
+.voice-lang {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.voice-lang select {
+  width: auto;
+  min-height: 44px;
+}
 .voice-example {
   font-style: italic;
   font-size: 0.9rem;

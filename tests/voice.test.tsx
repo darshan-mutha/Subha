@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { VoiceStart } from "@/components/VoiceStart";
@@ -74,50 +74,62 @@ describe("Planner voice-first flow", () => {
   });
 });
 
-describe("VoiceStart recording", () => {
-  class FakeRecorder {
-    static isTypeSupported = () => true;
-    state = "inactive";
-    mimeType = "audio/webm";
-    ondataavailable: ((e: { data: Blob }) => void) | null = null;
-    onstop: (() => void) | null = null;
-    constructor(public stream: { getTracks: () => { stop: () => void }[] }) {}
+describe("VoiceStart speech to text", () => {
+  type Handler = Record<string, ((e?: unknown) => void) | null>;
+  let last: (Handler & { lang: string; started: boolean; stop: () => void }) | null = null;
+
+  class FakeRecognition {
+    lang = "";
+    continuous = false;
+    interimResults = false;
+    started = false;
+    onresult: ((e: unknown) => void) | null = null;
+    onerror: ((e: unknown) => void) | null = null;
+    onend: (() => void) | null = null;
+    constructor() {
+      last = this as unknown as typeof last;
+    }
     start() {
-      this.state = "recording";
+      this.started = true;
     }
     stop() {
-      this.state = "inactive";
-      this.ondataavailable?.({ data: new Blob([new Uint8Array(2000)], { type: "audio/webm" }) });
-      this.onstop?.();
+      this.onend?.();
     }
+    abort() {}
   }
 
-  it("records a voice note and sends it as audio", async () => {
-    const stopTrack = vi.fn();
-    vi.stubGlobal("MediaRecorder", FakeRecorder);
-    Object.defineProperty(navigator, "mediaDevices", {
-      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: stopTrack }] }) },
-      configurable: true,
-    });
+  function speak(words: string, isFinal = true) {
+    const result = Object.assign([{ transcript: words }], { isFinal });
+    act(() => last!.onresult!({ resultIndex: 0, results: [result] }));
+  }
+
+  it("shows spoken words in the box in the chosen language, then sends only text", async () => {
+    vi.stubGlobal("webkitSpeechRecognition", FakeRecognition);
     const onSubmit = vi.fn();
     render(<VoiceStart busy={false} error="" onSubmit={onSubmit} onUseForm={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Start recording a voice note" }));
-    expect(await screen.findByRole("button", { name: "Stop recording" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.selectOptions(screen.getByLabelText("Speaking in"), "hi-IN");
+    await userEvent.click(screen.getByRole("button", { name: "Start speaking about your event" }));
+    expect(last!.lang).toBe("hi-IN");
+    expect(screen.getByRole("button", { name: "Stop listening" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText(/seconds left/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Stop recording" }));
-    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
-    expect(onSubmit.mock.calls[0][0].audio.mimeType).toBe("audio/webm");
-    expect(stopTrack).toHaveBeenCalled();
+    speak("Birthday in Pune for 30 people, budget 40k");
+    expect(screen.getByLabelText(/Or type it/)).toHaveValue("Birthday in Pune for 30 people, budget 40k");
+    await userEvent.click(screen.getByRole("button", { name: "Stop listening" }));
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(onSubmit).toHaveBeenCalledWith({ text: "Birthday in Pune for 30 people, budget 40k" });
   });
 
-  it("explains when the microphone is blocked", async () => {
-    vi.stubGlobal("MediaRecorder", FakeRecorder);
-    Object.defineProperty(navigator, "mediaDevices", {
-      value: { getUserMedia: vi.fn().mockRejectedValue(new Error("denied")) },
-      configurable: true,
-    });
+  it("explains when the microphone is blocked or nothing was heard", async () => {
+    vi.stubGlobal("webkitSpeechRecognition", FakeRecognition);
     render(<VoiceStart busy={false} error="" onSubmit={vi.fn()} onUseForm={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Start recording a voice note" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start speaking about your event" }));
+    act(() => last!.onerror!({ error: "not-allowed" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/allow microphone access/);
+    await userEvent.click(screen.getByRole("button", { name: "Start speaking about your event" }));
+    act(() => last!.onerror!({ error: "no-speech" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/didn't hear anything/);
+    await userEvent.click(screen.getByRole("button", { name: "Start speaking about your event" }));
+    act(() => last!.onerror!({ error: "network" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Listening stopped/);
   });
 });

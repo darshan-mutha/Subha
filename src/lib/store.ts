@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
-import { PlannerError } from "./gemini";
+import { PlannerError } from "./ai";
 import { pruneState, type Done, type SharedPlan, type SharedPlanContent } from "./team";
 
 /**

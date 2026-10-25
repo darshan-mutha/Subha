@@ -61,7 +61,7 @@ Current plan JSON:
 ${JSON.stringify(plan)}`;
 }
 
-/** JSON schema sent to Gemini so it returns the exact shape Shubā expects. */
+/** JSON schema sent to Claude so it returns the exact shape Shubā expects. */
 export const PLAN_JSON_SCHEMA = {
   type: "object",
   properties: {

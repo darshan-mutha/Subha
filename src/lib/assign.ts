@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { generateStructured, geminiGenerator, type TextGenerator } from "./gemini";
+import { generateStructured, claudeGenerator, type TextGenerator } from "./ai";
 import { EVENT_TYPE_LABELS, PlanSchema, type EventInput, type Plan } from "./schemas";
 import { TeamSchema, planItems, type Assignments, type Member } from "./team";
 
 /**
- * AI task split: given the helpers and their roles, Gemini decides who should
+ * AI task split: given the helpers and their roles, Claude decides who should
  * own each task and vendor booking. Anything the AI leaves out, or assigns to
  * an unknown person, is shared out evenly in code.
  */
@@ -83,14 +83,14 @@ export async function assignTasks(
   eventType: string,
   plan: Plan,
   team: Member[],
-  generate: TextGenerator = geminiGenerator,
+  generate: TextGenerator = claudeGenerator,
 ): Promise<Assignments> {
   const reply = await generateStructured(
     {
       system: ASSIGN_SYSTEM_INSTRUCTION,
       prompt: buildAssignPrompt(eventType, plan, team),
       jsonSchema: ASSIGN_JSON_SCHEMA,
-      temperature: 0.3,
+      maxTokens: 4_000,
     },
     ReplySchema,
     generate,

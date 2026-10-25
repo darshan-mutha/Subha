@@ -58,7 +58,7 @@ async function postJson<T>(
 
 const post = (url: string, body: unknown) => postJson<PlanResponse>(url, body, (d) => Boolean(d.plan && d.input));
 
-export const requestExtract = (body: { text: string } | { audio: { mimeType: string; data: string } }) =>
+export const requestExtract = (body: { text: string }) =>
   postJson<ExtractResult>("/api/extract", body, (d) => Boolean(d.values));
 
 export const requestPlan = (input: EventInput) => post("/api/plan", input);

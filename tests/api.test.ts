@@ -90,16 +90,45 @@ describe("POST /api/refine", () => {
 });
 
 describe("POST /api/extract", () => {
-  it("accepts a voice note larger than the normal body limit", async () => {
+  it("accepts a description and rejects bodies that are too short or too large", async () => {
     vi.doMock("@/lib/extract", async (orig) => ({
       ...(await orig<ExtractModule>()),
       extractEventDetails: vi.fn(async () => ({ transcript: "hi", values: {}, missing: [] })),
     }));
     const { POST } = await import("@/app/api/extract/route");
-    const res = await POST(post("/api/extract", { audio: { mimeType: "audio/webm", data: "A".repeat(100_000) } }));
+    const res = await POST(post("/api/extract", { text: "Birthday in Pune for 30 people" }));
     expect(res.status).toBe(200);
+    const big = await POST(post("/api/extract", { text: "A".repeat(100_000) }));
+    expect(big.status).toBe(413);
     const bad = await POST(post("/api/extract", { text: "hi" }));
     expect(bad.status).toBe(400);
     expect((await bad.json()).fields.text).toMatch(/a little more/);
+  });
+});
+
+describe("request protections", () => {
+  it("blocks requests sent from other websites", async () => {
+    const { POST } = await import("@/app/api/plan/route");
+    const req = (headers: Record<string, string>) =>
+      new Request("http://localhost/api/plan", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": "10.9.0.1", ...headers },
+        body: JSON.stringify(validBody),
+      });
+    expect((await POST(req({ origin: "https://evil.example", host: "localhost" }))).status).toBe(403);
+    expect((await POST(req({ "sec-fetch-site": "cross-site" }))).status).toBe(403);
+    expect(
+      (await POST(req({ origin: "http://localhost", host: "localhost", "sec-fetch-site": "same-origin" }))).status,
+    ).toBe(200);
+  });
+
+  it("can pause AI planning with a switch", async () => {
+    process.env.AI_DISABLED = "1";
+    try {
+      const { POST } = await import("@/app/api/plan/route");
+      expect((await POST(post("/api/plan", validBody))).status).toBe(503);
+    } finally {
+      delete process.env.AI_DISABLED;
+    }
   });
 });

@@ -16,26 +16,21 @@ const raw = (over: Partial<RawExtraction> = {}): RawExtraction => ({
 });
 
 describe("ExtractRequestSchema", () => {
-  const audio = { mimeType: "audio/webm;codecs=opus", data: "A".repeat(200) };
-
-  it("accepts a voice note and normalises its type", () => {
-    const parsed = ExtractRequestSchema.safeParse({ audio });
-    expect(parsed.success && parsed.data.audio?.mimeType).toBe("audio/webm");
-  });
-
-  it("accepts a typed description", () => {
+  it("accepts a typed or spoken description in Indian scripts", () => {
     expect(ExtractRequestSchema.safeParse({ text: "Wedding in Jaipur, 250 guests" }).success).toBe(true);
+    expect(ExtractRequestSchema.safeParse({ text: "बेटी का जन्मदिन, बेंगलुरु, 40 लोग" }).success).toBe(true);
   });
 
-  it("rejects unsupported formats, bad data and oversized audio", () => {
-    expect(ExtractRequestSchema.safeParse({ audio: { ...audio, mimeType: "video/mp4" } }).success).toBe(false);
-    expect(ExtractRequestSchema.safeParse({ audio: { ...audio, data: "<script>".repeat(30) } }).success).toBe(false);
-    expect(ExtractRequestSchema.safeParse({ audio: { ...audio, data: "A".repeat(1_500_000) } }).success).toBe(false);
-  });
-
-  it("needs exactly one of audio or text", () => {
+  it("rejects short, missing, oversized or markup text", () => {
     expect(ExtractRequestSchema.safeParse({}).success).toBe(false);
-    expect(ExtractRequestSchema.safeParse({ audio, text: "Wedding in Jaipur, 250 guests" }).success).toBe(false);
+    expect(ExtractRequestSchema.safeParse({ text: "hi" }).success).toBe(false);
+    expect(ExtractRequestSchema.safeParse({ text: "a".repeat(600) }).success).toBe(false);
+    expect(ExtractRequestSchema.safeParse({ text: "<script>alert(1)</script> party" }).success).toBe(false);
+  });
+
+  it("no longer accepts raw audio", () => {
+    const parsed = ExtractRequestSchema.safeParse({ audio: { mimeType: "audio/webm", data: "A".repeat(200) } });
+    expect(parsed.success).toBe(false);
   });
 });
 
@@ -66,24 +61,13 @@ describe("cleanExtraction", () => {
 });
 
 describe("extractEventDetails", () => {
-  it("sends the voice note to the AI with today's date", async () => {
+  it("wraps the host's words as data, with today's date and a small reply cap", async () => {
     const generate = vi.fn().mockResolvedValue(JSON.stringify(raw()));
-    const result = await extractEventDetails(
-      { audio: { mimeType: "audio/webm", data: "QUJD" } },
-      { generate, now: NOW },
-    );
+    const result = await extractEventDetails({ text: "Birthday in Bengaluru for 40" }, { generate, now: NOW });
     const request = generate.mock.calls[0][0];
-    expect(request.audio).toEqual({ mimeType: "audio/webm", data: "QUJD" });
     expect(request.prompt).toContain("Saturday, 2026-10-24");
-    expect(request.temperature).toBeLessThan(0.5);
-    expect(result.transcript).toContain("Bengaluru");
-  });
-
-  it("wraps typed text as data", async () => {
-    const generate = vi.fn().mockResolvedValue(JSON.stringify(raw()));
-    await extractEventDetails({ text: "Birthday in Bengaluru for 40" }, { generate, now: NOW });
-    const request = generate.mock.calls[0][0];
-    expect(request.audio).toBeUndefined();
     expect(request.prompt).toMatch(/<user_details>\nBirthday in Bengaluru for 40\n<\/user_details>/);
+    expect(request.maxTokens).toBeLessThanOrEqual(2000);
+    expect(result.transcript).toContain("Bengaluru");
   });
 });
