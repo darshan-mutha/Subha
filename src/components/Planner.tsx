@@ -14,6 +14,7 @@ import {
 } from "@/lib/client";
 import { PlanSchema, type EventInput } from "@/lib/schemas";
 import { pruneDeals } from "@/lib/deals";
+import { InviteSchema } from "@/lib/invite";
 import { planStructure, pruneState, type SharedPlanContent } from "@/lib/team";
 import { EventForm, fromInput, type FormValues } from "./EventForm";
 import { PlanWorkspace } from "./PlanWorkspace";
@@ -36,6 +37,9 @@ function savedWorkspace(): LocalWorkspace | null {
     done: saved.done ?? {},
     timings: saved.timings ?? null,
     deals: saved.deals ?? {},
+    invite: InviteSchema.nullable()
+      .catch(null)
+      .parse(saved.invite ?? null),
   };
 }
 
@@ -83,7 +87,14 @@ export function Planner() {
         workspace?.deals,
         planStructure(result.plan).vendors.map((v) => v.id),
       );
-      update({ ...result, team, assignments: kept?.assignments ?? {}, done: kept?.done ?? {}, deals });
+      update({
+        ...result,
+        team,
+        assignments: kept?.assignments ?? {},
+        done: kept?.done ?? {},
+        deals,
+        invite: workspace?.invite ?? null,
+      });
       setEditing(undefined);
       setHeard("");
       setMissing({});

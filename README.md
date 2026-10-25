@@ -10,6 +10,7 @@ Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremoni
 - **Do next** list: the most urgent unfinished tasks (overdue first, then by date and priority), for everyone or one person
 - **Vendor checklist** with questions to ask and a ready-to-send WhatsApp brief for each vendor
 - **Quotes, booking and agreement** – add the quotes you get, compare them side by side against that vendor's share of the budget, book one, track advance paid and balance due (fed into the Budget tab), and get a one-page booking confirmation to send on WhatsApp or print
+- **Invitation card** – Shubā writes the invitation in English or 6 Indian languages (Hindi, Kannada, Tamil, Telugu, Marathi, Bengali) in a warm, traditional or fun tone, and draws a card in three looks (Peacock, Ivory, Haldi). Edit any word, then download the image, share it straight to WhatsApp on a phone, or send the message
 - **Personalised ideas** for theme, decor, food, activities and special touches
 - **Auspicious timings** (Rahu Kalam, Yamagandam, Gulika Kalam) calculated for the event city and date
 - **Warnings** for unrealistic budgets, short notice and seasonal risks
@@ -68,6 +69,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 - **Voice-first start** – the browser turns speech into text as the host talks (the words appear in the box to check or edit; no audio reaches Shubā's server). The text goes to Claude, which returns the event details as JSON (dates like "next Sunday" and amounts like "15 lakh" are converted). Every field is re-validated with the form's rules; anything missing or invalid is highlighted for the host to fill in. The form is always available as a fallback.
 - **Plan generation** – Claude (`claude-sonnet-5-5`, low effort for speed) receives the event details and returns a plan as JSON that must match a schema (structured outputs, `output_config.format`). Zod re-validates every reply.
 - **Vendor agreement** – Claude writes the scope and simple terms (set-up time, guest changes, cancellation) for a one-page booking confirmation. Prices, dates and the payment schedule are always filled in by code from the host's own numbers, never by the AI. If the AI is busy, a standard template is used so the host still gets a draft.
+- **Invitation words** – Claude writes only the heading, invitation and closing line, in the chosen language's own script. The date (in that language), time, venue and notes are placed on the card by code exactly as the host entered them, so the AI can never get a date or address wrong. If the AI is busy, standard English words are used and the host is told.
 - **Task split** – given the helpers' names and roles ("cousin, knows caterers"), Claude assigns each task and vendor booking to the best person; anything left out is balanced evenly in code.
 - **Priorities and dates** – the plan returns each step's days-before-event and a priority per task; Shubā turns these into real dates in code (never before today) and builds the "Do next" list.
 - **Personal plans** – the host's top priorities, food preference and guest needs are part of the prompt; Claude weights the budget toward the priorities and builds access needs into briefs, questions, budget and tasks.
@@ -139,6 +141,7 @@ npm run dev
 
 - **25 Oct 2026** – Make it yours (priorities, food, guest needs, also by voice); mid-way changes can move the date, with a What changed card and Undo; editable budget lines that rebalance the rest; prompt v7.
 - **25 Oct 2026** – Vendor quotes, booking and agreement: compare quotes against budget, book a vendor, track advance and balance, AI-drafted booking confirmation (WhatsApp / print). Booked amounts now show on the Budget tab.
+- **25 Oct 2026** – Invitation maker: AI-written invite in 7 languages, card drawn in the browser (1080×1350) in three looks, download / share / WhatsApp. Saved with the plan and shared with the team.
 
 ## Roadmap
 

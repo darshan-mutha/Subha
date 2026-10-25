@@ -1,5 +1,6 @@
 import type { Quote } from "./deals";
 import type { ExtractResult } from "./extract";
+import type { InviteDetails, InviteWording } from "./invite";
 import type { DayTimings } from "./muhurat";
 import type { EventInput, Plan } from "./schemas";
 import type { Assignments, Done, Member, SharedPlan, SharedPlanContent } from "./team";
@@ -78,6 +79,11 @@ export const requestAgreement = (body: {
   quote: Quote;
   advance: number;
 }) => postJson<{ text: string; source: "ai" | "standard" }>("/api/agreement", body, (d) => typeof d.text === "string");
+
+export const requestInvite = (input: EventInput, details: InviteDetails) =>
+  postJson<{ wording: InviteWording; source: "ai" | "standard" }>("/api/invite", { input, details }, (d) =>
+    Boolean(d.wording?.heading),
+  );
 
 export const createShared = (content: SharedPlanContent, done: Done) =>
   postJson<{ id: string }>("/api/plans", { ...content, done }, (d) => Boolean(d.id));

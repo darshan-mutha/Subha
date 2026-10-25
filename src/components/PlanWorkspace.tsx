@@ -20,6 +20,7 @@ import {
 } from "./PlanSections";
 import { Tabs, type TabItem } from "./Tabs";
 import { TeamPanel } from "./TeamPanel";
+import { InviteMaker } from "./InviteMaker";
 import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
@@ -268,6 +269,11 @@ export function PlanWorkspace({
       content: <VendorsSection items={scheduled.vendors} plan={plan} state={taskState} deals={dealState} />,
     },
     { id: "ideas", label: "Ideas", content: <IdeasSection plan={plan} /> },
+    {
+      id: "invite",
+      label: "Invite",
+      content: <InviteMaker input={input} invite={data.invite ?? null} onSave={(invite) => onChange({ invite })} />,
+    },
   ];
   if (timings) tabs.push({ id: "timings", label: "Timings", content: <TimingsSection timings={timings} /> });
 

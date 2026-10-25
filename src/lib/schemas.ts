@@ -104,7 +104,7 @@ const SAFE_TEXT = /^[\p{L}\p{M}\p{N}\s.,'&()\-/!?:;₹%+#@"]*$/u;
 const CITY_TEXT = /^[\p{L}\p{M}\s.,'\-()]+$/u;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-const safeText = (max: number, label: string) =>
+export const safeText = (max: number, label: string) =>
   z
     .string()
     .trim()
