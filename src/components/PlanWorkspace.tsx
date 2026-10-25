@@ -1,0 +1,378 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { formatINR } from "@/lib/budget";
+import { ApiError, loadBlooms, requestAssign, requestRefine, saveBlooms, type LocalWorkspace } from "@/lib/client";
+import { progressOf } from "@/lib/palette";
+import { EVENT_TYPE_LABELS, LIMITS, todayIST } from "@/lib/schemas";
+import { bloomMessage, doNext, milestoneItems, petalsFilled, schedule } from "@/lib/schedule";
+import type { Member, SharedPlanContent } from "@/lib/team";
+import {
+  BudgetSection,
+  DoNextSection,
+  IdeasSection,
+  TimelineSection,
+  TimingsSection,
+  VendorsSection,
+  type TaskState,
+} from "./PlanSections";
+import { Tabs, type TabItem } from "./Tabs";
+import { TeamPanel } from "./TeamPanel";
+import { PetalMark, Toran } from "./Brand";
+import { Bloom } from "./Celebrate";
+import { CopyButton } from "./PlanSections";
+
+const REFINE_SUGGESTIONS = ["Reduce the budget by 20%", "Make it eco-friendly", "Add more fun for kids"];
+
+function formatDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-IN", { dateStyle: "long", timeZone: "UTC" }).format(
+    new Date(Date.UTC(y, m - 1, d)),
+  );
+}
+
+export function eventTitle(data: Pick<SharedPlanContent, "input">): string {
+  return data.input.eventName || `our ${EVENT_TYPE_LABELS[data.input.eventType].toLowerCase()}`;
+}
+
+/** Ease-out curve, so colour starts showing after the first few ticks. */
+export function aliveFromProgress(p: number): number {
+  return 1 - (1 - p) ** 2;
+}
+
+interface Props {
+  data: LocalWorkspace;
+  /** Identifies the plan on this device, for remembering which milestone moments have played. */
+  planKey: string;
+  shareUrl: string | null;
+  /** Saves changes to plan content (team, owners, refined plan). */
+  onChange: (content: Partial<SharedPlanContent>) => Promise<void>;
+  onToggle: (itemId: string, done: boolean) => void;
+  onShare: (() => Promise<void>) | null;
+  onEdit: (() => void) | null;
+  onStartOver: () => void;
+  viewer: string;
+  onViewerChange: (memberId: string) => void;
+  /** Message from the parent, e.g. "Saved" or a sync problem. */
+  notice?: string;
+}
+
+/** The plan screen: summary, tabs, team panel and the change-request box. */
+export function PlanWorkspace({
+  data,
+  planKey,
+  shareUrl,
+  onChange,
+  onToggle,
+  onShare,
+  onEdit,
+  onStartOver,
+  viewer,
+  onViewerChange,
+  notice = "",
+}: Props) {
+  const { input, plan, timings, team, assignments, done } = data;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [instruction, setInstruction] = useState("");
+  const [announce, setAnnounce] = useState("");
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const today = todayIST();
+  const scheduled = useMemo(() => schedule(plan, input.date, today, done), [plan, input.date, today, done]);
+  const items = useMemo(() => [...scheduled.timeline.flat(), ...scheduled.vendors], [scheduled]);
+  const upNext = useMemo(() => doNext(items, assignments, viewer), [items, assignments, viewer]);
+
+  // "Comes alive": colour grows with the share of tasks done.
+  const doneCount = items.filter((i) => i.status === "done").length;
+  const progress = progressOf(items.length, doneCount);
+  const complete = items.length > 0 && progress === 1;
+  const milestones = useMemo(() => milestoneItems(items), [items]);
+  const petals = petalsFilled(milestones, progress);
+  const milestonesDone = milestones.filter((m) => m.status === "done").length;
+
+  // Milestone moments play once per device. On first view, milestones already done count as played.
+  const [played, setPlayed] = useState<string[]>(() => {
+    const saved = loadBlooms(planKey);
+    if (saved) return saved;
+    const seeded = milestones.filter((m) => m.status === "done").map((m) => m.id);
+    saveBlooms(planKey, seeded);
+    return seeded;
+  });
+  const bloomIndex = milestones.findIndex((m) => m.status === "done" && !played.includes(m.id));
+  const bloomItem = bloomIndex >= 0 ? milestones[bloomIndex] : null;
+  const finishBloom = useCallback(() => {
+    if (!bloomItem) return;
+    setPlayed((list) => {
+      const next = [...list, bloomItem.id];
+      saveBlooms(planKey, next);
+      return next;
+    });
+  }, [bloomItem, planKey]);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--alive", aliveFromProgress(progress).toFixed(3));
+    return () => {
+      root.style.removeProperty("--alive");
+    };
+  }, [progress]);
+
+  async function act(task: () => Promise<void>, working: string, doneMessage: string): Promise<boolean> {
+    setBusy(true);
+    setError("");
+    setAnnounce(working);
+    try {
+      await task();
+      setAnnounce(doneMessage);
+      return true;
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : "Something went wrong. Please try again.";
+      setError(message);
+      setAnnounce(""); // the visible alert announces the error
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refine(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = instruction.trim();
+    if (text.length < 3) {
+      setError("Please describe what you want to change.");
+      return;
+    }
+    const ok = await act(
+      async () => {
+        const next = await requestRefine(input, plan, text);
+        await onChange({ input: next.input, plan: next.plan, timings: next.timings });
+      },
+      "Updating your plan…",
+      "Plan updated",
+    );
+    if (ok) setInstruction("");
+  }
+
+  const autoAssign = () =>
+    act(
+      async () => {
+        const { assignments: next } = await requestAssign(input, plan, team);
+        await onChange({ assignments: next });
+      },
+      "Dividing the tasks…",
+      "Tasks divided among your team",
+    );
+
+  const changeTeam = (next: Member[]) => {
+    const ids = new Set(next.map((m) => m.id));
+    const kept = Object.fromEntries(Object.entries(assignments).filter(([, m]) => ids.has(m)));
+    if (viewer && !ids.has(viewer)) onViewerChange("");
+    return act(() => onChange({ team: next, assignments: kept }), "Saving…", "Team updated");
+  };
+
+  const taskState: TaskState = {
+    done,
+    onToggle,
+    team,
+    assignments,
+    viewer,
+    today,
+    onAssign: (itemId, memberId) => {
+      const next = { ...assignments };
+      if (memberId) next[itemId] = memberId;
+      else delete next[itemId];
+      void act(() => onChange({ assignments: next }), "Saving…", "Saved");
+    },
+  };
+
+  const tabs: TabItem[] = [
+    { id: "budget", label: "Budget", content: <BudgetSection plan={plan} total={input.budget} /> },
+    {
+      id: "timeline",
+      label: "Timeline",
+      content: <TimelineSection tasks={scheduled.timeline} stepDue={scheduled.stepDue} plan={plan} state={taskState} />,
+    },
+    {
+      id: "vendors",
+      label: "Vendors",
+      content: <VendorsSection items={scheduled.vendors} plan={plan} state={taskState} />,
+    },
+    { id: "ideas", label: "Ideas", content: <IdeasSection plan={plan} /> },
+  ];
+  if (timings) tabs.push({ id: "timings", label: "Timings", content: <TimingsSection timings={timings} /> });
+
+  return (
+    <article className="plan" aria-labelledby="plan-heading" data-complete={complete}>
+      <p className="sr-only" role="status" aria-live="polite">
+        {announce}
+      </p>
+      <header className="card plan-header">
+        {complete && <Toran />}
+        <div className="plan-header-top">
+          <div>
+            <p className="eyebrow">{EVENT_TYPE_LABELS[input.eventType]}</p>
+            <h2 id="plan-heading" ref={headingRef} tabIndex={-1}>
+              {input.eventName || `Your ${EVENT_TYPE_LABELS[input.eventType].toLowerCase()} plan`}
+            </h2>
+          </div>
+          <PetalMark size={88} filled={petals} className="rangoli" />
+        </div>
+        <p className="small muted progress-line">
+          {Math.round(progress * 100)}% done
+          {milestones.length > 0 && ` · ${milestonesDone} of ${milestones.length} milestones`}
+        </p>
+        <ul className="facts" aria-label="Event details">
+          <li>{formatDate(input.date)}</li>
+          <li>{input.city}</li>
+          <li>{input.guests.toLocaleString("en-IN")} guests</li>
+          <li>{formatINR(input.budget)}</li>
+        </ul>
+        <p className="summary">{plan.summary}</p>
+        <div className="row no-print">
+          {onEdit && (
+            <button type="button" className="btn" onClick={onEdit}>
+              Edit details
+            </button>
+          )}
+          <button type="button" className="btn" onClick={() => window.print()}>
+            Download PDF / Print
+          </button>
+          <button type="button" className="btn btn-link" onClick={onStartOver}>
+            Plan a new event
+          </button>
+        </div>
+        {notice && (
+          <p className="small muted" role="status">
+            {notice}
+          </p>
+        )}
+      </header>
+
+      {plan.warnings.length > 0 && (
+        <section className="warnings" aria-labelledby="warn-heading">
+          <h2 id="warn-heading" className="small-heading">
+            Things to watch out for
+          </h2>
+          <ul>
+            {plan.warnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <TeamPanel
+        team={team}
+        items={items}
+        assignments={assignments}
+        done={done}
+        eventTitle={eventTitle(data)}
+        shareUrl={shareUrl}
+        today={today}
+        busy={busy}
+        onTeamChange={changeTeam}
+        onAutoAssign={autoAssign}
+        onShare={onShare ? () => void act(onShare, "Creating your team link…", "Team link ready") : null}
+      />
+
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {team.length > 0 && (
+        <div className="viewer no-print">
+          <label htmlFor="viewer">Show tasks for</label>
+          <select id="viewer" value={viewer} onChange={(e) => onViewerChange(e.target.value)}>
+            <option value="">Everyone</option>
+            {team.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {complete ? (
+        <section className="card celebrate" aria-labelledby="celebrate-heading">
+          <PetalMark size={72} filled={5} />
+          <h2 id="celebrate-heading">All set for {eventTitle(data)}!</h2>
+          <p className="muted">Every task is done. Enjoy the celebration.</p>
+          <div className="row no-print">
+            {shareUrl ? (
+              <CopyButton text={shareUrl} label="team link" />
+            ) : (
+              onShare && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void act(onShare, "Creating your team link…", "Team link ready")}
+                >
+                  Share with my team
+                </button>
+              )
+            )}
+            <button type="button" className="btn btn-primary" onClick={() => window.print()}>
+              Download PDF
+            </button>
+          </div>
+        </section>
+      ) : (
+        <DoNextSection items={upNext} state={taskState} />
+      )}
+
+      <div className="card">
+        <Tabs items={tabs} label="Plan sections" />
+      </div>
+
+      <section className="card refine no-print" aria-labelledby="refine-heading">
+        <h2 id="refine-heading" className="section-title">
+          Change your plan
+        </h2>
+        <p className="muted">Tell Shubā what to change, in your own words.</p>
+        <form onSubmit={refine} className="refine-form" aria-busy={busy}>
+          <label htmlFor="refine-input" className="sr-only">
+            What would you like to change?
+          </label>
+          <input
+            id="refine-input"
+            type="text"
+            maxLength={LIMITS.maxInstruction}
+            placeholder="e.g. Reduce the budget by 20%"
+            value={instruction}
+            onChange={(e) => setInstruction(e.target.value)}
+          />
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? "Working…" : "Update plan"}
+          </button>
+        </form>
+        <div className="examples" role="group" aria-label="Suggestions">
+          {REFINE_SUGGESTIONS.map((s) => (
+            <button key={s} type="button" className="chip" onClick={() => setInstruction(s)}>
+              {s}
+            </button>
+          ))}
+        </div>
+        {busy && (
+          <p className="loading" aria-hidden="true">
+            <span className="spinner" /> Shubā is working… this can take 10–20 seconds.
+          </p>
+        )}
+      </section>
+      {bloomItem && (
+        <Bloom
+          key={bloomItem.id}
+          message={bloomMessage(bloomItem, bloomIndex)}
+          petal={Math.max(1, petals)}
+          onDone={finishBloom}
+        />
+      )}
+    </article>
+  );
+}
