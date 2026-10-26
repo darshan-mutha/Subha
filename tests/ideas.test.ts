@@ -167,6 +167,21 @@ describe("adding an idea to the plan", () => {
     expect(lines.join(" ")).toContain("taken from Contingency");
   });
 
+  it("prefers the most fitting budget line", () => {
+    const plan = {
+      ...samplePlan,
+      budget: [{ category: "Venue & stay", amount: 30000, note: "" }, ...samplePlan.budget],
+    };
+    const { plan: next } = addIdeaToPlan(
+      plan,
+      baseInput,
+      idea("Dress-up corner", { moment: "arrival", cost: 1000 }),
+      today,
+    );
+    expect(next.budget.find((l) => l.category === "Decor")?.amount).toBe(13000);
+    expect(next.budget.find((l) => l.category === "Venue & stay")?.amount).toBe(30000);
+  });
+
   it("says plainly when there isn't enough spare money", () => {
     const { plan, lines } = addIdeaToPlan(
       samplePlan,
@@ -191,7 +206,7 @@ describe("adding an idea to the plan", () => {
   });
 
   it("says when no budget line matches, and names the function in the task", () => {
-    const plan = { ...samplePlan, budget: samplePlan.budget.filter((l) => l.category !== "Return gifts") };
+    const plan = { ...samplePlan, budget: samplePlan.budget.filter((l) => !/Return gifts|Decor/.test(l.category)) };
     const { plan: next, lines } = addIdeaToPlan(
       plan,
       baseInput,

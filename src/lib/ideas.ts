@@ -259,14 +259,14 @@ export function themeSwatches(theme: Plan["theme"]): { name: string; hex: string
 /* "Add to my plan": done in code, never by the AI.                    */
 /* ------------------------------------------------------------------ */
 
-/** Budget lines an idea's cost belongs to, by where it happens in the day. */
-const LINE_FOR: Record<Moment, RegExp> = {
-  arrival: /decor|flower|venue|setup|lighting/i,
-  welcome: /decor|flower|welcome|setup/i,
-  main: /decor|flower|ritual|pooja|puja|priest|ceremony|stage|mandap/i,
-  food: /food|cater|meal|dinner|lunch|drink|bever|cake|sweet/i,
-  fun: /entertain|music|dj|band|sangeet|activit|game|perform|artist/i,
-  "send-off": /gift|favou?r|return|send/i,
+/** Budget lines an idea's cost belongs to, best match first, by where it happens in the day. */
+const LINE_FOR: Record<Moment, RegExp[]> = {
+  arrival: [/decor|flower/i, /light|setup/i, /venue/i],
+  welcome: [/decor|flower/i, /welcome|setup/i, /food|cater/i],
+  main: [/ritual|pooja|puja|priest|ceremony|mandap/i, /decor|flower|stage/i],
+  food: [/food|cater|meal|dinner|lunch/i, /drink|bever|cake|sweet/i],
+  fun: [/entertain|music|dj|band|sangeet|perform|artist/i, /activit|game/i, /decor/i],
+  "send-off": [/gift|favou?r|return/i, /decor/i],
 };
 const SPARE = /contingen|buffer|miscell|reserve|unforeseen/i;
 
@@ -328,7 +328,10 @@ export function addIdeaToPlan(plan: Plan, input: EventInput, idea: Idea, today: 
   let budget = plan.budget;
   const cost = Math.round(idea.cost / 100) * 100;
   if (cost > 0) {
-    const target = budget.findIndex((l) => LINE_FOR[idea.moment].test(l.category) && !SPARE.test(l.category));
+    const target =
+      LINE_FOR[idea.moment]
+        .map((re) => budget.findIndex((l) => re.test(l.category) && !SPARE.test(l.category)))
+        .find((i) => i >= 0) ?? -1;
     const spare = budget.findIndex((l) => SPARE.test(l.category));
     if (target < 0) {
       lines.push(`It costs about ${formatINR(cost)}. No budget line matched, so set this aside in the Budget section.`);
