@@ -212,7 +212,8 @@ export function GuestsSection({
                 {summary.coming.people} {summary.coming.people === 1 ? "person" : "people"}
               </dd>
               <dd className="small muted payments-sub">
-                {summary.coming.adults} adults, {summary.coming.kids} children · {summary.coming.families}{" "}
+                {summary.coming.adults} {summary.coming.adults === 1 ? "adult" : "adults"}, {summary.coming.kids}{" "}
+                {summary.coming.kids === 1 ? "child" : "children"} · {summary.coming.families}{" "}
                 {summary.coming.families === 1 ? "family" : "families"}
               </dd>
             </div>
