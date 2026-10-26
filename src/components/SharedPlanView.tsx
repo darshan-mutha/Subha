@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiStatusError, loadShared, loadViewer, saveProgress, saveViewer, updateShared } from "@/lib/client";
+import { rememberShared } from "@/lib/myEvents";
 import type { SharedPlan, SharedPlanContent } from "@/lib/team";
 import { PlanWorkspace } from "./PlanWorkspace";
 
@@ -36,6 +37,12 @@ export function SharedPlanView({ id }: { id: string }) {
   useEffect(() => {
     latest.current = shared;
   }, [shared]);
+
+  // Keep this plan in My events on this device, so it can be found again without the link.
+  const sharedInput = shared?.input;
+  useEffect(() => {
+    if (sharedInput) rememberShared(id, sharedInput);
+  }, [id, sharedInput]);
 
   const refresh = useCallback((): Promise<void> => {
     if (pending.current > 0) return Promise.resolve(); // don't overwrite changes that are still saving
@@ -137,7 +144,8 @@ export function SharedPlanView({ id }: { id: string }) {
         onToggle={toggle}
         onShare={null}
         onEdit={null}
-        onStartOver={() => router.push("/")}
+        onStartOver={() => router.push("/?view=new")}
+        onMyEvents={() => router.push("/?view=events")}
         notice={error || notice}
       />
     </div>

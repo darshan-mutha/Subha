@@ -74,6 +74,10 @@ interface Props {
   onShare: (() => Promise<void>) | null;
   onEdit: (() => void) | null;
   onStartOver: () => void;
+  /** Opens the list of events on this device. */
+  onMyEvents?: () => void;
+  /** How many events are on this device, shown on the My events button. */
+  eventCount?: number;
   viewer: string;
   onViewerChange: (memberId: string) => void;
   /** Message from the parent, e.g. "Saved" or a sync problem. */
@@ -90,6 +94,8 @@ export function PlanWorkspace({
   onShare,
   onEdit,
   onStartOver,
+  onMyEvents,
+  eventCount = 0,
   viewer,
   onViewerChange,
   notice = "",
@@ -407,6 +413,11 @@ export function PlanWorkspace({
           <button type="button" className="btn" onClick={() => window.print()}>
             Download PDF / Print
           </button>
+          {onMyEvents && (
+            <button type="button" className="btn" onClick={onMyEvents}>
+              My events{eventCount > 1 ? ` (${eventCount})` : ""}
+            </button>
+          )}
           <button type="button" className="btn btn-link" onClick={onStartOver}>
             Plan a new event
           </button>

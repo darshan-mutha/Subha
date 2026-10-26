@@ -1835,3 +1835,83 @@ summary {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- My events ---------- */
+.my-events-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.my-events-head .section-title {
+  margin: 0;
+}
+.event-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  gap: 12px;
+}
+.event-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+.event-row.is-current {
+  border-color: var(--c-primary);
+}
+.event-info {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+.event-info h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.event-info p {
+  margin: 2px 0 0;
+}
+.event-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px !important;
+}
+.chip-label.is-past {
+  background: var(--c-border);
+  color: var(--text);
+}
+.chip-label.is-shared {
+  background: color-mix(in oklch, var(--c-primary) 14%, var(--surface));
+  color: var(--text);
+}
+.event-actions {
+  margin: 0;
+}
+.event-confirm {
+  flex: 1 1 100%;
+}
+.event-confirm p {
+  margin: 0 0 8px;
+}
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover {
+  background: color-mix(in oklch, var(--danger) 88%, black);
+}
+@media (prefers-color-scheme: dark) {
+  .btn-danger {
+    color: #1a0d0a;
+  }
+}

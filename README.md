@@ -18,7 +18,8 @@ Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremoni
 - **Warnings** for unrealistic budgets, short notice and seasonal risks
 - **Plan together** – add family and friends, let AI divide the tasks by role, share one private link; everyone ticks off their tasks and sees live progress, and each person can get their task list on WhatsApp
 - **Change the plan mid-way in plain words** – "We added 50 guests, the budget is 10% lower and the date moved 2 weeks earlier" updates guests, budget and date together, re-plans the timeline and vendor deadlines, cuts the least important areas first, and shows a **What changed** card with **Undo**
-- **Download as PDF / print**, and the last plan is kept on your device
+- **My events** – plan several celebrations at once, no sign-in needed. Every event is kept on your device in one list (soonest first, with a countdown); switch between them, start a new one without losing the others, or remove one. Shared events keep their team link, and plans opened from someone else's link are added to the list so helpers can find them again
+- **Download as PDF / print**
 
 Built for Hack2skill PromptWars Virtual — Challenge 5: Celebration & Event Planner.
 
@@ -62,6 +63,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 | `src/lib/muhurat.ts`                                 | Sunrise/sunset (NOAA algorithm) and Rahu Kalam / Yamagandam / Gulika Kalam      |
 | `src/lib/locations.ts`                               | Built-in Indian city list with Open-Meteo geocoding fallback                    |
 | `src/lib/budget.ts`                                  | Rupee formatting, budget normalisation and rule-based warnings                  |
+| `src/lib/myEvents.ts`, `MyEvents.tsx`                | My events: several events per device, shared links remembered, safe migration   |
 | `src/lib/savings.ts`, `SavingsChoices.tsx`           | Over-budget choices: overspend per line, raise-budget in code, AI choices       |
 | `src/lib/budgetGuide.ts`, `BudgetHelper.tsx`         | "Not sure? Help me decide": three estimated budget levels and per-guest spend   |
 | `src/lib/http.ts`                                    | Shared API handling: cross-site block, rate limits, body limit, validation      |
@@ -143,6 +145,7 @@ npm run dev
 
 ## Changelog
 
+- **26 Oct 2026** – My events: several events on one device without a login. A list with countdowns, open / remove (with a check), new events no longer replace the old one, shared events open from their team link. The plan saved by the one-plan version is moved into the list automatically.
 - **26 Oct 2026** – Over budget? See your choices: a banner when bookings go over, and a Budget-tab panel with several ways to save (or raise the budget), each with an estimated saving and trade-off; choosing one updates the plan with What changed and Undo.
 - **25 Oct 2026** – Running late: mark a task late and the tasks after it shift by the same days (capped at the day before the event), with What changed and Undo. Saved with the plan and the team link.
 - **25 Oct 2026** – Make it yours (priorities, food, guest needs, also by voice); mid-way changes can move the date, with a What changed card and Undo; editable budget lines that rebalance the rest; prompt v7.
@@ -151,4 +154,4 @@ npm run dev
 
 ## Roadmap
 
-Full panchang and muhurat via a licensed astrology API, comments and voting on ideas, sign-in for teams, guest list and RSVP tracking, seating suggestions, multi-language UI.
+Full panchang and muhurat via a licensed astrology API, comments and voting on ideas, sign-in so events follow you across devices, guest list and RSVP tracking, seating suggestions, multi-language UI.

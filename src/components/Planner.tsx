@@ -1,32 +1,36 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ApiError, createShared, requestExtract, requestPlan, type LocalWorkspace } from "@/lib/client";
 import {
-  ApiError,
-  clearPlan,
-  createShared,
-  loadPlan,
-  requestExtract,
-  requestPlan,
-  savePlan,
-  type LocalWorkspace,
-} from "@/lib/client";
+  currentEvent,
+  listEvents,
+  loadEvent,
+  markShared,
+  newEventKey,
+  removeEvent,
+  saveEvent,
+  setCurrentEvent,
+  type EventEntry,
+} from "@/lib/myEvents";
 import { PlanSchema, type EventInput } from "@/lib/schemas";
 import { pruneDeals } from "@/lib/deals";
 import { InviteSchema } from "@/lib/invite";
 import { planStructure, pruneState, type SharedPlanContent } from "@/lib/team";
 import { EventForm, fromInput, type FormValues } from "./EventForm";
+import { MyEvents } from "./MyEvents";
 import { PlanWorkspace } from "./PlanWorkspace";
 import { VoiceStart, type VoicePayload } from "./VoiceStart";
 
 /**
  * Home page flow: voice note (or typed line, or form) → check details →
- * plan. The plan lives in this browser until the host shares it.
+ * plan. Plans live in this browser ("My events") until the host shares them.
  */
-/** Reads the plan saved in this browser, upgrading plans saved by older versions of Shubā. */
-function savedWorkspace(): LocalWorkspace | null {
-  const saved = loadPlan();
+/** Reads an event saved in this browser, upgrading plans saved by older versions of Shubā. */
+function savedWorkspace(key: string): LocalWorkspace | null {
+  if (!key) return null;
+  const saved = loadEvent(key);
   const plan = PlanSchema.safeParse(saved?.plan);
   if (!saved?.input || !plan.success) return null;
   return {
@@ -45,11 +49,30 @@ function savedWorkspace(): LocalWorkspace | null {
 }
 
 /** Rendered in the browser only (see page.tsx), so it can read saved data on first render. */
+type Mode = "voice" | "form" | "plan" | "events";
+
+/** "/?view=events" opens the list, "/?view=new" starts a new event (used from shared plans). */
+function requestedView(): string {
+  return new URLSearchParams(window.location.search).get("view") ?? "";
+}
+
 export function Planner() {
   const router = useRouter();
-  const [workspace, setWorkspace] = useState<LocalWorkspace | null>(savedWorkspace);
+  const [events, setEvents] = useState<EventEntry[]>(listEvents);
+  const [eventKey, setEventKey] = useState(() => {
+    const view = requestedView();
+    if (view === "events" || view === "new") return "";
+    const key = currentEvent();
+    return savedWorkspace(key) ? key : "";
+  });
+  const [workspace, setWorkspace] = useState<LocalWorkspace | null>(() => savedWorkspace(eventKey));
   const [editing, setEditing] = useState<FormValues | undefined>(undefined);
-  const [mode, setMode] = useState<"voice" | "form" | "plan">(() => (workspace ? "plan" : "voice"));
+  const [mode, setMode] = useState<Mode>(() => {
+    const view = requestedView();
+    if (view === "new") return "voice";
+    if (workspace) return "plan";
+    return events.length > 0 ? "events" : "voice";
+  });
   const [heard, setHeard] = useState("");
   const [missing, setMissing] = useState<Record<string, string>>({});
   const [formKey, setFormKey] = useState(0);
@@ -59,9 +82,21 @@ export function Planner() {
   const [announce, setAnnounce] = useState("");
   const [viewer, setViewer] = useState("");
 
-  function update(next: LocalWorkspace) {
+  // Clear "?view=…" once read, so a reload opens the event the host is on.
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(null, "", "/");
+  }, []);
+
+  function persist(key: string, next: LocalWorkspace) {
+    saveEvent(key, next);
+    setCurrentEvent(key);
+    setEvents(listEvents());
+  }
+
+  function update(next: LocalWorkspace, key: string) {
     setWorkspace(next);
-    savePlan(next);
+    setEventKey(key);
+    persist(key, next);
   }
 
   /** Applies a change to the latest workspace, so quick successive edits are not lost. */
@@ -69,7 +104,8 @@ export function Planner() {
     setWorkspace((current) => {
       if (!current) return current;
       const next = change(current);
-      savePlan(next);
+      // Only the plan's content changes here (not its name or date), so the list needs no refresh.
+      saveEvent(eventKey, next);
       return next;
     });
   }
@@ -88,16 +124,21 @@ export function Planner() {
         workspace?.deals,
         planStructure(result.plan).vendors.map((v) => v.id),
       );
-      update({
-        ...result,
-        team,
-        assignments: kept?.assignments ?? {},
-        done: kept?.done ?? {},
-        deals,
-        // A new plan has a new timeline, so earlier delays no longer apply.
-        shifts: {},
-        invite: workspace?.invite ?? null,
-      });
+      // Editing an event keeps it; anything else is a new event in the list.
+      const key = workspace && eventKey ? eventKey : newEventKey();
+      update(
+        {
+          ...result,
+          team,
+          assignments: kept?.assignments ?? {},
+          done: kept?.done ?? {},
+          deals,
+          // A new plan has a new timeline, so earlier delays no longer apply.
+          shifts: {},
+          invite: workspace?.invite ?? null,
+        },
+        key,
+      );
       setEditing(undefined);
       setHeard("");
       setMissing({});
@@ -144,8 +185,10 @@ export function Planner() {
     }
   }
 
+  /** Starts a new event. Events already planned stay in My events. */
   function startOver() {
-    clearPlan();
+    setCurrentEvent("");
+    setEventKey("");
     setWorkspace(null);
     setEditing(undefined);
     setHeard("");
@@ -153,6 +196,47 @@ export function Planner() {
     setError("");
     setViewer("");
     setMode("voice");
+  }
+
+  function showEvents() {
+    const list = listEvents();
+    setEvents(list);
+    setError("");
+    setMode(list.length ? "events" : "voice");
+    requestAnimationFrame(() => document.getElementById(list.length ? "my-events-heading" : "start-heading")?.focus());
+  }
+
+  function openEvent(entry: EventEntry) {
+    if (entry.sharedId) {
+      setCurrentEvent("");
+      router.push(`/p/${entry.sharedId}`);
+      return;
+    }
+    const saved = savedWorkspace(entry.key);
+    if (!saved) {
+      removeEvent(entry.key);
+      setEvents(listEvents());
+      setError("That plan could not be opened on this device, so it was removed from the list.");
+      return;
+    }
+    setCurrentEvent(entry.key);
+    setEventKey(entry.key);
+    setWorkspace(saved);
+    setViewer("");
+    setError("");
+    setMode("plan");
+  }
+
+  function deleteEvent(entry: EventEntry) {
+    removeEvent(entry.key);
+    const list = listEvents();
+    setEvents(list);
+    if (entry.key === eventKey) {
+      setEventKey("");
+      setWorkspace(null);
+    }
+    setAnnounce(`${entry.title} removed from this device`);
+    if (!list.length) setMode("voice");
   }
 
   function openForm(values?: FormValues) {
@@ -175,7 +259,8 @@ export function Planner() {
       <>
         {live}
         <PlanWorkspace
-          planKey="local"
+          key={eventKey}
+          planKey={eventKey || "local"}
           data={workspace}
           shareUrl={null}
           viewer={viewer}
@@ -185,12 +270,29 @@ export function Planner() {
           onShare={async () => {
             const { done, ...content } = workspace;
             const { id } = await createShared(content, done);
-            clearPlan();
+            markShared(eventKey, id, workspace.input);
+            setCurrentEvent("");
             router.push(`/p/${id}?new=1`);
           }}
           onEdit={() => openForm(fromInput(workspace.input))}
           onStartOver={startOver}
+          onMyEvents={showEvents}
+          eventCount={events.length}
         />
+      </>
+    );
+  }
+
+  if (mode === "events" && events.length > 0) {
+    return (
+      <>
+        {live}
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        <MyEvents events={events} current={eventKey} onOpen={openEvent} onRemove={deleteEvent} onNew={startOver} />
       </>
     );
   }
@@ -205,6 +307,11 @@ export function Planner() {
           </h2>
           <VoiceStart busy={busy} error={error} onSubmit={understand} onUseForm={() => openForm()} />
         </section>
+        {events.length > 0 && (
+          <button type="button" className="btn btn-link" onClick={showEvents}>
+            Back to my events ({events.length})
+          </button>
+        )}
       </>
     );
   }
