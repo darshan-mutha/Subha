@@ -10,7 +10,7 @@ import type { LocalWorkspace } from "@/lib/client";
 import type { SharedPlanContent } from "@/lib/team";
 import { planStructure } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
-import { openSection } from "./nav";
+import { currentSection, openSection } from "./nav";
 
 const catererId = planStructure(samplePlan).vendors[0].id;
 
@@ -113,7 +113,7 @@ describe("vendor quotes, booking and agreement", () => {
     expect(caterer.getByText(/Balance due/)).toHaveTextContent("₹13,000");
 
     await openSection("Budget");
-    const payments = screen.getByText("Advance paid").closest("dl")!;
+    const payments = within(currentSection()).getByText("Advance paid").closest("dl")!;
     expect(payments).toHaveTextContent("Booked₹18,000");
     expect(payments).toHaveTextContent("Advance paid₹5,000");
     expect(payments).toHaveTextContent("Balance due₹13,000");

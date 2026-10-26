@@ -18,6 +18,8 @@ import type { Assignments, Done, Member, PlanItem } from "@/lib/team";
 import type { PaymentSummary } from "@/lib/deals";
 import { dateOfDay, dayLabel } from "@/lib/traditions";
 import { VendorDeal, type DealState } from "./VendorDeal";
+import { VendorSummaryPanel } from "./VendorSummaryPanel";
+import { matchesFilter, stageTag, vendorSummary, FILTER_LABELS, type VendorFilter } from "@/lib/vendorSummary";
 
 /** Shared task state: ticks and owners, controlled by the workspace. */
 export interface TaskState {
@@ -494,22 +496,49 @@ export function VendorsSection({
   /** Quotes and bookings. Left out where the plan is read-only. */
   deals?: DealState;
 }) {
-  const booked = items.filter((i) => state.done[i.id]).length;
-  const rows = plan.vendors.map((v, i) => ({ v, item: items[i] })).filter(({ item }) => visible(item, state));
+  const [filter, setFilter] = useState<VendorFilter>("all");
+  const summary = vendorSummary(items, plan, deals?.deals ?? {}, state.done);
+  const rowById = new Map(summary.rows.map((r) => [r.id, r]));
+  const rows = plan.vendors
+    .map((v, i) => ({ v, item: items[i] }))
+    .filter(({ item }) => item && visible(item, state))
+    .filter(({ item }) => {
+      const row = rowById.get(item.id);
+      return !row || matchesFilter(row, filter);
+    });
   return (
     <>
-      <h2 className="section-title">Vendor checklist</h2>
-      <p className="muted">
-        {booked} of {items.length} booked
+      <h2 className="section-title">Vendors</h2>
+      <VendorSummaryPanel summary={summary} today={state.today} filter={filter} onFilter={setFilter} />
+      <p className="small muted vs-showing" role="status">
+        {filter === "all"
+          ? `Showing all ${rows.length} vendors`
+          : `Showing ${rows.length} ${FILTER_LABELS[filter].toLowerCase()}`}
       </p>
-      {rows.length === 0 && <p className="muted">No vendors for this person yet.</p>}
+      {rows.length === 0 && (
+        <p className="muted">
+          {filter === "all" ? "No vendors for this person yet." : "No vendors here right now."}{" "}
+          {filter !== "all" && (
+            <button type="button" className="btn btn-link btn-small" onClick={() => setFilter("all")}>
+              Show all vendors
+            </button>
+          )}
+        </p>
+      )}
       <ul className="vendors">
         {rows.map(({ v, item }) => (
           <li key={item.id} className="vendor card-inner">
             <ul className="checklist vendor-head">
               <TaskRow item={item} state={state} />
             </ul>
-            <span className={`badge ${v.priority === "must-have" ? "badge-must" : ""}`}>{v.priority}</span>
+            <p className="vendor-tags">
+              <span className={`badge ${v.priority === "must-have" ? "badge-must" : ""}`}>{v.priority}</span>
+              {rowById.get(item.id) && (
+                <span className={`vs-tag is-${stageTag(rowById.get(item.id)!).tone}`}>
+                  {stageTag(rowById.get(item.id)!).text}
+                </span>
+              )}
+            </p>
             {v.questions.length > 0 && (
               <>
                 <h3 className="small-heading">Questions to ask</h3>
