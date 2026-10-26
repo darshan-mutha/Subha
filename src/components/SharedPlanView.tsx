@@ -22,12 +22,15 @@ function contentOf(plan: SharedPlan): SharedPlanContent {
 export function SharedPlanView({ id }: { id: string }) {
   const [shared, setShared] = useState<SharedPlan | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState(() =>
-    new URLSearchParams(window.location.search).has("new")
-      ? "Your team link is ready. Send it to your helpers below."
-      : "",
-  );
+  const [notice, setNotice] = useState(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (!query.has("new")) return "";
+    return query.get("tab") === "guests"
+      ? "Your plan is saved online. Turn on guest replies below to get the link for guests."
+      : "Your team link is ready. Send it to your helpers below.";
+  });
   const [viewer, setViewer] = useState(() => loadViewer(id));
+  const [initialTab] = useState(() => new URLSearchParams(window.location.search).get("tab") ?? undefined);
   const shareUrl = `${window.location.origin}/p/${id}`;
   const router = useRouter();
   const pending = useRef(0);
@@ -133,6 +136,8 @@ export function SharedPlanView({ id }: { id: string }) {
       <h1 className="sr-only">Shared celebration plan</h1>
       <PlanWorkspace
         planKey={id}
+        planId={id}
+        initialTab={initialTab}
         data={shared}
         shareUrl={shareUrl}
         viewer={viewer}

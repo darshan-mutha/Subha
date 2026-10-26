@@ -2,6 +2,7 @@ import type { Quote } from "./deals";
 import type { ExtractResult } from "./extract";
 import type { InviteDetails, InviteWording } from "./invite";
 import type { SavingOption, SavingsRequest } from "./savings";
+import type { GuestEvent, Reply } from "./rsvp";
 import type { DayTimings } from "./muhurat";
 import type { EventInput, Plan } from "./schemas";
 import type { Assignments, Done, Member, SharedPlan, SharedPlanContent } from "./team";
@@ -102,6 +103,32 @@ export const updateShared = (id: string, version: number, content: SharedPlanCon
 
 export const saveProgress = (id: string, itemId: string, done: boolean) =>
   postJson<{ done: Done }>(`/api/plans/${encodeURIComponent(id)}/progress`, { itemId, done }, (d) => Boolean(d.done));
+
+export interface GuestsState {
+  link: { token: string; open: boolean } | null;
+  replies: Reply[];
+}
+
+export const loadGuests = (planId: string) =>
+  postJson<GuestsState>(
+    `/api/plans/${encodeURIComponent(planId)}/guests`,
+    null,
+    (d) => Array.isArray(d.replies),
+    "GET",
+  );
+
+export const guestAction = (
+  planId: string,
+  body: { action: "open" } | { action: "close" } | { action: "remove"; replyId: string },
+) => postJson<GuestsState>(`/api/plans/${encodeURIComponent(planId)}/guests`, body, (d) => Array.isArray(d.replies));
+
+export const loadGuestEvent = (token: string) =>
+  postJson<GuestEvent>(`/api/rsvp/${encodeURIComponent(token)}`, null, (d) => Boolean(d.title), "GET");
+
+export const sendReply = (token: string, body: { reply: unknown; replyId?: string; secret?: string }) =>
+  postJson<{ replyId: string; secret: string }>(`/api/rsvp/${encodeURIComponent(token)}`, body, (d) =>
+    Boolean(d.replyId),
+  );
 
 /** A plan being worked on in this browser, before or without sharing. */
 export interface LocalWorkspace extends SharedPlanContent {

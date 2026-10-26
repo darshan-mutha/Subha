@@ -13,6 +13,7 @@ Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremoni
 - **Vendor checklist** with questions to ask and a ready-to-send WhatsApp brief for each vendor
 - **Quotes, booking and agreement** – add the quotes you get, compare them side by side against that vendor's share of the budget, book one, track advance paid and balance due (fed into the Budget tab), and get a one-page booking confirmation to send on WhatsApp or print
 - **Invitation card** – Shubā writes the invitation in English or 6 Indian languages (Hindi, Kannada, Tamil, Telugu, Marathi, Bengali) in a warm, traditional or fun tone, and draws a card in three looks (Peacock, Ivory, Haldi). Edit any word, then download the image, share it straight to WhatsApp on a phone, or send the message
+- **Guest replies (RSVP)** – one link for all guests, sent on WhatsApp with the invitation words. Each family says if they're coming, how many adults and children, their food (veg, Jain, no onion-garlic…), any needs (elderly, wheelchair, young children, allergies) and which side they're from, and can change their reply later from the same phone. The Guests tab shows live counts, a food count for the caterer, guest needs, every reply and a downloadable list, and offers to update the plan's guest count from the replies. Guests never see the plan, budget or team link, and the host can stop taking replies at any time
 - **Personalised ideas** for theme, decor, food, activities and special touches
 - **Auspicious timings** (Rahu Kalam, Yamagandam, Gulika Kalam) calculated for the event city and date
 - **Warnings** for unrealistic budgets, short notice and seasonal risks
@@ -48,26 +49,27 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
                                               └──────────────────────────────────────────┘
 ```
 
-| Path                                                 | Purpose                                                                         |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `src/lib/schemas.ts`                                 | Input, plan and refine schemas shared by browser and server                     |
-| `src/lib/prompt.ts`                                  | System instruction, prompts and the JSON schema sent to Claude                  |
-| `src/lib/extract.ts`                                 | Voice / one-line description → validated form values                            |
-| `src/components/VoiceStart.tsx`                      | Browser speech-to-text (7 Indian languages) with typing fallback                |
-| `src/lib/team.ts`                                    | Team members, stable task ids, shared-plan schemas, WhatsApp messages           |
-| `src/lib/assign.ts`                                  | AI task split with even-load fallback                                           |
-| `src/lib/store.ts`                                   | Shared plan storage (Neon Postgres; in-memory for tests), optimistic versioning |
-| `src/components/TeamPanel.tsx`, `SharedPlanView.tsx` | Plan together, team link page with live progress                                |
-| `src/lib/ai.ts`                                      | Claude client, schema conversion, JSON extraction, validation and retry         |
-| `src/lib/planner.ts`                                 | Orchestrates AI call, timings, budget normalisation and warnings                |
-| `src/lib/muhurat.ts`                                 | Sunrise/sunset (NOAA algorithm) and Rahu Kalam / Yamagandam / Gulika Kalam      |
-| `src/lib/locations.ts`                               | Built-in Indian city list with Open-Meteo geocoding fallback                    |
-| `src/lib/budget.ts`                                  | Rupee formatting, budget normalisation and rule-based warnings                  |
-| `src/lib/myEvents.ts`, `MyEvents.tsx`                | My events: several events per device, shared links remembered, safe migration   |
-| `src/lib/savings.ts`, `SavingsChoices.tsx`           | Over-budget choices: overspend per line, raise-budget in code, AI choices       |
-| `src/lib/budgetGuide.ts`, `BudgetHelper.tsx`         | "Not sure? Help me decide": three estimated budget levels and per-guest spend   |
-| `src/lib/http.ts`                                    | Shared API handling: cross-site block, rate limits, body limit, validation      |
-| `src/components/*`                                   | Form, accessible tabs and plan sections                                         |
+| Path                                                                     | Purpose                                                                                            |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `src/lib/schemas.ts`                                                     | Input, plan and refine schemas shared by browser and server                                        |
+| `src/lib/prompt.ts`                                                      | System instruction, prompts and the JSON schema sent to Claude                                     |
+| `src/lib/extract.ts`                                                     | Voice / one-line description → validated form values                                               |
+| `src/components/VoiceStart.tsx`                                          | Browser speech-to-text (7 Indian languages) with typing fallback                                   |
+| `src/lib/team.ts`                                                        | Team members, stable task ids, shared-plan schemas, WhatsApp messages                              |
+| `src/lib/assign.ts`                                                      | AI task split with even-load fallback                                                              |
+| `src/lib/store.ts`                                                       | Shared plan storage (Neon Postgres; in-memory for tests), optimistic versioning                    |
+| `src/components/TeamPanel.tsx`, `SharedPlanView.tsx`                     | Plan together, team link page with live progress                                                   |
+| `src/lib/ai.ts`                                                          | Claude client, schema conversion, JSON extraction, validation and retry                            |
+| `src/lib/planner.ts`                                                     | Orchestrates AI call, timings, budget normalisation and warnings                                   |
+| `src/lib/muhurat.ts`                                                     | Sunrise/sunset (NOAA algorithm) and Rahu Kalam / Yamagandam / Gulika Kalam                         |
+| `src/lib/locations.ts`                                                   | Built-in Indian city list with Open-Meteo geocoding fallback                                       |
+| `src/lib/budget.ts`                                                      | Rupee formatting, budget normalisation and rule-based warnings                                     |
+| `src/lib/rsvp.ts`, `rsvpStore.ts`, `GuestReply.tsx`, `GuestsSection.tsx` | Guest replies: rules, counts, separate guest link, hashed reply secrets, guest page and Guests tab |
+| `src/lib/myEvents.ts`, `MyEvents.tsx`                                    | My events: several events per device, shared links remembered, safe migration                      |
+| `src/lib/savings.ts`, `SavingsChoices.tsx`                               | Over-budget choices: overspend per line, raise-budget in code, AI choices                          |
+| `src/lib/budgetGuide.ts`, `BudgetHelper.tsx`                             | "Not sure? Help me decide": three estimated budget levels and per-guest spend                      |
+| `src/lib/http.ts`                                                        | Shared API handling: cross-site block, rate limits, body limit, validation                         |
+| `src/components/*`                                                       | Form, accessible tabs and plan sections                                                            |
 
 ## Where GenAI is used
 
@@ -103,7 +105,8 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 - Plus a monthly spend limit set in the Claude Console.
 - AI output is validated against a schema before use; raw service errors are never shown to users.
 - Strict, nonce-based Content-Security-Policy generated per request (`'strict-dynamic'`, no inline scripts, no `eval` in production), plus X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, Cross-Origin-Opener-Policy and HSTS. API routes send `default-src 'none'`.
-- Speech is turned into text by the browser; only that text is sent to Claude, and it is never stored by Shubā. No personal data is stored on the server.
+- Speech is turned into text by the browser; only that text is sent to Claude, and it is never stored by Shubā.
+- Guest replies store only what guests type (name, numbers, food, needs, optional phone and note) and are visible only to people with the team link. The guest link is a separate random 128-bit token, so it cannot be used to open or change the plan, and the guest page shows only the invitation. Each guest gets a secret kept on their phone to change their own reply; only a SHA-256 hash of it is stored. Downloaded reply lists are protected against spreadsheet formula injection.
 - Microphone is allowed only for this site (Permissions-Policy) and only while the host is recording.
 
 ## Accessibility
@@ -145,6 +148,7 @@ npm run dev
 
 ## Changelog
 
+- **26 Oct 2026** – Guest replies (RSVP): one guest link (separate from the team link), a simple reply page with food and needs, live counts and food count for the host, download as a spreadsheet, and "update the plan to N guests" through the change flow with Undo. Each guest's reply is protected by a secret kept only on their phone (stored hashed).
 - **26 Oct 2026** – My events: several events on one device without a login. A list with countdowns, open / remove (with a check), new events no longer replace the old one, shared events open from their team link. The plan saved by the one-plan version is moved into the list automatically.
 - **26 Oct 2026** – Over budget? See your choices: a banner when bookings go over, and a Budget-tab panel with several ways to save (or raise the budget), each with an estimated saving and trade-off; choosing one updates the plan with What changed and Undo.
 - **25 Oct 2026** – Running late: mark a task late and the tasks after it shift by the same days (capped at the day before the event), with What changed and Undo. Saved with the plan and the team link.
@@ -154,4 +158,4 @@ npm run dev
 
 ## Roadmap
 
-Full panchang and muhurat via a licensed astrology API, comments and voting on ideas, sign-in so events follow you across devices, guest list and RSVP tracking, seating suggestions, multi-language UI.
+Full panchang and muhurat via a licensed astrology API, comments and voting on ideas, sign-in so events follow you across devices, seating suggestions, multi-language UI.

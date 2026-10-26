@@ -267,12 +267,12 @@ export function Planner() {
           onViewerChange={setViewer}
           onChange={async (content: Partial<SharedPlanContent>) => patch((w) => ({ ...w, ...content }))}
           onToggle={(itemId, isDone) => patch((w) => ({ ...w, done: { ...w.done, [itemId]: isDone } }))}
-          onShare={async () => {
+          onShare={async (openTab?: string) => {
             const { done, ...content } = workspace;
             const { id } = await createShared(content, done);
             markShared(eventKey, id, workspace.input);
             setCurrentEvent("");
-            router.push(`/p/${id}?new=1`);
+            router.push(`/p/${id}?new=1${openTab ? `&tab=${openTab}` : ""}`);
           }}
           onEdit={() => openForm(fromInput(workspace.input))}
           onStartOver={startOver}

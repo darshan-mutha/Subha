@@ -31,6 +31,7 @@ import {
 import { Tabs, type TabItem } from "./Tabs";
 import { TeamPanel } from "./TeamPanel";
 import { InviteMaker } from "./InviteMaker";
+import { GuestsSection } from "./GuestsSection";
 import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
@@ -68,10 +69,15 @@ interface Props {
   /** Identifies the plan on this device, for remembering which milestone moments have played. */
   planKey: string;
   shareUrl: string | null;
+  /** The shared plan's id (for guest replies), or null while the plan is only on this device. */
+  planId?: string | null;
+  /** Tab to open first, e.g. "guests" after getting the guest link. */
+  initialTab?: string;
   /** Saves changes to plan content (team, owners, refined plan). */
   onChange: (content: Partial<SharedPlanContent>) => Promise<void>;
   onToggle: (itemId: string, done: boolean) => void;
-  onShare: (() => Promise<void>) | null;
+  /** Saves the plan online for the team. `openTab` is the tab to show once it opens. */
+  onShare: ((openTab?: string) => Promise<void>) | null;
   onEdit: (() => void) | null;
   onStartOver: () => void;
   /** Opens the list of events on this device. */
@@ -89,6 +95,8 @@ export function PlanWorkspace({
   data,
   planKey,
   shareUrl,
+  planId = null,
+  initialTab = "budget",
   onChange,
   onToggle,
   onShare,
@@ -139,7 +147,7 @@ export function PlanWorkspace({
   const bookedLines = useMemo(() => bookedByLine(vendorRefs, deals, plan.budget), [vendorRefs, deals, plan.budget]);
   const overList = useMemo(() => overLines(plan.budget, bookedLines), [plan.budget, bookedLines]);
   const overBy = totalOver(overList);
-  const [tab, setTab] = useState("budget");
+  const [tab, setTab] = useState(initialTab);
 
   // "Comes alive": colour grows with the share of tasks done.
   const doneCount = items.filter((i) => i.status === "done").length;
@@ -364,6 +372,26 @@ export function PlanWorkspace({
       id: "invite",
       label: "Invite",
       content: <InviteMaker input={input} invite={data.invite ?? null} onSave={(invite) => onChange({ invite })} />,
+    },
+    {
+      id: "guests",
+      label: "Guests",
+      content: (
+        <GuestsSection
+          planId={planId}
+          active={tab === "guests"}
+          input={input}
+          title={eventTitle(data)}
+          invite={data.invite ?? null}
+          busy={busy}
+          onShare={
+            onShare ? () => void act(() => onShare("guests"), "Creating your guest link…", "Guest link ready") : null
+          }
+          onUseGuests={(guests) =>
+            void applyChange(`Change the guest count to ${guests}, based on the replies from guests.`)
+          }
+        />
+      ),
     },
   ];
   if (timings) tabs.push({ id: "timings", label: "Timings", content: <TimingsSection timings={timings} /> });

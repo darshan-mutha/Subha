@@ -110,7 +110,13 @@ export async function handleJson<S extends z.ZodTypeAny, R>(
     const result = await run(parsed.data);
     return NextResponse.json(result, { headers: JSON_HEADERS });
   } catch (error) {
-    if (error instanceof PlannerError) return errorResponse(error.message, error.status);
+    if (error instanceof PlannerError) {
+      return errorResponse(
+        error.message,
+        error.status,
+        (error as PlannerError & { fields?: Record<string, string> }).fields,
+      );
+    }
     console.error("Planner failure:", error instanceof Error ? error.message : "unknown error");
     return errorResponse("Something went wrong while planning. Please try again.", 500);
   }
