@@ -19,18 +19,26 @@ function contentOf(plan: SharedPlan): SharedPlanContent {
  * A plan shared with the team: everyone with the link sees and updates the same plan.
  * Rendered in the browser only (see the page), as it reads the page URL and saved preferences.
  */
-export function SharedPlanView({ id }: { id: string }) {
+export function SharedPlanView({
+  id,
+  initialTab,
+  isNew = false,
+}: {
+  id: string;
+  /** Tab to open first, from the page address. */
+  initialTab?: string;
+  /** Just shared from this device: show a short note. */
+  isNew?: boolean;
+}) {
   const [shared, setShared] = useState<SharedPlan | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState(() => {
-    const query = new URLSearchParams(window.location.search);
-    if (!query.has("new")) return "";
-    return query.get("tab") === "guests"
+    if (!isNew) return "";
+    return initialTab === "guests"
       ? "Your plan is saved online. Turn on guest replies below to get the link for guests."
       : "Your team link is ready. Send it to your helpers below.";
   });
   const [viewer, setViewer] = useState(() => loadViewer(id));
-  const [initialTab] = useState(() => new URLSearchParams(window.location.search).get("tab") ?? undefined);
   const shareUrl = `${window.location.origin}/p/${id}`;
   const router = useRouter();
   const pending = useRef(0);

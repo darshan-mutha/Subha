@@ -7,8 +7,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SharedPlanPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SharedPlanPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const query = await searchParams;
+  // Read here, not from the address bar: during an in-app move the bar may not have updated yet.
+  const tab = query.tab === "guests" ? "guests" : undefined;
+  const isNew = query.new !== undefined;
   return (
     <ClientOnly
       fallback={
@@ -17,7 +27,7 @@ export default async function SharedPlanPage({ params }: { params: Promise<{ id:
         </p>
       }
     >
-      <SharedPlanView id={id} />
+      <SharedPlanView id={id} initialTab={tab} isNew={isNew} />
     </ClientOnly>
   );
 }

@@ -139,3 +139,19 @@ describe("My events", () => {
     expect(push).toHaveBeenCalledWith("/?view=events");
   });
 });
+
+describe("Shared page from the address", () => {
+  it("opens the tab passed in and shows the right note, even if the address bar has not changed yet", async () => {
+    const id = "D".repeat(22);
+    const shared = { ...ws(), id, version: 1, updatedAt: "2026-10-26T06:00:00Z", deals: {}, shifts: {}, invite: null };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => (url.endsWith("/guests") ? json({ link: null, replies: [] }) : json(shared))),
+    );
+    render(<SharedPlanView id={id} initialTab="guests" isNew />);
+    await screen.findByRole("heading", { name: "Aarav turns 5" });
+    expect(screen.getByRole("tab", { name: "Guests" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(/Turn on guest replies below/)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Turn on guest replies" })).toBeVisible();
+  });
+});
