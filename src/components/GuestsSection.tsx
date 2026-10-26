@@ -202,45 +202,49 @@ export function GuestsSection({
         </div>
       )}
 
-      <h3>Who&rsquo;s coming</h3>
-      <dl className="payments guest-counts">
-        <div>
-          <dt>Coming</dt>
-          <dd>
-            {summary.coming.people} {summary.coming.people === 1 ? "person" : "people"}
-          </dd>
-          <dd className="small muted payments-sub">
-            {summary.coming.adults} adults, {summary.coming.kids} children · {summary.coming.families}{" "}
-            {summary.coming.families === 1 ? "family" : "families"}
-          </dd>
-        </div>
-        <div>
-          <dt>Maybe</dt>
-          <dd>{summary.maybe.people}</dd>
-        </div>
-        <div>
-          <dt>Can&rsquo;t come</dt>
-          <dd>{summary.notComing}</dd>
-        </div>
-        <div>
-          <dt>Replies</dt>
-          <dd>{summary.replies}</dd>
-        </div>
-      </dl>
-      <p className="small muted" role="status">
-        Your plan is for {input.guests.toLocaleString("en-IN")} guests.
-        {summary.expected > 0 && ` Replies so far point to about ${summary.expected} (coming and maybe).`}
-      </p>
-      {suggestion && (
-        <div className="row">
-          <button type="button" className="btn" disabled={busy} onClick={() => onUseGuests(suggestion)}>
-            Update the plan to {suggestion} guests
+      {state.link && (
+        <>
+          <h3>Who&rsquo;s coming</h3>
+          <dl className="payments guest-counts">
+            <div>
+              <dt>Coming</dt>
+              <dd>
+                {summary.coming.people} {summary.coming.people === 1 ? "person" : "people"}
+              </dd>
+              <dd className="small muted payments-sub">
+                {summary.coming.adults} adults, {summary.coming.kids} children · {summary.coming.families}{" "}
+                {summary.coming.families === 1 ? "family" : "families"}
+              </dd>
+            </div>
+            <div>
+              <dt>Maybe</dt>
+              <dd>{summary.maybe.people}</dd>
+            </div>
+            <div>
+              <dt>Can&rsquo;t come</dt>
+              <dd>{summary.notComing}</dd>
+            </div>
+            <div>
+              <dt>Replies</dt>
+              <dd>{summary.replies}</dd>
+            </div>
+          </dl>
+          <p className="small muted" role="status">
+            Your plan is for {input.guests.toLocaleString("en-IN")} guests.
+            {summary.expected > 0 && ` Replies so far point to about ${summary.expected} (coming and maybe).`}
+          </p>
+          {suggestion && (
+            <div className="row">
+              <button type="button" className="btn" disabled={busy} onClick={() => onUseGuests(suggestion)}>
+                Update the plan to {suggestion} guests
+              </button>
+            </div>
+          )}
+          <button type="button" className="btn btn-small btn-link" onClick={() => void refresh()}>
+            Refresh replies
           </button>
-        </div>
+        </>
       )}
-      <button type="button" className="btn btn-small btn-link" onClick={() => void refresh()}>
-        Refresh replies
-      </button>
 
       {summary.food.length > 0 && (
         <>

@@ -48,6 +48,8 @@ export function TeamPanel({
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [error, setError] = useState("");
+  // The add-person form stays folded until the host asks for it (or has a team), to keep the page short.
+  const [adding, setAdding] = useState(false);
 
   function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -134,7 +136,20 @@ export function TeamPanel({
         </ul>
       )}
 
-      {team.length < MAX_MEMBERS && (
+      {team.length < MAX_MEMBERS && !adding && team.length === 0 && (
+        <button
+          type="button"
+          className="btn no-print"
+          onClick={() => {
+            setAdding(true);
+            requestAnimationFrame(() => document.getElementById("member-name")?.focus());
+          }}
+        >
+          <span aria-hidden="true">+ </span>Add family &amp; friends
+        </button>
+      )}
+
+      {team.length < MAX_MEMBERS && (adding || team.length > 0) && (
         <form className="add-member no-print" onSubmit={add} noValidate>
           <div className="field">
             <label htmlFor="member-name">Name</label>

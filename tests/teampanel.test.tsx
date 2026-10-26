@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TeamPanel } from "@/components/TeamPanel";
@@ -22,6 +22,9 @@ describe("TeamPanel", () => {
     const { rerender } = render(
       <TeamPanel {...base} team={[]} shareUrl={null} onTeamChange={onTeamChange} onShare={vi.fn()} />,
     );
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument(); // folded until asked for
+    await userEvent.click(screen.getByRole("button", { name: "Add family & friends" }));
+    await waitFor(() => expect(screen.getByLabelText("Name")).toHaveFocus());
     await userEvent.type(screen.getByLabelText("Name"), "Ravi");
     await userEvent.type(screen.getByLabelText(/Role/), "cousin");
     await userEvent.click(screen.getByRole("button", { name: "Add person" }));
