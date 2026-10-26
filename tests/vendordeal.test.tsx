@@ -10,6 +10,7 @@ import type { LocalWorkspace } from "@/lib/client";
 import type { SharedPlanContent } from "@/lib/team";
 import { planStructure } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
+import { openSection } from "./nav";
 
 const catererId = planStructure(samplePlan).vendors[0].id;
 
@@ -47,7 +48,7 @@ async function openVendors() {
   const user = userEvent.setup();
   const toggle = vi.fn();
   render(<Harness initial={start} onToggle={toggle} />);
-  await user.click(screen.getByRole("tab", { name: "Vendors" }));
+  await openSection("Vendors");
   const caterer = screen.getAllByRole("listitem").find((li) => li.className.includes("vendor card-inner"))!;
   return { user, toggle, caterer: within(caterer) };
 }
@@ -111,7 +112,7 @@ describe("vendor quotes, booking and agreement", () => {
     await user.type(advance, "5000{Enter}");
     expect(caterer.getByText(/Balance due/)).toHaveTextContent("₹13,000");
 
-    await user.click(screen.getByRole("tab", { name: "Budget" }));
+    await openSection("Budget");
     const payments = screen.getByText("Advance paid").closest("dl")!;
     expect(payments).toHaveTextContent("Booked₹18,000");
     expect(payments).toHaveTextContent("Advance paid₹5,000");
@@ -119,7 +120,7 @@ describe("vendor quotes, booking and agreement", () => {
     expect(payments).toHaveTextContent("Left in budget₹32,000");
     expect(screen.getByRole("columnheader", { name: "Booked" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: "Vendors" }));
+    await openSection("Vendors");
     await user.click(screen.getByRole("button", { name: "Cancel booking" }));
     expect(toggle).toHaveBeenLastCalledWith(catererId, false);
   });

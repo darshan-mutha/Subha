@@ -9,6 +9,7 @@ import { ClientOnly } from "@/components/ClientOnly";
 import { savePlan } from "@/lib/client";
 import { planItems } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
+import { currentSection, menuAction, openSection } from "./nav";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -72,16 +73,16 @@ describe("PlanWorkspace", () => {
     expect(within(screen.getByRole("list", { name: "Event details" })).getByText("₹50,000")).toBeInTheDocument();
     expect(screen.getByText("Book the magician early")).toBeInTheDocument();
     for (const tab of ["Budget", "Timeline", "Vendors", "Ideas", "Timings"]) {
-      await userEvent.click(screen.getByRole("tab", { name: tab }));
-      expect(screen.getByRole("tabpanel")).toBeVisible();
+      await openSection(tab);
+      expect(currentSection()).toBeVisible();
     }
     expect(screen.getByText("Rahu Kalam")).toBeInTheDocument();
   });
 
   it("ticks tasks and changes owners", async () => {
     const props = setup();
-    await userEvent.click(screen.getByRole("tab", { name: "Timeline" }));
-    const panel = screen.getByRole("tabpanel");
+    await openSection("Timeline");
+    const panel = currentSection();
     const first = within(panel).getByRole("checkbox", { name: "Send invites" });
     expect(first).toBeChecked();
     await userEvent.click(first);
@@ -96,10 +97,10 @@ describe("PlanWorkspace", () => {
 
   it("filters tasks by person", async () => {
     setup({ viewer: "mmeena" });
-    await userEvent.click(screen.getByRole("tab", { name: "Timeline" }));
+    await openSection("Timeline");
     expect(screen.getByText("No tasks for this person yet.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("tab", { name: "Vendors" }));
-    const panel = screen.getByRole("tabpanel");
+    await openSection("Vendors");
+    const panel = currentSection();
     expect(within(panel).getByText("Book caterer")).toBeInTheDocument();
     expect(within(panel).queryByText("Book entertainer")).not.toBeInTheDocument();
   });
@@ -133,7 +134,7 @@ describe("PlanWorkspace", () => {
   it("lets AI divide the tasks and removes people", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ assignments: { [items[2].id]: "mravi" } })));
     const props = setup();
-    await userEvent.click(screen.getByRole("tab", { name: "Team" }));
+    await openSection("Team");
     await userEvent.click(screen.getByRole("button", { name: /divide the tasks/ }));
     await waitFor(() => expect(props.onChange).toHaveBeenCalledWith({ assignments: { [items[2].id]: "mravi" } }));
     await userEvent.click(screen.getByRole("button", { name: "Remove Meena" }));
@@ -144,10 +145,10 @@ describe("PlanWorkspace", () => {
     const print = vi.fn();
     vi.stubGlobal("print", print);
     const props = setup();
-    await userEvent.click(screen.getByRole("button", { name: "Edit details" }));
-    await userEvent.click(screen.getByRole("button", { name: "Download PDF / Print" }));
-    await userEvent.click(screen.getByRole("button", { name: "Plan a new event" }));
-    await userEvent.click(screen.getByRole("tab", { name: "Team" }));
+    await menuAction("Edit details");
+    await menuAction("Download PDF / Print");
+    await menuAction("Plan a new event");
+    await openSection("Team");
     await userEvent.click(screen.getByRole("button", { name: "Share this plan with my team" }));
     expect(props.onEdit).toHaveBeenCalled();
     expect(print).toHaveBeenCalled();
@@ -159,7 +160,7 @@ describe("PlanWorkspace", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     setup();
-    await userEvent.click(screen.getByRole("tab", { name: "Vendors" }));
+    await openSection("Vendors");
     fireEvent.click(screen.getAllByText(/Ready-to-send message/)[0]);
     await userEvent.click(screen.getAllByRole("button", { name: "Copy message" })[0]);
     expect(writeText).toHaveBeenCalledWith(samplePlan.vendors[0].brief);
@@ -242,8 +243,8 @@ describe("SharedPlanView", () => {
     render(<SharedPlanView id={shared.id} />);
     expect(await screen.findByRole("heading", { name: "Aarav turns 5" })).toBeInTheDocument();
     expect(screen.getByText(`${window.location.origin}/p/${shared.id}`)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("tab", { name: "Timeline" }));
-    await userEvent.click(within(screen.getByRole("tabpanel")).getByRole("checkbox", { name: "Confirm magician" }));
+    await openSection("Timeline");
+    await userEvent.click(within(currentSection()).getByRole("checkbox", { name: "Confirm magician" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(`/api/plans/${shared.id}/progress`, expect.anything()));
   });
 
@@ -255,7 +256,7 @@ describe("SharedPlanView", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<SharedPlanView id={shared.id} />);
     await screen.findByRole("heading", { name: "Aarav turns 5" });
-    await userEvent.click(screen.getByRole("tab", { name: "Team" }));
+    await openSection("Team");
     await userEvent.click(screen.getByRole("button", { name: "Remove Meena" }));
     await waitFor(() => expect(screen.getByText("All changes saved")).toBeInTheDocument());
     const body = JSON.parse(fetchMock.mock.calls[1][1].body);
@@ -267,8 +268,8 @@ describe("SharedPlanView", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json(shared)).mockRejectedValueOnce(new Error("offline")));
     render(<SharedPlanView id={shared.id} />);
     await screen.findByRole("heading", { name: "Aarav turns 5" });
-    await userEvent.click(screen.getByRole("tab", { name: "Timeline" }));
-    const box = within(screen.getByRole("tabpanel")).getByRole("checkbox", { name: "Confirm magician" });
+    await openSection("Timeline");
+    const box = within(currentSection()).getByRole("checkbox", { name: "Confirm magician" });
     await userEvent.click(box);
     await waitFor(() => expect(box).not.toBeChecked());
     expect(screen.getByText(/Could not save that tick/)).toBeInTheDocument();
@@ -291,10 +292,10 @@ describe("Planner", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ id: "B".repeat(22) })));
     render(<Planner />);
     expect(screen.getByRole("heading", { name: "Aarav turns 5" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("tab", { name: "Timeline" }));
-    await userEvent.click(within(screen.getByRole("tabpanel")).getByRole("checkbox", { name: "Confirm magician" }));
-    expect(within(screen.getByRole("tabpanel")).getByRole("checkbox", { name: "Confirm magician" })).toBeChecked();
-    await userEvent.click(screen.getByRole("tab", { name: "Team" }));
+    await openSection("Timeline");
+    await userEvent.click(within(currentSection()).getByRole("checkbox", { name: "Confirm magician" }));
+    expect(within(currentSection()).getByRole("checkbox", { name: "Confirm magician" })).toBeChecked();
+    await openSection("Team");
     await userEvent.click(screen.getByRole("button", { name: "Share this plan with my team" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/p/${"B".repeat(22)}?new=1`));
   });
@@ -306,10 +307,10 @@ describe("Planner", () => {
     await userEvent.click(screen.getByRole("button", { name: "Kid's birthday" }));
     await userEvent.click(screen.getByRole("button", { name: "Create my plan" }));
     expect(await screen.findByRole("heading", { name: "Aarav turns 5" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    await menuAction("Edit details");
     expect(screen.getByRole("heading", { name: "Edit your event" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /go back to my plan/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Plan a new event" }));
+    await menuAction("Plan a new event");
     expect(screen.getByRole("heading", { name: "Tell us about your celebration" })).toBeInTheDocument();
   });
 

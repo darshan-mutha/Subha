@@ -28,7 +28,7 @@ import {
   VendorsSection,
   type TaskState,
 } from "./PlanSections";
-import { Tabs, type TabItem } from "./Tabs";
+import type { TabItem } from "./Tabs";
 import { TeamPanel } from "./TeamPanel";
 import { InviteMaker } from "./InviteMaker";
 import { GuestsSection } from "./GuestsSection";
@@ -36,7 +36,7 @@ import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
 import { SavingsChoices } from "./SavingsChoices";
-import { PhoneNav, type NavAction } from "./PhoneNav";
+import { SectionNav, type NavAction } from "./SectionNav";
 import { applyRaise, overLines, totalOver, type SavingOption, type SavingsRequest } from "@/lib/savings";
 
 const REFINE_SUGGESTIONS = [
@@ -260,12 +260,13 @@ export function PlanWorkspace({
     return ok;
   }
 
-  /** Phone navigation: open a section and bring it to the top of the screen. */
+  /** Opens a section, brings it into view if it is off screen, and moves focus to it. */
   function goTo(id: string) {
     setTab(id);
     requestAnimationFrame(() => {
-      tabsRef.current?.scrollIntoView?.({ block: "start" });
-      tabsRef.current?.querySelector<HTMLElement>('[role="tabpanel"]:not([hidden])')?.focus({ preventScroll: true });
+      const box = tabsRef.current;
+      if (box && box.getBoundingClientRect().top < 0) box.scrollIntoView?.({ block: "start" });
+      document.getElementById(`section-${id}`)?.focus({ preventScroll: true });
     });
   }
 
@@ -546,8 +547,10 @@ export function PlanWorkspace({
   });
   if (timings) tabs.push({ id: "timings", label: "Timings", content: <TimingsSection timings={timings} /> });
   tabs.sort((a, b) => SECTION_ORDER.indexOf(a.id) - SECTION_ORDER.indexOf(b.id));
+  // A section that is not in this plan (e.g. Timings) falls back to Home.
+  const current = tabs.some((t) => t.id === tab) ? tab : "home";
 
-  const phoneActions: NavAction[] = [
+  const navActions: NavAction[] = [
     ...(onEdit ? [{ label: "Edit details", onClick: onEdit }] : []),
     { label: "Download PDF / Print", onClick: () => window.print() },
     ...(onMyEvents ? [{ label: eventCount > 1 ? `My events (${eventCount})` : "My events", onClick: onMyEvents }] : []),
@@ -580,24 +583,6 @@ export function PlanWorkspace({
           <li>{input.guests.toLocaleString("en-IN")} guests</li>
           <li>{formatINR(input.budget)}</li>
         </ul>
-        <div className="row no-print header-actions">
-          {onEdit && (
-            <button type="button" className="btn" onClick={onEdit}>
-              Edit details
-            </button>
-          )}
-          <button type="button" className="btn" onClick={() => window.print()}>
-            Download PDF / Print
-          </button>
-          {onMyEvents && (
-            <button type="button" className="btn" onClick={onMyEvents}>
-              My events{eventCount > 1 ? ` (${eventCount})` : ""}
-            </button>
-          )}
-          <button type="button" className="btn btn-link" onClick={onStartOver}>
-            Plan a new event
-          </button>
-        </div>
         {notice && (
           <p className="small muted" role="status">
             {notice}
@@ -646,15 +631,26 @@ export function PlanWorkspace({
       )}
 
       <div className="card plan-tabs" ref={tabsRef}>
-        <Tabs items={tabs} label="Plan sections" activeId={tab} onActiveChange={setTab} />
+        <SectionNav
+          sections={tabs.map(({ id, label }) => ({ id, label }))}
+          active={current}
+          onPick={goTo}
+          actions={navActions}
+        />
+        {tabs.map((t) => (
+          <section
+            key={t.id}
+            id={`section-${t.id}`}
+            aria-label={t.label}
+            hidden={t.id !== current}
+            tabIndex={-1}
+            className="tabpanel section-panel"
+            data-print-title={t.label}
+          >
+            {t.content}
+          </section>
+        ))}
       </div>
-
-      <PhoneNav
-        sections={tabs.map(({ id, label }) => ({ id, label }))}
-        active={tab}
-        onPick={goTo}
-        actions={phoneActions}
-      />
 
       {bloomItem && (
         <Bloom

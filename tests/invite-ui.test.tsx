@@ -8,6 +8,7 @@ import { PlanWorkspace } from "@/components/PlanWorkspace";
 import type { LocalWorkspace } from "@/lib/client";
 import type { SharedPlanContent } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
+import { openSection } from "./nav";
 
 const saved: Partial<SharedPlanContent>[] = [];
 
@@ -68,7 +69,7 @@ afterEach(() => {
 async function openInvite() {
   const user = userEvent.setup();
   const view = render(<Harness initial={start} />);
-  await user.click(screen.getByRole("tab", { name: "Invite" }));
+  await openSection("Invite");
   return { user, ...view };
 }
 

@@ -2133,13 +2133,10 @@ main:has(.plan, .my-events) > .lead {
     z-index: 5;
     box-shadow: var(--shadow);
   }
-  .phone-nav {
-    display: none;
-  }
 }
 
 /* Phones: a bar fixed to the bottom of the screen replaces the tabs. */
-.phone-nav {
+.section-nav {
   position: fixed;
   left: 0;
   right: 0;
@@ -2150,7 +2147,7 @@ main:has(.plan, .my-events) > .lead {
   box-shadow: 0 -4px 16px rgb(22 36 38 / 8%);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
-.phone-nav-bar {
+.section-nav-bar {
   list-style: none;
   margin: 0 auto;
   padding: 4px 4px;
@@ -2158,7 +2155,7 @@ main:has(.plan, .my-events) > .lead {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   max-width: 560px;
 }
-.phone-nav-item {
+.section-nav-item {
   font: inherit;
   width: 100%;
   min-height: 52px;
@@ -2175,11 +2172,11 @@ main:has(.plan, .my-events) > .lead {
   font-weight: 600;
   cursor: pointer;
 }
-.phone-nav-item[aria-current="page"] {
+.section-nav-item[aria-current="page"] {
   color: var(--c-primary);
   background: color-mix(in oklch, var(--c-primary) 10%, transparent);
 }
-.phone-menu {
+.nav-menu {
   position: absolute;
   bottom: 100%;
   right: 8px;
@@ -2193,23 +2190,23 @@ main:has(.plan, .my-events) > .lead {
   max-height: 70vh;
   overflow-y: auto;
 }
-.phone-menu-title {
+.nav-menu-title {
   margin: 4px 8px 4px;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--muted);
 }
-.phone-menu ul {
+.nav-menu ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.phone-menu-actions {
+.nav-menu-actions {
   border-top: 1px solid var(--c-border);
   margin-top: 6px !important;
   padding-top: 6px !important;
 }
-.phone-menu-item {
+.nav-menu-item {
   font: inherit;
   width: 100%;
   text-align: left;
@@ -2221,8 +2218,8 @@ main:has(.plan, .my-events) > .lead {
   color: var(--text);
   cursor: pointer;
 }
-.phone-menu-item:hover,
-.phone-menu-item[aria-current="page"] {
+.nav-menu-item:hover,
+.nav-menu-item[aria-current="page"] {
   background: color-mix(in oklch, var(--c-primary) 10%, transparent);
   font-weight: 600;
 }
@@ -2231,7 +2228,7 @@ main:has(.plan, .my-events) > .lead {
   .plan .header-actions {
     display: none;
   }
-  body:has(.phone-nav) {
+  body:has(.section-nav) {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
   .plan-tabs {
@@ -2246,7 +2243,7 @@ main:has(.plan, .my-events) > .lead {
   }
 }
 @media print {
-  .phone-nav {
+  .section-nav {
     display: none !important;
   }
 }
@@ -2263,4 +2260,71 @@ main:has(.plan, .my-events) > .lead {
 }
 .refine-form .btn {
   white-space: nowrap;
+}
+
+/* ---------- Section navigation: computers ---------- */
+@media (min-width: 641px) {
+  .section-nav {
+    position: sticky;
+    left: auto;
+    right: auto;
+    top: 8px;
+    z-index: 10;
+    margin: 0 0 20px;
+    background: var(--c-bg);
+    border: none;
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow);
+    padding: 0;
+  }
+  .section-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    max-width: none;
+    gap: 4px;
+    padding: 4px;
+  }
+  .section-nav-bar li {
+    flex: 1 1 0;
+  }
+  .section-nav-item {
+    flex-direction: row;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: var(--radius-full);
+  }
+  .section-nav-item[aria-current="page"] {
+    background: var(--c-primary);
+    color: var(--on-primary);
+  }
+  .nav-menu {
+    bottom: auto;
+    top: 100%;
+    left: auto;
+    right: 0;
+    width: 280px;
+    margin: 8px 0 0;
+  }
+  body:has(.section-nav) {
+    padding-bottom: 0;
+  }
+}
+.section-nav-item:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+.section-panel:focus {
+  outline: none;
+}
+.section-panel:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 6px;
+  border-radius: var(--radius-md);
+}
+.nav-menu-actions {
+  border-top: 1px solid var(--c-border);
+  margin-top: 6px !important;
+  padding-top: 10px;
 }

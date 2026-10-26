@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PlanWorkspace } from "@/components/PlanWorkspace";
 import type { SharedPlanContent } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
+import { currentSection, openSection } from "./nav";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -44,15 +45,15 @@ async function violations(container: HTMLElement) {
   return result.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
 }
 
-function openTab(name: string) {
-  fireEvent.click(screen.getByRole("tab", { name }));
-  return within(screen.getByRole("tabpanel"));
+async function openTab(name: string) {
+  await openSection(name);
+  return within(currentSection());
 }
 
 describe("Running late", () => {
   it("moves a late booking and the tasks after it, then undoes", async () => {
     const { onChange } = setup();
-    const vendors = openTab("Vendors");
+    const vendors = await openTab("Vendors");
     fireEvent.click(vendors.getByRole("button", { name: "Running late? Book caterer" }));
     const panel = screen.getByRole("group", { name: /When will “Book caterer” be done\?/ });
     const select = within(panel).getByRole("combobox");
@@ -70,7 +71,7 @@ describe("Running late", () => {
     expect(screen.getByText(/2 later tasks moved with it/)).toBeInTheDocument();
     expect(screen.getAllByText("Moved 1 week later").length).toBeGreaterThan(0);
 
-    expect(openTab("Timeline").getByText("By 21 Nov")).toBeInTheDocument(); // invites, was 14 Nov
+    expect((await openTab("Timeline")).getByText("By 21 Nov")).toBeInTheDocument(); // invites, was 14 Nov
 
     fireEvent.click(screen.getByRole("button", { name: "Undo this change" }));
     await vi.waitFor(() => expect(screen.queryByRole("heading", { name: "What changed" })).toBeNull());
@@ -80,7 +81,7 @@ describe("Running late", () => {
 
   it("does not offer it on the event day, closes with Escape and has no accessibility issues", async () => {
     const { view } = setup();
-    const timeline = openTab("Timeline");
+    const timeline = await openTab("Timeline");
     expect(screen.queryByRole("button", { name: /Running late\? Set up decor/ })).toBeNull();
     const toggle = timeline.getByRole("button", { name: "Running late? Send invites" });
     fireEvent.click(toggle);

@@ -11,11 +11,11 @@ interface Props {
   sections: { id: string; label: string }[];
   active: string;
   onPick: (id: string) => void;
-  /** Page actions (edit, PDF, my events…) shown in the More menu. */
+  /** Page actions (edit, PDF, my events…) shown in the menu. */
   actions: NavAction[];
 }
 
-/** Sections on the bar itself; everything else is under More. */
+/** Sections on the bar itself; everything else is in the menu. */
 const MAIN: { id: string; label: string; icon: ReactNode }[] = [
   {
     id: "home",
@@ -43,7 +43,7 @@ const MAIN: { id: string; label: string; icon: ReactNode }[] = [
 
 const Icon = ({ children }: { children: ReactNode }) => (
   <svg
-    className="phone-nav-icon"
+    className="section-nav-icon"
     viewBox="0 0 24 24"
     width="22"
     height="22"
@@ -59,11 +59,11 @@ const Icon = ({ children }: { children: ReactNode }) => (
 );
 
 /**
- * Phones: a bar fixed to the bottom of the screen with the four sections used
- * most, and More for the rest and for page actions. Hidden on larger screens,
- * where the tabs above the plan are used instead.
+ * The plan's navigation: the four sections used most, and a menu (☰) for the
+ * other sections and the page actions. On computers it sits above the plan
+ * and stays in view while scrolling; on phones it is fixed to the bottom.
  */
-export function PhoneNav({ sections, active, onPick, actions }: Props) {
+export function SectionNav({ sections, active, onPick, actions }: Props) {
   const menuId = useId();
   const [open, setOpen] = useState(false);
   const moreRef = useRef<HTMLButtonElement>(null);
@@ -99,16 +99,16 @@ export function PhoneNav({ sections, active, onPick, actions }: Props) {
   };
 
   return (
-    <nav className="phone-nav no-print" aria-label="Plan sections (phone)">
+    <nav className="section-nav no-print" aria-label="Plan sections">
       {open && (
-        <div className="phone-menu" id={menuId} ref={menuRef}>
-          <p className="phone-menu-title">More sections</p>
+        <div className="nav-menu" id={menuId} ref={menuRef}>
+          <p className="nav-menu-title">Sections</p>
           <ul role="list">
             {rest.map((s) => (
               <li key={s.id}>
                 <button
                   type="button"
-                  className="phone-menu-item"
+                  className="nav-menu-item"
                   aria-current={s.id === active ? "page" : undefined}
                   onClick={() => pick(s.id)}
                 >
@@ -117,12 +117,13 @@ export function PhoneNav({ sections, active, onPick, actions }: Props) {
               </li>
             ))}
           </ul>
-          <ul role="list" className="phone-menu-actions">
+          <p className="nav-menu-title nav-menu-actions">This event</p>
+          <ul role="list">
             {actions.map((a) => (
               <li key={a.label}>
                 <button
                   type="button"
-                  className="phone-menu-item"
+                  className="nav-menu-item"
                   onClick={() => {
                     setOpen(false);
                     a.onClick();
@@ -135,12 +136,12 @@ export function PhoneNav({ sections, active, onPick, actions }: Props) {
           </ul>
         </div>
       )}
-      <ul role="list" className="phone-nav-bar">
+      <ul role="list" className="section-nav-bar">
         {main.map((m) => (
           <li key={m.id}>
             <button
               type="button"
-              className="phone-nav-item"
+              className="section-nav-item"
               aria-current={m.id === active ? "page" : undefined}
               onClick={() => pick(m.id)}
             >
@@ -153,16 +154,16 @@ export function PhoneNav({ sections, active, onPick, actions }: Props) {
           <button
             type="button"
             ref={moreRef}
-            className="phone-nav-item"
+            className="section-nav-item"
             aria-expanded={open}
             aria-controls={open ? menuId : undefined}
             aria-current={moreActive ? "page" : undefined}
             onClick={() => setOpen((o) => !o)}
           >
             <Icon>
-              <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth="3" />
+              <path d="M4 7h16M4 12h16M4 17h16" />
             </Icon>
-            <span>More</span>
+            <span>Menu</span>
           </button>
         </li>
       </ul>

@@ -10,6 +10,7 @@ import type { LocalWorkspace } from "@/lib/client";
 import { guestEvent, type Reply } from "@/lib/rsvp";
 import type { SharedPlanContent } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
+import { currentSection } from "./nav";
 
 const TOKEN = "T".repeat(22);
 const PLAN = "P".repeat(22);
@@ -151,7 +152,7 @@ describe("Guests tab", () => {
   it("asks to save the plan online before giving a guest link", async () => {
     const onShare = vi.fn().mockResolvedValue(undefined);
     render(<Harness planId={null} onShare={onShare} />);
-    const panel = within(screen.getByRole("tabpanel"));
+    const panel = within(currentSection());
     await userEvent.click(panel.getByRole("button", { name: "Get my guest link" }));
     expect(onShare).toHaveBeenCalledWith("guests");
   });
@@ -176,7 +177,7 @@ describe("Guests tab", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     const { container } = render(<Harness planId={PLAN} onShare={vi.fn()} />);
-    const panel = within(screen.getByRole("tabpanel"));
+    const panel = within(currentSection());
 
     await user.click(await panel.findByRole("button", { name: "Turn on guest replies" }));
     expect(await panel.findByText(`http://localhost:3000/r/${TOKEN}`)).toBeInTheDocument();
@@ -235,7 +236,7 @@ describe("Guests tab", () => {
       );
     }
     const { container } = render(<SeatHarness />);
-    const panel = within(screen.getByRole("tabpanel"));
+    const panel = within(currentSection());
     const seating = within(await panel.findByRole("region", { name: "Seating plan" }));
     expect(seating.getByText(/3 tables of 8 for 14 people/)).toBeInTheDocument();
     const first = within(seating.getAllByRole("listitem").find((li) => li.className.includes("seat-table"))!);

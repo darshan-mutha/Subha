@@ -8,6 +8,7 @@ import { SharedPlanView } from "@/components/SharedPlanView";
 import { savePlan, type LocalWorkspace } from "@/lib/client";
 import { listEvents, saveEvent, setCurrentEvent } from "@/lib/myEvents";
 import { baseInput, samplePlan } from "./fixtures";
+import { currentSection, menuAction, openSection } from "./nav";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -52,13 +53,13 @@ describe("My events", () => {
     const { container } = render(<Planner />);
 
     expect(screen.getByRole("heading", { name: "Aarav turns 5" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Plan a new event" }));
+    await menuAction("Plan a new event");
     await user.click(screen.getByRole("button", { name: /Fill in the details yourself/ }));
     await user.click(screen.getByRole("button", { name: "Kid's birthday" }));
     await user.click(screen.getByRole("button", { name: "Create my plan" }));
     expect(await screen.findByRole("heading", { name: "Griha pravesh" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "My events (2)" }));
+    await menuAction("My events (2)");
     const list = screen.getByRole("region", { name: "My events" });
     expect(within(list).getByRole("heading", { name: "Aarav turns 5" })).toBeInTheDocument();
     expect(within(list).getByRole("heading", { name: "Griha pravesh" })).toBeInTheDocument();
@@ -102,7 +103,7 @@ describe("My events", () => {
     const id = "B".repeat(22);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ id })));
     const view = render(<Planner />);
-    await user.click(screen.getByRole("tab", { name: "Team" }));
+    await openSection("Team");
     await user.click(screen.getByRole("button", { name: "Share this plan with my team" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/p/${id}?new=1`));
     expect(listEvents()).toMatchObject([{ key: "eaaaa1", sharedId: id }]);
@@ -136,7 +137,7 @@ describe("My events", () => {
     render(<SharedPlanView id={id} />);
     expect(await screen.findByRole("heading", { name: "Aarav turns 5" })).toBeInTheDocument();
     await waitFor(() => expect(listEvents()).toMatchObject([{ sharedId: id, title: "Aarav turns 5" }]));
-    await userEvent.setup().click(screen.getByRole("button", { name: "My events" }));
+    await menuAction("My events");
     expect(push).toHaveBeenCalledWith("/?view=events");
   });
 });
@@ -151,7 +152,7 @@ describe("Shared page from the address", () => {
     );
     render(<SharedPlanView id={id} initialTab="guests" isNew />);
     await screen.findByRole("heading", { name: "Aarav turns 5" });
-    expect(screen.getByRole("tab", { name: "Guests" })).toHaveAttribute("aria-selected", "true");
+    expect(currentSection()).toHaveAttribute("aria-label", "Guests");
     expect(screen.getByText(/Turn on guest replies below/)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Turn on guest replies" })).toBeVisible();
   });

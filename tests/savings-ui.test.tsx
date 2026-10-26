@@ -8,6 +8,7 @@ import { PlanWorkspace } from "@/components/PlanWorkspace";
 import type { LocalWorkspace } from "@/lib/client";
 import { planStructure, type SharedPlanContent } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
+import { currentSection, openSection } from "./nav";
 
 const catererId = planStructure(samplePlan).vendors[0].id;
 
@@ -93,10 +94,10 @@ describe("Over budget choices", () => {
     const { container } = render(<Harness initial={overBooked} />);
 
     expect(screen.getByRole("heading", { name: /Bookings are ₹6,000 over budget/ })).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: "Ideas" }));
+    await openSection("Ideas");
     await user.click(screen.getByRole("button", { name: "See my choices" }));
-    expect(screen.getByRole("tab", { name: "Budget" })).toHaveAttribute("aria-selected", "true");
-    const panel = within(screen.getByRole("tabpanel"));
+    expect(currentSection()).toHaveAttribute("aria-label", "Budget");
+    const panel = within(currentSection());
     expect(panel.getByRole("heading", { name: "Over budget? See your choices" })).toBeInTheDocument();
     expect(panel.getByText(/Food \(₹6,000\)/)).toBeInTheDocument();
 
@@ -131,8 +132,8 @@ describe("Over budget choices", () => {
       .mockResolvedValueOnce(json(refined));
     vi.stubGlobal("fetch", fetchMock);
     render(<Harness initial={overBooked} />);
-    await user.click(screen.getByRole("tab", { name: "Budget" }));
-    const panel = within(screen.getByRole("tabpanel"));
+    await openSection("Budget");
+    const panel = within(currentSection());
     await user.click(panel.getByRole("button", { name: "Show my choices" }));
     await user.click(await panel.findByRole("button", { name: "Choose: Home baker for the cake" }));
     await screen.findByText("Cake from a home baker");
@@ -146,8 +147,8 @@ describe("Over budget choices", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<Harness initial={{ ...overBooked, deals: {} }} />);
     expect(screen.queryByRole("button", { name: "See my choices" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: "Budget" }));
-    const panel = within(screen.getByRole("tabpanel"));
+    await openSection("Budget");
+    const panel = within(currentSection());
     expect(panel.getByRole("heading", { name: "Need to spend less?" })).toBeInTheDocument();
     const amount = panel.getByLabelText("How much do you need to save?");
 
