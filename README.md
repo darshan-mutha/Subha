@@ -150,6 +150,7 @@ npm run dev
 
 ## Changelog
 
+- **26 Oct 2026** – Neat navigation and shorter pages: the plan is split into sections (Home, Budget, Timeline, Vendors, Guests, Invite, Team, Ideas, Timings). Home holds the summary, warnings, Do next and "Change your plan"; the team moved to its own section. Computers get one bar that stays in view while scrolling; phones get a bar fixed to the bottom (Home, Budget, Tasks, Guests, More), with the other sections and page actions under More.
 - **26 Oct 2026** – Seating plan in the Guests tab, worked out in code from the replies (families and sides together, access needs nearest the entrance, even split for big families), with table size, "maybe" seats, moves saved with the plan and copy-as-text.
 - **26 Oct 2026** – Guest replies (RSVP): one guest link (separate from the team link), a simple reply page with food and needs, live counts and food count for the host, download as a spreadsheet, and "update the plan to N guests" through the change flow with Undo. Each guest's reply is protected by a secret kept only on their phone (stored hashed).
 - **26 Oct 2026** – My events: several events on one device without a login. A list with countdowns, open / remove (with a check), new events no longer replace the old one, shared events open from their team link. The plan saved by the one-plan version is moved into the list automatically.

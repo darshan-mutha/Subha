@@ -102,6 +102,7 @@ describe("My events", () => {
     const id = "B".repeat(22);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ id })));
     const view = render(<Planner />);
+    await user.click(screen.getByRole("tab", { name: "Team" }));
     await user.click(screen.getByRole("button", { name: "Share this plan with my team" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/p/${id}?new=1`));
     expect(listEvents()).toMatchObject([{ key: "eaaaa1", sharedId: id }]);

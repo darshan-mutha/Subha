@@ -133,6 +133,7 @@ describe("PlanWorkspace", () => {
   it("lets AI divide the tasks and removes people", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ assignments: { [items[2].id]: "mravi" } })));
     const props = setup();
+    await userEvent.click(screen.getByRole("tab", { name: "Team" }));
     await userEvent.click(screen.getByRole("button", { name: /divide the tasks/ }));
     await waitFor(() => expect(props.onChange).toHaveBeenCalledWith({ assignments: { [items[2].id]: "mravi" } }));
     await userEvent.click(screen.getByRole("button", { name: "Remove Meena" }));
@@ -146,6 +147,7 @@ describe("PlanWorkspace", () => {
     await userEvent.click(screen.getByRole("button", { name: "Edit details" }));
     await userEvent.click(screen.getByRole("button", { name: "Download PDF / Print" }));
     await userEvent.click(screen.getByRole("button", { name: "Plan a new event" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Team" }));
     await userEvent.click(screen.getByRole("button", { name: "Share this plan with my team" }));
     expect(props.onEdit).toHaveBeenCalled();
     expect(print).toHaveBeenCalled();
@@ -253,6 +255,7 @@ describe("SharedPlanView", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<SharedPlanView id={shared.id} />);
     await screen.findByRole("heading", { name: "Aarav turns 5" });
+    await userEvent.click(screen.getByRole("tab", { name: "Team" }));
     await userEvent.click(screen.getByRole("button", { name: "Remove Meena" }));
     await waitFor(() => expect(screen.getByText("All changes saved")).toBeInTheDocument());
     const body = JSON.parse(fetchMock.mock.calls[1][1].body);
@@ -291,6 +294,7 @@ describe("Planner", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Timeline" }));
     await userEvent.click(within(screen.getByRole("tabpanel")).getByRole("checkbox", { name: "Confirm magician" }));
     expect(within(screen.getByRole("tabpanel")).getByRole("checkbox", { name: "Confirm magician" })).toBeChecked();
+    await userEvent.click(screen.getByRole("tab", { name: "Team" }));
     await userEvent.click(screen.getByRole("button", { name: "Share this plan with my team" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/p/${"B".repeat(22)}?new=1`));
   });

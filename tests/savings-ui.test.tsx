@@ -131,6 +131,7 @@ describe("Over budget choices", () => {
       .mockResolvedValueOnce(json(refined));
     vi.stubGlobal("fetch", fetchMock);
     render(<Harness initial={overBooked} />);
+    await user.click(screen.getByRole("tab", { name: "Budget" }));
     const panel = within(screen.getByRole("tabpanel"));
     await user.click(panel.getByRole("button", { name: "Show my choices" }));
     await user.click(await panel.findByRole("button", { name: "Choose: Home baker for the cake" }));
@@ -145,6 +146,7 @@ describe("Over budget choices", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<Harness initial={{ ...overBooked, deals: {} }} />);
     expect(screen.queryByRole("button", { name: "See my choices" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Budget" }));
     const panel = within(screen.getByRole("tabpanel"));
     expect(panel.getByRole("heading", { name: "Need to spend less?" })).toBeInTheDocument();
     const amount = panel.getByLabelText("How much do you need to save?");

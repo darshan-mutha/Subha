@@ -2104,3 +2104,163 @@ main:has(.plan, .my-events) > .hero,
 main:has(.plan, .my-events) > .lead {
   display: none;
 }
+
+/* ---------- Plan navigation ---------- */
+.plan-about {
+  margin-bottom: 20px;
+}
+.plan-about .summary {
+  margin: 0 0 10px;
+}
+.plan-tabs .warnings {
+  margin-bottom: 20px;
+}
+.plan-tabs .refine {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--c-border);
+}
+.plan-tabs .do-next,
+.plan-tabs .celebrate {
+  margin-bottom: 0;
+}
+
+/* Computers and tablets: the section bar stays in view while scrolling. */
+@media (min-width: 641px) {
+  .plan-tabs .tablist {
+    position: sticky;
+    top: 8px;
+    z-index: 5;
+    box-shadow: var(--shadow);
+  }
+  .phone-nav {
+    display: none;
+  }
+}
+
+/* Phones: a bar fixed to the bottom of the screen replaces the tabs. */
+.phone-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--surface);
+  border-top: 1px solid var(--c-border);
+  box-shadow: 0 -4px 16px rgb(22 36 38 / 8%);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.phone-nav-bar {
+  list-style: none;
+  margin: 0 auto;
+  padding: 4px 4px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 560px;
+}
+.phone-nav-item {
+  font: inherit;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.phone-nav-item[aria-current="page"] {
+  color: var(--c-primary);
+  background: color-mix(in oklch, var(--c-primary) 10%, transparent);
+}
+.phone-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 8px;
+  left: 8px;
+  margin-bottom: 8px;
+  background: var(--surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.phone-menu-title {
+  margin: 4px 8px 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.phone-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.phone-menu-actions {
+  border-top: 1px solid var(--c-border);
+  margin-top: 6px !important;
+  padding-top: 6px !important;
+}
+.phone-menu-item {
+  font: inherit;
+  width: 100%;
+  text-align: left;
+  min-height: 46px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+}
+.phone-menu-item:hover,
+.phone-menu-item[aria-current="page"] {
+  background: color-mix(in oklch, var(--c-primary) 10%, transparent);
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .plan-tabs .tablist,
+  .plan .header-actions {
+    display: none;
+  }
+  body:has(.phone-nav) {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+  .plan-tabs {
+    scroll-margin-top: 8px;
+  }
+  .plan-header h2 {
+    font-size: 1.5rem;
+  }
+  .plan-header .rangoli {
+    width: 60px;
+    height: 60px;
+  }
+}
+@media print {
+  .phone-nav {
+    display: none !important;
+  }
+}
+@media (min-width: 641px) {
+  .plan-tabs .tablist {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+    border-radius: var(--radius-lg);
+  }
+  .plan-tabs .tab {
+    padding: 8px 14px;
+  }
+}
+.refine-form .btn {
+  white-space: nowrap;
+}

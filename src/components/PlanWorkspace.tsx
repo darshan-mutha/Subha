@@ -36,6 +36,7 @@ import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
 import { SavingsChoices } from "./SavingsChoices";
+import { PhoneNav, type NavAction } from "./PhoneNav";
 import { applyRaise, overLines, totalOver, type SavingOption, type SavingsRequest } from "@/lib/savings";
 
 const REFINE_SUGGESTIONS = [
@@ -44,6 +45,9 @@ const REFINE_SUGGESTIONS = [
   "Move the event 1 week later",
   "Make it eco-friendly",
 ];
+
+/** Order of the plan sections in the navigation. */
+const SECTION_ORDER = ["home", "budget", "timeline", "vendors", "guests", "invite", "team", "ideas", "timings"];
 
 /** The plan as it was before the last change, so the host can undo it. */
 type Snapshot = Partial<SharedPlanContent>;
@@ -96,7 +100,7 @@ export function PlanWorkspace({
   planKey,
   shareUrl,
   planId = null,
-  initialTab = "budget",
+  initialTab = "home",
   onChange,
   onToggle,
   onShare,
@@ -116,6 +120,7 @@ export function PlanWorkspace({
   const [lastChange, setLastChange] = useState<{ lines: string[]; before: Snapshot; note: string } | null>(null);
   const changeRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const today = todayIST();
   const shifts = useMemo(
     () =>
@@ -255,6 +260,15 @@ export function PlanWorkspace({
     return ok;
   }
 
+  /** Phone navigation: open a section and bring it to the top of the screen. */
+  function goTo(id: string) {
+    setTab(id);
+    requestAnimationFrame(() => {
+      tabsRef.current?.scrollIntoView?.({ block: "start" });
+      tabsRef.current?.querySelector<HTMLElement>('[role="tabpanel"]:not([hidden])')?.focus({ preventScroll: true });
+    });
+  }
+
   /** Opens the Budget tab at the over-budget choices. */
   function showChoices() {
     setTab("budget");
@@ -340,6 +354,121 @@ export function PlanWorkspace({
 
   const tabs: TabItem[] = [
     {
+      id: "home",
+      label: "Home",
+      content: (
+        <>
+          <section className="plan-about" aria-labelledby="about-heading">
+            <h2 id="about-heading" className="sr-only">
+              About this plan
+            </h2>
+            <p className="summary">{plan.summary}</p>
+            {(input.focus?.length > 0 || input.food || input.guestNeeds?.length > 0) && (
+              <ul className="personal-facts" aria-label="What this plan is shaped around">
+                {input.focus?.length > 0 && <li>Matters most: {input.focus.map((f) => FOCUS_LABELS[f]).join(", ")}</li>}
+                {input.food && <li>Food: {FOOD_LABELS[input.food]}</li>}
+                {input.guestNeeds?.map((g) => (
+                  <li key={g}>{GUEST_NEED_LABELS[g]}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+          {plan.warnings.length > 0 && (
+            <section className="warnings" aria-labelledby="warn-heading">
+              <h2 id="warn-heading" className="small-heading">
+                Things to watch out for
+              </h2>
+              <ul>
+                {plan.warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {team.length > 0 && (
+            <div className="viewer no-print">
+              <label htmlFor="viewer">Show tasks for</label>
+              <select id="viewer" value={viewer} onChange={(e) => onViewerChange(e.target.value)}>
+                <option value="">Everyone</option>
+                {team.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {complete ? (
+            <section className="card celebrate" aria-labelledby="celebrate-heading">
+              <PetalMark size={72} filled={5} />
+              <h2 id="celebrate-heading">All set for {eventTitle(data)}!</h2>
+              <p className="muted">Every task is done. Enjoy the celebration.</p>
+              <div className="row no-print">
+                {shareUrl ? (
+                  <CopyButton text={shareUrl} label="team link" />
+                ) : (
+                  onShare && (
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => void act(onShare, "Creating your team link…", "Team link ready")}
+                    >
+                      Share with my team
+                    </button>
+                  )
+                )}
+                <button type="button" className="btn btn-primary" onClick={() => window.print()}>
+                  Download PDF
+                </button>
+              </div>
+            </section>
+          ) : (
+            <DoNextSection items={upNext} state={taskState} />
+          )}
+
+          <section className="refine no-print" aria-labelledby="refine-heading">
+            <h2 id="refine-heading" className="section-title">
+              Change your plan
+            </h2>
+            <p className="muted">
+              Plans change. Tell Shubā in your own words, such as more guests, a smaller budget or a new date, and it
+              updates the whole plan without starting over.
+            </p>
+            <form onSubmit={refine} className="refine-form" aria-busy={busy}>
+              <label htmlFor="refine-input" className="sr-only">
+                What would you like to change?
+              </label>
+              <input
+                id="refine-input"
+                type="text"
+                maxLength={LIMITS.maxInstruction}
+                placeholder="e.g. Reduce the budget by 20%"
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+              />
+              <button type="submit" className="btn btn-primary" disabled={busy}>
+                {busy ? "Working…" : "Update plan"}
+              </button>
+            </form>
+            <div className="examples" role="group" aria-label="Suggestions">
+              {REFINE_SUGGESTIONS.map((s) => (
+                <button key={s} type="button" className="chip" onClick={() => setInstruction(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            {busy && (
+              <p className="loading" aria-hidden="true">
+                <span className="spinner" /> Shubā is updating the whole plan… this can take 30–45 seconds.
+              </p>
+            )}
+          </section>
+        </>
+      ),
+    },
+    {
       id: "budget",
       label: "Budget",
       content: (
@@ -396,7 +525,34 @@ export function PlanWorkspace({
       ),
     },
   ];
+  tabs.push({
+    id: "team",
+    label: "Team",
+    content: (
+      <TeamPanel
+        team={team}
+        items={items}
+        assignments={assignments}
+        done={done}
+        eventTitle={eventTitle(data)}
+        shareUrl={shareUrl}
+        today={today}
+        busy={busy}
+        onTeamChange={changeTeam}
+        onAutoAssign={autoAssign}
+        onShare={onShare ? () => void act(onShare, "Creating your team link…", "Team link ready") : null}
+      />
+    ),
+  });
   if (timings) tabs.push({ id: "timings", label: "Timings", content: <TimingsSection timings={timings} /> });
+  tabs.sort((a, b) => SECTION_ORDER.indexOf(a.id) - SECTION_ORDER.indexOf(b.id));
+
+  const phoneActions: NavAction[] = [
+    ...(onEdit ? [{ label: "Edit details", onClick: onEdit }] : []),
+    { label: "Download PDF / Print", onClick: () => window.print() },
+    ...(onMyEvents ? [{ label: eventCount > 1 ? `My events (${eventCount})` : "My events", onClick: onMyEvents }] : []),
+    { label: "Plan a new event", onClick: onStartOver },
+  ];
 
   return (
     <article className="plan" aria-labelledby="plan-heading" data-complete={complete}>
@@ -424,17 +580,7 @@ export function PlanWorkspace({
           <li>{input.guests.toLocaleString("en-IN")} guests</li>
           <li>{formatINR(input.budget)}</li>
         </ul>
-        {(input.focus?.length > 0 || input.food || input.guestNeeds?.length > 0) && (
-          <ul className="personal-facts" aria-label="What this plan is shaped around">
-            {input.focus?.length > 0 && <li>Matters most: {input.focus.map((f) => FOCUS_LABELS[f]).join(", ")}</li>}
-            {input.food && <li>Food: {FOOD_LABELS[input.food]}</li>}
-            {input.guestNeeds?.map((g) => (
-              <li key={g}>{GUEST_NEED_LABELS[g]}</li>
-            ))}
-          </ul>
-        )}
-        <p className="summary">{plan.summary}</p>
-        <div className="row no-print">
+        <div className="row no-print header-actions">
           {onEdit && (
             <button type="button" className="btn" onClick={onEdit}>
               Edit details
@@ -459,79 +605,10 @@ export function PlanWorkspace({
         )}
       </header>
 
-      {plan.warnings.length > 0 && (
-        <section className="warnings" aria-labelledby="warn-heading">
-          <h2 id="warn-heading" className="small-heading">
-            Things to watch out for
-          </h2>
-          <ul>
-            {plan.warnings.map((w) => (
-              <li key={w}>{w}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <TeamPanel
-        team={team}
-        items={items}
-        assignments={assignments}
-        done={done}
-        eventTitle={eventTitle(data)}
-        shareUrl={shareUrl}
-        today={today}
-        busy={busy}
-        onTeamChange={changeTeam}
-        onAutoAssign={autoAssign}
-        onShare={onShare ? () => void act(onShare, "Creating your team link…", "Team link ready") : null}
-      />
-
       {error && (
         <p className="form-error" role="alert">
           {error}
         </p>
-      )}
-
-      {team.length > 0 && (
-        <div className="viewer no-print">
-          <label htmlFor="viewer">Show tasks for</label>
-          <select id="viewer" value={viewer} onChange={(e) => onViewerChange(e.target.value)}>
-            <option value="">Everyone</option>
-            {team.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {complete ? (
-        <section className="card celebrate" aria-labelledby="celebrate-heading">
-          <PetalMark size={72} filled={5} />
-          <h2 id="celebrate-heading">All set for {eventTitle(data)}!</h2>
-          <p className="muted">Every task is done. Enjoy the celebration.</p>
-          <div className="row no-print">
-            {shareUrl ? (
-              <CopyButton text={shareUrl} label="team link" />
-            ) : (
-              onShare && (
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => void act(onShare, "Creating your team link…", "Team link ready")}
-                >
-                  Share with my team
-                </button>
-              )
-            )}
-            <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-              Download PDF
-            </button>
-          </div>
-        </section>
-      ) : (
-        <DoNextSection items={upNext} state={taskState} />
       )}
 
       {lastChange && (
@@ -568,47 +645,17 @@ export function PlanWorkspace({
         </section>
       )}
 
-      <div className="card">
+      <div className="card plan-tabs" ref={tabsRef}>
         <Tabs items={tabs} label="Plan sections" activeId={tab} onActiveChange={setTab} />
       </div>
 
-      <section className="card refine no-print" aria-labelledby="refine-heading">
-        <h2 id="refine-heading" className="section-title">
-          Change your plan
-        </h2>
-        <p className="muted">
-          Plans change. Tell Shubā in your own words, such as more guests, a smaller budget or a new date, and it
-          updates the whole plan without starting over.
-        </p>
-        <form onSubmit={refine} className="refine-form" aria-busy={busy}>
-          <label htmlFor="refine-input" className="sr-only">
-            What would you like to change?
-          </label>
-          <input
-            id="refine-input"
-            type="text"
-            maxLength={LIMITS.maxInstruction}
-            placeholder="e.g. Reduce the budget by 20%"
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-          />
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? "Working…" : "Update plan"}
-          </button>
-        </form>
-        <div className="examples" role="group" aria-label="Suggestions">
-          {REFINE_SUGGESTIONS.map((s) => (
-            <button key={s} type="button" className="chip" onClick={() => setInstruction(s)}>
-              {s}
-            </button>
-          ))}
-        </div>
-        {busy && (
-          <p className="loading" aria-hidden="true">
-            <span className="spinner" /> Shubā is updating the whole plan… this can take 30–45 seconds.
-          </p>
-        )}
-      </section>
+      <PhoneNav
+        sections={tabs.map(({ id, label }) => ({ id, label }))}
+        active={tab}
+        onPick={goTo}
+        actions={phoneActions}
+      />
+
       {bloomItem && (
         <Bloom
           key={bloomItem.id}
