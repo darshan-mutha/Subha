@@ -14,12 +14,13 @@ import {
   setCurrentEvent,
   type EventEntry,
 } from "@/lib/myEvents";
-import { PlanSchema, type EventInput } from "@/lib/schemas";
+import { PlanSchema, withInputDefaults, type EventInput } from "@/lib/schemas";
+import { IdeaStateSchema } from "@/lib/ideas";
 import { DEFAULT_SEATING, SeatingSchema } from "@/lib/seating";
 import { pruneDeals } from "@/lib/deals";
 import { InviteSchema } from "@/lib/invite";
 import { planStructure, pruneState, type SharedPlanContent } from "@/lib/team";
-import { EventForm, fromInput, type FormValues } from "./EventForm";
+import { EMPTY_FORM, EventForm, fromInput, type FormValues } from "./EventForm";
 import { MyEvents } from "./MyEvents";
 import { PlanWorkspace } from "./PlanWorkspace";
 import { VoiceStart, type VoicePayload } from "./VoiceStart";
@@ -34,9 +35,12 @@ function savedWorkspace(key: string): LocalWorkspace | null {
   const saved = loadEvent(key);
   const plan = PlanSchema.safeParse(saved?.plan);
   if (!saved?.input || !plan.success) return null;
+  const ideaState = IdeaStateSchema.safeParse(saved.ideaState);
   return {
     ...saved,
+    input: withInputDefaults(saved.input),
     plan: plan.data,
+    ...(ideaState.success ? { ideaState: ideaState.data } : {}),
     team: saved.team ?? [],
     assignments: saved.assignments ?? {},
     done: saved.done ?? {},
@@ -167,7 +171,7 @@ export function Planner() {
           "Shubā could not catch any details. Please try again, speaking a little closer to the microphone.",
         );
       }
-      setEditing(result.values);
+      setEditing({ ...EMPTY_FORM, ...result.values });
       setMissing(Object.fromEntries(result.missing.map((f) => [f, "Shubā didn't catch this. Please fill it in."])));
       setHeard(result.transcript);
       setFormKey((k) => k + 1);

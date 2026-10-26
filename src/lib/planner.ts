@@ -40,8 +40,33 @@ function finalize(plan: Plan, input: EventInput, now: Date): Plan {
   return {
     ...normalizeTimeline(plan, input.date, todayIST(now)),
     budget: normalizeBudget(plan.budget, input.budget),
+    functions: normalizeFunctions(plan.functions, input),
     warnings: mergeWarnings(localWarnings(input, now), plan.warnings),
   };
+}
+
+/**
+ * Function costs are scaled to add up to the total budget (another view of the
+ * same money), days stay within the event's days and guests within the guest list.
+ */
+export function normalizeFunctions(list: Plan["functions"], input: EventInput): Plan["functions"] {
+  if (list.length === 0) return list;
+  const days = Math.max(1, input.days ?? 1);
+  const fixed = list.map((f) => ({
+    ...f,
+    day: Math.min(f.day, days),
+    guests: Math.min(f.guests > 0 ? f.guests : input.guests, input.guests),
+  }));
+  const sum = fixed.reduce((acc, f) => acc + f.amount, 0);
+  if (sum <= 0) return fixed;
+  const scaled = fixed.map((f) => ({ ...f, amount: Math.round(((f.amount / sum) * input.budget) / 100) * 100 }));
+  const diff = input.budget - scaled.reduce((acc, f) => acc + f.amount, 0);
+  let largest = 0;
+  scaled.forEach((f, i) => {
+    if (f.amount > scaled[largest].amount) largest = i;
+  });
+  scaled[largest] = { ...scaled[largest], amount: Math.max(0, scaled[largest].amount + diff) };
+  return scaled;
 }
 
 async function timingsFor(input: EventInput, locate: typeof findLocation): Promise<DayTimings | null> {
@@ -59,6 +84,7 @@ function withinLimits(value: number, min: number, max: number): boolean {
 const CoreSchema = PlanSchema.pick({
   summary: true,
   theme: true,
+  functions: true,
   budget: true,
   budgetTips: true,
   timeline: true,

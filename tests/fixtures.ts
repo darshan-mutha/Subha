@@ -15,11 +15,22 @@ export const baseInput: EventInput = {
   focus: [],
   food: "",
   guestNeeds: [],
+  traditions: [],
+  traditionOther: "",
+  days: 1,
+  functions: [],
+  additions: [],
 };
 
 export const samplePlan: Plan = {
   summary: "A fun jungle safari party at home.",
-  theme: { name: "Jungle Safari", description: "Green and gold with animal props.", colors: ["green", "gold"] },
+  theme: {
+    name: "Jungle Safari",
+    description: "Green and gold with animal props.",
+    colors: ["green", "gold"],
+    swatches: [],
+  },
+  functions: [],
   budget: [
     { category: "Food", amount: 20000, note: "Snacks and cake" },
     { category: "Decor", amount: 12000, note: "" },
@@ -53,6 +64,29 @@ export const samplePlan: Plan = {
       brief: "Hi, are you free on 12 Dec?",
     },
   ],
-  ideas: { decor: ["Leaf garlands"], food: ["Animal-shaped sandwiches"], activities: ["Treasure hunt"], extras: [] },
+  ideas: {
+    signature: null,
+    items: [
+      {
+        title: "Leaf garlands",
+        detail: "",
+        why: "",
+        moment: "welcome",
+        forFunction: "",
+        cost: 0,
+        effort: "help",
+      },
+      {
+        title: "Animal-shaped sandwiches",
+        detail: "",
+        why: "",
+        moment: "food",
+        forFunction: "",
+        cost: 0,
+        effort: "help",
+      },
+      { title: "Treasure hunt", detail: "", why: "", moment: "fun", forFunction: "", cost: 0, effort: "help" },
+    ],
+  },
   warnings: [],
 };

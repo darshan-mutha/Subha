@@ -22,7 +22,8 @@ import type { DealState } from "./VendorDeal";
 import {
   BudgetSection,
   DoNextSection,
-  IdeasSection,
+  FunctionsSection,
+  FunctionsSummary,
   TimelineSection,
   TimingsSection,
   VendorsSection,
@@ -37,6 +38,10 @@ import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
 import { SavingsChoices } from "./SavingsChoices";
 import { SectionNav, type NavAction } from "./SectionNav";
+import { IdeasPanel } from "./IdeasPanel";
+import { addIdeaToPlan, carryChosen, EMPTY_IDEA_STATE, type IdeaState } from "@/lib/ideas";
+import type { Idea, Plan } from "@/lib/schemas";
+import { TRADITION_LABELS } from "@/lib/traditions";
 import { applyRaise, overLines, totalOver, type SavingOption, type SavingsRequest } from "@/lib/savings";
 
 const REFINE_SUGGESTIONS = [
@@ -47,7 +52,18 @@ const REFINE_SUGGESTIONS = [
 ];
 
 /** Order of the plan sections in the navigation. */
-const SECTION_ORDER = ["home", "budget", "timeline", "vendors", "guests", "invite", "team", "ideas", "timings"];
+const SECTION_ORDER = [
+  "home",
+  "budget",
+  "timeline",
+  "guests",
+  "functions",
+  "ideas",
+  "vendors",
+  "invite",
+  "team",
+  "timings",
+];
 
 /** The plan as it was before the last change, so the host can undo it. */
 type Snapshot = Partial<SharedPlanContent>;
@@ -113,6 +129,7 @@ export function PlanWorkspace({
   notice = "",
 }: Props) {
   const { input, plan, timings, team, assignments, done } = data;
+  const ideaState: IdeaState = data.ideaState ?? EMPTY_IDEA_STATE;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [instruction, setInstruction] = useState("");
@@ -219,9 +236,17 @@ export function PlanWorkspace({
       async () => {
         const next = await requestRefine(input, plan, text);
         lines = next.changes?.length ? next.changes : ["Your plan has been updated."];
+        // Ideas the host kept or added are never lost when the plan is rewritten.
+        const ideas = { ...next.plan.ideas, items: carryChosen(plan.ideas.items, next.plan.ideas.items, ideaState) };
         // Keep quotes and bookings for vendors that are still in the refined plan.
         // A re-planned timeline starts fresh, so earlier delays are cleared.
-        await onChange({ input: next.input, plan: next.plan, timings: next.timings, deals, shifts: {} });
+        await onChange({
+          input: next.input,
+          plan: { ...next.plan, ideas },
+          timings: next.timings,
+          deals,
+          shifts: {},
+        });
       },
       "Updating your plan…",
       "Plan updated. See what changed above the tabs.",
@@ -308,6 +333,36 @@ export function PlanWorkspace({
     }
   }
 
+  /** Saves the Ideas section's choices (and a new theme or ideas). Errors show at the top. */
+  async function saveIdeas(next: { plan?: Plan; ideaState: IdeaState }) {
+    try {
+      setError("");
+      await onChange(next.plan ? { plan: next.plan, ideaState: next.ideaState } : { ideaState: next.ideaState });
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not save. Please try again.");
+      throw e;
+    }
+  }
+
+  /** An idea becomes a task, a budget amount and a line in a vendor's message, with Undo. */
+  async function addIdea(idea: Idea, nextState: IdeaState) {
+    const before: Snapshot = { plan, ideaState };
+    const result = addIdeaToPlan(plan, input, idea, today);
+    const ok = await act(
+      () => onChange({ plan: result.plan, ideaState: nextState }),
+      "Adding to your plan…",
+      `${idea.title} is now in your plan. See what changed above the sections.`,
+    );
+    if (ok) {
+      setLastChange({
+        lines: result.lines.length ? result.lines : [`${idea.title} is now in your plan.`],
+        before,
+        note: "Costs are estimates. You can change any amount in the Budget section.",
+      });
+      requestAnimationFrame(() => changeRef.current?.focus());
+    }
+  }
+
   const autoAssign = () =>
     act(
       async () => {
@@ -364,8 +419,18 @@ export function PlanWorkspace({
               About this plan
             </h2>
             <p className="summary">{plan.summary}</p>
-            {(input.focus?.length > 0 || input.food || input.guestNeeds?.length > 0) && (
+            {(input.focus?.length > 0 ||
+              input.food ||
+              input.guestNeeds?.length > 0 ||
+              input.traditions?.length > 0) && (
               <ul className="personal-facts" aria-label="What this plan is shaped around">
+                {input.traditions?.length > 0 && (
+                  <li>
+                    {input.traditions
+                      .map((t) => (t === "other" ? input.traditionOther || "Other" : TRADITION_LABELS[t]))
+                      .join(" & ")}
+                  </li>
+                )}
                 {input.focus?.length > 0 && <li>Matters most: {input.focus.map((f) => FOCUS_LABELS[f]).join(", ")}</li>}
                 {input.food && <li>Food: {FOOD_LABELS[input.food]}</li>}
                 {input.guestNeeds?.map((g) => (
@@ -374,6 +439,7 @@ export function PlanWorkspace({
               </ul>
             )}
           </section>
+          <FunctionsSummary plan={plan} firstDay={input.date} onOpen={() => goTo("functions")} />
           {plan.warnings.length > 0 && (
             <section className="warnings" aria-labelledby="warn-heading">
               <h2 id="warn-heading" className="small-heading">
@@ -497,7 +563,19 @@ export function PlanWorkspace({
       label: "Vendors",
       content: <VendorsSection items={scheduled.vendors} plan={plan} state={taskState} deals={dealState} />,
     },
-    { id: "ideas", label: "Ideas", content: <IdeasSection plan={plan} /> },
+    {
+      id: "ideas",
+      label: "Ideas",
+      content: (
+        <IdeasPanel
+          input={input}
+          plan={plan}
+          state={data.ideaState}
+          onSave={saveIdeas}
+          onAdd={(idea, next) => addIdea(idea, next)}
+        />
+      ),
+    },
     {
       id: "invite",
       label: "Invite",
@@ -546,6 +624,8 @@ export function PlanWorkspace({
     ),
   });
   if (timings) tabs.push({ id: "timings", label: "Timings", content: <TimingsSection timings={timings} /> });
+  if (plan.functions.length > 0)
+    tabs.push({ id: "functions", label: "Functions", content: <FunctionsSection plan={plan} firstDay={input.date} /> });
   tabs.sort((a, b) => SECTION_ORDER.indexOf(a.id) - SECTION_ORDER.indexOf(b.id));
   // A section that is not in this plan (e.g. Timings) falls back to Home.
   const current = tabs.some((t) => t.id === tab) ? tab : "home";
@@ -578,7 +658,10 @@ export function PlanWorkspace({
           {milestones.length > 0 && ` · ${milestonesDone} of ${milestones.length} milestones`}
         </p>
         <ul className="facts" aria-label="Event details">
-          <li>{formatDate(input.date)}</li>
+          <li>
+            {formatDate(input.date)}
+            {input.days > 1 && ` · ${input.days} days`}
+          </li>
           <li>{input.city}</li>
           <li>{input.guests.toLocaleString("en-IN")} guests</li>
           <li>{formatINR(input.budget)}</li>

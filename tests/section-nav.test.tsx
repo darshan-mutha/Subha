@@ -57,7 +57,7 @@ describe("Plan navigation", () => {
     const menu = nav.getByRole("button", { name: "Menu" });
     await user.click(menu);
     expect(menu).toHaveAttribute("aria-expanded", "true");
-    expect(nav.getByRole("button", { name: "Vendors" })).toHaveFocus();
+    expect(nav.getByRole("button", { name: "Ideas" })).toHaveFocus();
     expect(
       [
         "Vendors",

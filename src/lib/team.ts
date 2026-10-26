@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { hash } from "./hash";
+import { IdeaStateSchema, type IdeaState } from "./ideas";
 import { DEFAULT_SEATING, SeatingSchema, type Seating } from "./seating";
 import { DealsSchema, type Deals } from "./deals";
 import { InviteSchema, type Invite } from "./invite";
@@ -46,15 +48,7 @@ export type Done = z.infer<typeof DoneSchema>;
 /* Stable ids for plan items, so ticks survive small plan changes.     */
 /* ------------------------------------------------------------------ */
 
-/** Small, fast string hash (FNV-1a) used to give tasks stable ids. */
-export function hash(text: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(36);
-}
+export { hash };
 
 export interface PlanItem {
   id: string;
@@ -116,6 +110,8 @@ export interface SharedPlanContent {
   shifts?: Shifts;
   /** Seating settings and the families the host moved. */
   seating?: Seating;
+  /** The heart of the event, theme directions and which ideas were kept, skipped or added. */
+  ideaState?: IdeaState;
 }
 
 export interface SharedPlan extends SharedPlanContent {
@@ -156,6 +152,7 @@ export function makeSharedContentSchema(now: Date = new Date()) {
     invite: InviteSchema.nullable().catch(null).default(null),
     shifts: ShiftsSchema.catch({}).default({}),
     seating: SeatingSchema.catch(DEFAULT_SEATING).default(DEFAULT_SEATING),
+    ideaState: IdeaStateSchema.optional().catch(undefined),
   });
 }
 

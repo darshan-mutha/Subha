@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { PlannerError } from "./ai";
+import { PlanSchema, withInputDefaults } from "./schemas";
 import { pruneState, type Done, type SharedPlan, type SharedPlanContent } from "./team";
 
 /**
@@ -68,9 +69,19 @@ interface Row {
   updated_at: string | Date;
 }
 
+/** Plans saved by older versions of Shubā are read into today's shape. */
+export function upgradeContent(content: SharedPlanContent): SharedPlanContent {
+  const plan = PlanSchema.safeParse(content.plan);
+  return {
+    ...content,
+    input: withInputDefaults(content.input),
+    plan: plan.success ? plan.data : content.plan,
+  };
+}
+
 function toPlan(row: Row): SharedPlan {
   return {
-    ...row.content,
+    ...upgradeContent(row.content),
     id: row.id,
     version: row.version,
     done: row.done ?? {},

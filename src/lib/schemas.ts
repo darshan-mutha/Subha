@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_DAYS, MAX_FUNCTIONS, MODERN_ADDITIONS, TRADITIONS } from "./traditions";
 
 /** Event types Shubā supports. Kept as a closed list so prompts stay predictable. */
 export const EVENT_TYPES = [
@@ -166,10 +167,43 @@ export function makeEventInputSchema(now: Date = new Date()) {
     focus: choiceList(FOCUS_AREAS, MAX_FOCUS),
     food: z.enum(FOOD_PREFS).catch("").default(""),
     guestNeeds: choiceList(GUEST_NEEDS, GUEST_NEEDS.length),
+    /** Up to two traditions: the host's family and the other family, if different. */
+    traditions: choiceList(TRADITIONS, 2),
+    /** The tradition in the host's own words when "Other" is chosen. */
+    traditionOther: safeText(60, "Tradition").optional().default(""),
+    /** How many days the celebration runs over (day 1 is the event date). */
+    days: z.coerce.number().int().min(1).max(MAX_DAYS).catch(1).default(1),
+    /** The functions the host chose and the day each one is on (0 = before the main days). */
+    functions: z
+      .array(
+        z.object({
+          name: safeText(40, "Function name").min(1, "Please name the function"),
+          day: z.coerce.number().int().min(0).max(MAX_DAYS).catch(1),
+        }),
+      )
+      .max(MAX_FUNCTIONS, `Choose up to ${MAX_FUNCTIONS} functions`)
+      .default([]),
+    /** Modern additions (bachelor party, pre-wedding shoot…). */
+    additions: choiceList(MODERN_ADDITIONS, MODERN_ADDITIONS.length),
   });
 }
 
 export type EventInput = z.infer<ReturnType<typeof makeEventInputSchema>>;
+
+/** Fills in fields added after a plan was saved (traditions, days, functions…). */
+export function withInputDefaults(input: EventInput): EventInput {
+  return {
+    ...input,
+    focus: input.focus ?? [],
+    food: input.food ?? "",
+    guestNeeds: input.guestNeeds ?? [],
+    traditions: input.traditions ?? [],
+    traditionOther: input.traditionOther ?? "",
+    days: input.days ?? 1,
+    functions: input.functions ?? [],
+    additions: input.additions ?? [],
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /* Plan returned by the AI. Validated before it ever reaches the UI.   */
@@ -197,6 +231,19 @@ const str = (max = 400) =>
 const upTo = <T extends z.ZodTypeAny>(item: T, maxItems: number) =>
   z.array(item).transform((list) => list.slice(0, maxItems));
 const strList = (maxItems: number, max = 200) => upTo(str(max), maxItems).default([]);
+/** Keeps the items that are valid and drops the rest, so one odd idea never loses the others. */
+const validItems = <T extends z.ZodTypeAny>(item: T, maxItems: number) =>
+  z
+    .array(z.unknown())
+    .transform((list) =>
+      list
+        .map((x) => item.safeParse(x))
+        .filter((r) => r.success)
+        .map((r) => r.data as z.infer<T>)
+        .slice(0, maxItems),
+    )
+    .catch([])
+    .default([]);
 
 export const PRIORITIES = ["high", "medium", "low"] as const;
 export type Priority = (typeof PRIORITIES)[number];
@@ -215,13 +262,155 @@ const TaskSchema = z.union([
 /** Whole days before the event (0 = event day). Missing values are worked out from the label. */
 const DaysBefore = z.number().int().min(0).max(1200).nullable().default(null);
 
+/** "#0E5A63"-style colours only; anything else is dropped. */
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const swatches = z
+  .array(z.unknown())
+  .transform((list) =>
+    list
+      .filter((c): c is string => typeof c === "string")
+      .map((c) => c.trim())
+      .filter((c) => HEX.test(c))
+      .slice(0, 5),
+  )
+  .catch([])
+  .default([]);
+
+/** Where an idea happens in the guest's day. */
+export const MOMENTS = ["arrival", "welcome", "main", "food", "fun", "send-off"] as const;
+export type Moment = (typeof MOMENTS)[number];
+export const MOMENT_LABELS: Record<Moment, string> = {
+  arrival: "Arrival",
+  welcome: "Welcome",
+  main: "The main moment",
+  food: "Food & drinks",
+  fun: "Fun & music",
+  "send-off": "Send-off & return gifts",
+};
+
+/** How much work an idea is: do it yourselves, needs a few helpers, or needs a vendor. */
+export const EFFORTS = ["easy", "help", "vendor"] as const;
+export type Effort = (typeof EFFORTS)[number];
+export const EFFORT_LABELS: Record<Effort, string> = {
+  easy: "Easy to do yourselves",
+  help: "Needs a few helpers",
+  vendor: "Needs a vendor",
+};
+
+export const IdeaSchema = z.object({
+  title: str(80),
+  detail: z
+    .string()
+    .trim()
+    .max(400)
+    .catch("")
+    .default("")
+    .transform((v) => clip(v, 240)),
+  /** Why this suits this family and this event, in one line. */
+  why: z
+    .string()
+    .trim()
+    .max(300)
+    .catch("")
+    .default("")
+    .transform((v) => clip(v, 160)),
+  moment: z.enum(MOMENTS).catch("main"),
+  /** The function it belongs to (e.g. "Mehendi"), or "" for the whole event. */
+  forFunction: z
+    .string()
+    .trim()
+    .max(60)
+    .catch("")
+    .default("")
+    .transform((v) => clip(v, 40)),
+  /** Rough cost in rupees, an estimate only. */
+  cost: z.number().nonnegative().catch(0).default(0),
+  effort: z.enum(EFFORTS).catch("help"),
+});
+export type Idea = z.infer<typeof IdeaSchema>;
+
+export const SignatureSchema = z.object({ title: str(80), detail: str(300) });
+export type Signature = z.infer<typeof SignatureSchema>;
+
+const NewIdeasSchema = z.object({
+  /** The one moment guests will talk about later. */
+  signature: SignatureSchema.nullable().catch(null).default(null),
+  items: validItems(IdeaSchema, 40),
+});
+
+/** Plans saved before 27 Oct 2026 had four plain lists; they are read into the new shape. */
+const OldIdeasSchema = z
+  .object({
+    // Required (no defaults), so a plan in the new shape never matches by accident.
+    decor: z.array(z.string()),
+    food: z.array(z.string()).catch([]),
+    activities: z.array(z.string()).catch([]),
+    extras: z.array(z.string()).catch([]),
+  })
+  .transform(({ decor, food, activities, extras }) => {
+    const make = (moment: Moment) => (title: string) => IdeaSchema.safeParse({ title, moment, effort: "help" });
+    const list = (titles: string[], moment: Moment) =>
+      titles
+        .slice(0, 6)
+        .map(make(moment))
+        .filter((r) => r.success)
+        .map((r) => r.data as Idea);
+    return {
+      signature: null as Signature | null,
+      items: [
+        ...list(decor, "welcome"),
+        ...list(food, "food"),
+        ...list(activities, "fun"),
+        ...list(extras, "send-off"),
+      ],
+    };
+  });
+
+export const IdeasSchema = z.union([OldIdeasSchema, NewIdeasSchema]);
+export type Ideas = z.infer<typeof NewIdeasSchema>;
+
+/** One function of a multi-day event (mehendi, sangeet, nikah…), as planned. */
+export const FunctionPlanSchema = z.object({
+  name: str(40),
+  /** 1 = first day; 0 = before the main days. */
+  day: z.number().int().min(0).max(MAX_DAYS).catch(1),
+  /** Rough time of day, e.g. "Evening, 7-11 pm". */
+  time: z
+    .string()
+    .trim()
+    .max(80)
+    .catch("")
+    .default("")
+    .transform((v) => clip(v, 40)),
+  guests: z.number().int().nonnegative().catch(0).default(0),
+  /** Estimated share of the budget, in rupees. Scaled in code to add up to the total. */
+  amount: z.number().nonnegative().catch(0).default(0),
+  /** The feel of this function within the overall theme. */
+  mood: z
+    .string()
+    .trim()
+    .max(300)
+    .catch("")
+    .default("")
+    .transform((v) => clip(v, 160)),
+  /** What is usually done. Families differ, so the plan says to check with elders. */
+  rituals: strList(6, 160).catch([]),
+  /** What is needed: officiant, ritual items, attire. */
+  needs: strList(6, 160).catch([]),
+});
+export type FunctionPlan = z.infer<typeof FunctionPlanSchema>;
+
 export const PlanSchema = z.object({
   summary: str(600),
   theme: z.object({
     name: str(80),
     description: str(400),
     colors: strList(5, 40),
+    /** The same colours as #hex codes, for colour dots. Older plans may not have them. */
+    swatches,
   }),
+  /** Functions of a multi-day event, in order. Empty for single-function events. */
+  functions: validItems(FunctionPlanSchema, MAX_FUNCTIONS),
   budget: z
     .array(
       z.object({
@@ -258,12 +447,7 @@ export const PlanSchema = z.object({
     )
     .min(2)
     .transform((l) => l.slice(0, 10)),
-  ideas: z.object({
-    decor: strList(6),
-    food: strList(6),
-    activities: strList(6),
-    extras: strList(6),
-  }),
+  ideas: IdeasSchema,
   warnings: strList(5, 250),
 });
 

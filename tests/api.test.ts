@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { samplePlan } from "./fixtures";
 import type * as ExtractLib from "@/lib/extract";
+import type * as IdeasLib from "@/lib/ideas";
 
 type ExtractModule = typeof ExtractLib;
 
@@ -130,5 +131,35 @@ describe("request protections", () => {
     } finally {
       delete process.env.AI_DISABLED;
     }
+  });
+});
+
+describe("POST /api/ideas", () => {
+  let POST: (req: Request) => Promise<Response>;
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/ideas", async (orig) => ({
+      ...(await orig<typeof IdeasLib>()),
+      suggestIdeas: vi.fn(async () => ({ mode: "more", signature: null, items: [] })),
+    }));
+    ({ POST } = await import("@/app/api/ideas/route"));
+  });
+
+  const body = {
+    input: validBody,
+    context: { theme: "Royal", budget: [], functions: [], existing: [] },
+    heart: { forWhom: "Ananya", feelings: ["grand"], own: "" },
+    mode: "more",
+  };
+
+  it("answers a valid request", async () => {
+    const res = await POST(post("/api/ideas", body));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ mode: "more" });
+  });
+
+  it("rejects an unknown mode and unsafe text", async () => {
+    expect((await POST(post("/api/ideas", { ...body, mode: "all" }))).status).toBe(400);
+    expect((await POST(post("/api/ideas", { ...body, seed: "<script>" }))).status).toBe(400);
   });
 });

@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, type FormEvent } from "react";
 import { BudgetHelper } from "@/components/BudgetHelper";
+import { TraditionPicker, suggestedFunctions, type TraditionValues } from "@/components/TraditionPicker";
 import { formatINR } from "@/lib/budget";
 import { formatShortINR, perGuest, type BudgetOption } from "@/lib/budgetGuide";
 import {
@@ -38,6 +39,11 @@ export interface FormValues {
   focus: FocusArea[];
   food: FoodPref;
   guestNeeds: GuestNeed[];
+  traditions: TraditionValues["traditions"];
+  traditionOther: string;
+  days: number;
+  functions: TraditionValues["functions"];
+  additions: TraditionValues["additions"];
 }
 
 export const EMPTY_FORM: FormValues = {
@@ -53,6 +59,11 @@ export const EMPTY_FORM: FormValues = {
   focus: [],
   food: "",
   guestNeeds: [],
+  traditions: [],
+  traditionOther: "",
+  days: 1,
+  functions: [],
+  additions: [],
 };
 
 function daysFromNow(days: number): string {
@@ -76,6 +87,11 @@ export const EXAMPLES: { label: string; values: FormValues }[] = [
       focus: ["food", "rituals", "photos"],
       food: "veg",
       guestNeeds: ["elderly", "wheelchair"],
+      traditions: ["marwari", "punjabi"],
+      traditionOther: "",
+      days: 3,
+      functions: suggestedFunctions(["marwari", "punjabi"], "wedding", 3, ["choreography", "welcome"]),
+      additions: ["choreography", "welcome"],
     },
   },
   {
@@ -93,6 +109,11 @@ export const EXAMPLES: { label: string; values: FormValues }[] = [
       focus: ["entertainment", "food"],
       food: "veg",
       guestNeeds: ["young-kids", "allergies"],
+      traditions: [],
+      traditionOther: "",
+      days: 1,
+      functions: [],
+      additions: [],
     },
   },
   {
@@ -110,6 +131,11 @@ export const EXAMPLES: { label: string; values: FormValues }[] = [
       focus: ["entertainment", "decor"],
       food: "",
       guestNeeds: ["elderly", "young-kids"],
+      traditions: [],
+      traditionOther: "",
+      days: 1,
+      functions: [],
+      additions: [],
     },
   },
 ];
@@ -126,6 +152,11 @@ export function fromInput(input: EventInput): FormValues {
   return {
     ...EMPTY_FORM,
     ...input,
+    traditions: input.traditions ?? [],
+    traditionOther: input.traditionOther ?? "",
+    days: input.days ?? 1,
+    functions: input.functions ?? [],
+    additions: input.additions ?? [],
     guests: String(input.guests),
     budget: String(input.budget),
   };
@@ -389,6 +420,15 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
           />
           {errorText("style")}
         </div>
+
+        {(values.eventType === "wedding" || TRADITIONAL_EVENT_TYPES.has(values.eventType as EventType)) && (
+          <TraditionPicker
+            id={`${id}-tr`}
+            values={{ ...values, eventType: values.eventType }}
+            errors={allErrors}
+            onChange={(next) => setValues((v) => ({ ...v, ...next }))}
+          />
+        )}
 
         <details className="field span-2 personal" open={personalCount > 0}>
           <summary>

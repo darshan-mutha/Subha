@@ -16,6 +16,7 @@ import {
 } from "@/lib/schedule";
 import type { Assignments, Done, Member, PlanItem } from "@/lib/team";
 import type { PaymentSummary } from "@/lib/deals";
+import { dateOfDay, dayLabel } from "@/lib/traditions";
 import { VendorDeal, type DealState } from "./VendorDeal";
 
 /** Shared task state: ticks and owners, controlled by the workspace. */
@@ -542,36 +543,97 @@ export function VendorsSection({
   );
 }
 
-export function IdeasSection({ plan }: { plan: Plan }) {
-  const groups: [string, string[]][] = [
-    ["Decor", plan.ideas.decor],
-    ["Food & drinks", plan.ideas.food],
-    ["Activities", plan.ideas.activities],
-    ["Special touches", plan.ideas.extras],
-  ];
+/** Functions of a multi-day event, day by day. */
+export function FunctionsSection({ plan, firstDay }: { plan: Plan; firstDay: string }) {
+  const days = [...new Set(plan.functions.map((f) => f.day))].sort((a, b) => a - b);
   return (
     <>
-      <h2 className="section-title">Ideas</h2>
-      <div className="theme card-inner">
-        <h3>Theme: {plan.theme.name}</h3>
-        <p>{plan.theme.description}</p>
-        {plan.theme.colors.length > 0 && <p className="muted">Colours: {plan.theme.colors.join(", ")}</p>}
-      </div>
-      <div className="ideas-grid">
-        {groups
-          .filter(([, list]) => list.length > 0)
-          .map(([title, list]) => (
-            <div key={title} className="card-inner">
-              <h3>{title}</h3>
-              <ul className="list">
-                {list.map((idea) => (
-                  <li key={idea}>{idea}</li>
+      <h2 className="section-title">Functions</h2>
+      <p className="note small">
+        Every family does things a little differently. These are what is usually done, so check the details with family
+        elders and your priest, qazi, granthi or pastor.
+      </p>
+      {days.map((day) => {
+        const date = dateOfDay(firstDay, day);
+        return (
+          <section key={day} className="fn-day-block" aria-labelledby={`fn-day-${day}`}>
+            <h3 id={`fn-day-${day}`} className="small-heading">
+              {dayLabel(day)}
+              {date && <span className="muted"> · {shortDate(date)}</span>}
+            </h3>
+            <div className="fn-cards">
+              {plan.functions
+                .filter((f) => f.day === day)
+                .map((f) => (
+                  <article key={f.name} className="card-inner fn-card">
+                    <h4>{f.name}</h4>
+                    <ul className="facts small" aria-label={`${f.name} details`}>
+                      {f.time && <li>{f.time}</li>}
+                      {f.guests > 0 && <li>{f.guests.toLocaleString("en-IN")} guests</li>}
+                      {f.amount > 0 && <li>About {formatINR(f.amount)}</li>}
+                    </ul>
+                    {f.mood && <p className="fn-mood">{f.mood}</p>}
+                    {f.rituals.length > 0 && (
+                      <>
+                        <p className="fn-label">Usually done</p>
+                        <ul className="list small">
+                          {f.rituals.map((r) => (
+                            <li key={r}>{r}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {f.needs.length > 0 && (
+                      <>
+                        <p className="fn-label">You&apos;ll need</p>
+                        <ul className="list small">
+                          {f.needs.map((r) => (
+                            <li key={r}>{r}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </article>
                 ))}
-              </ul>
             </div>
-          ))}
-      </div>
+          </section>
+        );
+      })}
+      <p className="muted small">Costs are planning estimates that add up to your total budget, not quotes.</p>
     </>
+  );
+}
+
+/** A short day-by-day list of functions for the Home section. */
+export function FunctionsSummary({ plan, firstDay, onOpen }: { plan: Plan; firstDay: string; onOpen: () => void }) {
+  const days = [...new Set(plan.functions.map((f) => f.day))].sort((a, b) => a - b);
+  if (days.length === 0) return null;
+  return (
+    <section className="fn-summary" aria-labelledby="fn-summary-heading">
+      <h2 id="fn-summary-heading" className="small-heading">
+        Your functions
+      </h2>
+      <ul className="list">
+        {days.map((day) => {
+          const date = dateOfDay(firstDay, day);
+          return (
+            <li key={day}>
+              <strong>
+                {dayLabel(day)}
+                {date ? `, ${shortDate(date)}` : ""}:
+              </strong>{" "}
+              {plan.functions
+                .filter((f) => f.day === day)
+                .map((f) => f.name)
+                .join(", ")}
+            </li>
+          );
+        })}
+      </ul>
+      <button type="button" className="btn btn-small no-print" onClick={onOpen}>
+        See all functions
+      </button>
+    </section>
   );
 }
 

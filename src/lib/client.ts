@@ -1,5 +1,6 @@
 import type { Quote } from "./deals";
 import type { ExtractResult } from "./extract";
+import type { IdeasRequest, IdeasResult } from "./ideas";
 import type { InviteDetails, InviteWording } from "./invite";
 import type { SavingOption, SavingsRequest } from "./savings";
 import type { GuestEvent, Reply } from "./rsvp";
@@ -90,6 +91,13 @@ export const requestInvite = (input: EventInput, details: InviteDetails) =>
 export const requestSavings = (body: SavingsRequest) =>
   postJson<{ options: SavingOption[]; source: "ai" | "standard" }>("/api/savings", body, (d) =>
     Array.isArray(d.options),
+  );
+
+export const requestIdeas = (body: IdeasRequest) =>
+  postJson<IdeasResult>(
+    "/api/ideas",
+    body,
+    (d) => Array.isArray((d as { directions?: unknown }).directions) || Array.isArray((d as { items?: unknown }).items),
   );
 
 export const createShared = (content: SharedPlanContent, done: Done) =>
