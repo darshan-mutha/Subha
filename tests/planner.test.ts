@@ -64,3 +64,21 @@ describe("refinePlan", () => {
     expect(result.input.guests).toBe(baseInput.guests);
   });
 });
+
+describe("createPlan speed", () => {
+  it("writes the plan as two halves at the same time and joins them", async () => {
+    const { vendors, ideas, ...core } = samplePlan;
+    const generate = vi.fn(async (request: { prompt: string; jsonSchema: object }) => {
+      const keys = Object.keys((request.jsonSchema as { properties: object }).properties);
+      return JSON.stringify(keys.includes("vendors") ? { vendors, ideas } : core);
+    });
+    const { plan } = await createPlan(baseInput, { generate, locate: vi.fn(), now: NOW });
+    expect(generate).toHaveBeenCalledTimes(2);
+    const prompts = generate.mock.calls.map(([r]) => r.prompt);
+    expect(prompts.some((p) => p.startsWith("Write only these parts of the plan: vendors and ideas"))).toBe(true);
+    expect(prompts.some((p) => p.startsWith("Write only these parts of the plan: summary"))).toBe(true);
+    expect(plan.vendors).toHaveLength(samplePlan.vendors.length);
+    expect(plan.timeline.length).toBeGreaterThan(0);
+    expect(plan.budget.reduce((s, l) => s + l.amount, 0)).toBe(baseInput.budget);
+  });
+});

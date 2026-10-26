@@ -72,6 +72,8 @@ function getClient(): Anthropic {
 function friendlyError(error: unknown): PlannerError {
   if (error instanceof PlannerError) return error;
   const status = (error as { status?: number })?.status;
+  // Logged for diagnosis: the kind of failure only, never keys, prompts or user details.
+  console.error("AI call failed:", status ?? "no status", error instanceof Error ? error.name : typeof error);
   if (status === 429 || status === 529)
     return new PlannerError("Shubā is very busy right now. Please try again in a minute.", 503);
   if (status === 401 || status === 403)
@@ -135,6 +137,13 @@ export async function generateStructured<S extends z.ZodTypeAny>(
     try {
       const parsed = schema.safeParse(extractJson(await generate(request)));
       if (parsed.success) return parsed.data;
+      console.error(
+        "AI reply did not match the schema:",
+        parsed.error.issues
+          .slice(0, 3)
+          .map((i) => i.path.join("."))
+          .join(", "),
+      );
       lastError = new PlannerError("The AI returned a reply in the wrong format. Please try again.", 502);
     } catch (error) {
       if (error instanceof PlannerError && error.status !== 502) throw error;

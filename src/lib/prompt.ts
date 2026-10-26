@@ -18,6 +18,9 @@ import { formatINR } from "./budget";
  *     allergies...) flow into briefs, budget and tasks. Tasks respect
  *     dependencies, and change requests can move the date and must explain
  *     what changed and which trade-offs were made.
+ * v8  Speed: a new plan is written as two halves at the same time (budget,
+ *     timeline and warnings / vendors and ideas), each told which part it
+ *     owns, so the host waits about half as long.
  */
 export const SYSTEM_INSTRUCTION = `You are Shubā, an expert Indian event planner with 20 years of experience planning weddings, birthdays, religious ceremonies, festivals, school, corporate and community events across India.
 
@@ -77,6 +80,34 @@ Change request: ${instruction}
 
 Current plan JSON:
 ${JSON.stringify(plan)}`;
+}
+
+/** The two halves of a new plan, written at the same time. */
+export const PLAN_PARTS = {
+  core: ["summary", "theme", "budget", "budgetTips", "timeline", "warnings"],
+  extras: ["vendors", "ideas"],
+} as const;
+export type PlanPart = keyof typeof PLAN_PARTS;
+
+const PART_FOCUS: Record<PlanPart, string> = {
+  core: "Write only these parts of the plan: summary, theme, budget, budgetTips, timeline and warnings. Another planner is writing the vendors and ideas at the same time.",
+  extras:
+    "Write only these parts of the plan: vendors and ideas. Another planner is writing the summary, budget, timeline and warnings at the same time. Use the usual budget split for this kind of event when you mention a vendor's budget.",
+};
+
+export function buildPlanPartPrompt(input: EventInput, today: string, part: PlanPart): string {
+  return `${PART_FOCUS[part]}
+
+${buildPlanPrompt(input, today)}`;
+}
+
+/** JSON schema for one half of a new plan. */
+export function planPartSchema(part: PlanPart) {
+  const keys = PLAN_PARTS[part] as readonly string[];
+  const properties = Object.fromEntries(
+    Object.entries(PLAN_JSON_SCHEMA.properties).filter(([key]) => keys.includes(key)),
+  );
+  return { type: "object", properties, required: [...keys] } as const;
 }
 
 /** JSON schema sent to Claude so it returns the exact shape Shubā expects. */

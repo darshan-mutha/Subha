@@ -94,6 +94,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 5. **v5** – 3–5 tasks flagged as milestones; each fills a petal of the rangoli and plays a short celebration when done.
 6. **v6** – Every amount is framed as a planning estimate; the model may never call a price confirmed or quote a named vendor's rate.
 7. **v7** – Personal plans: priorities protected when cutting costs, guest needs built into briefs, budget and tasks, tasks ordered by dependency (venue before caterer and invitations), and change requests can move the date and must explain what changed.
+8. **v8** – Speed: a new plan is written as two halves at the same time, each told which part it owns, roughly halving the wait.
 
 ## Security
 
@@ -122,8 +123,8 @@ Automated scan with **axe-core (WCAG 2.2 A/AA + best practices): 0 violations** 
 
 ## Efficiency
 
-- AI call and city lookup run in parallel; common Indian cities need no network call; lookups are cached.
-- Single structured AI call per plan; one retry only on malformed output.
+- A new plan is written as two halves at the same time (budget, timeline and warnings / vendors and ideas), alongside the city lookup, so the host waits about half as long as for one long reply. Common Indian cities need no network call; lookups are cached.
+- Structured AI output with one retry only on malformed output. Seating, guest counts, raising the budget and budget levels are worked out in code, with no AI wait at all.
 - Static home page, no client-side libraries beyond React.
 
 ## Code quality and testing

@@ -3,7 +3,14 @@ import { generateStructured, claudeGenerator, type TextGenerator } from "./ai";
 import { findLocation } from "./locations";
 import { normalizeTimeline } from "./schedule";
 import { calculateTimings, type DayTimings } from "./muhurat";
-import { PLAN_JSON_SCHEMA, REFINE_JSON_SCHEMA, SYSTEM_INSTRUCTION, buildPlanPrompt, buildRefinePrompt } from "./prompt";
+import {
+  REFINE_JSON_SCHEMA,
+  SYSTEM_INSTRUCTION,
+  buildPlanPartPrompt,
+  buildRefinePrompt,
+  planPartSchema,
+  type PlanPart,
+} from "./prompt";
 import {
   LIMITS,
   PlanSchema,
@@ -48,19 +55,34 @@ function withinLimits(value: number, min: number, max: number): boolean {
   return Number.isFinite(value) && value >= min && value <= max;
 }
 
+/** The two halves of a new plan (see PLAN_PARTS in prompt.ts). */
+const CoreSchema = PlanSchema.pick({
+  summary: true,
+  theme: true,
+  budget: true,
+  budgetTips: true,
+  timeline: true,
+  warnings: true,
+});
+const ExtrasSchema = PlanSchema.pick({ vendors: true, ideas: true });
+
 export async function createPlan(input: EventInput, deps: PlannerDeps = {}): Promise<PlanResult> {
   const now = deps.now ?? new Date();
   const generate = deps.generate ?? claudeGenerator;
   const locate = deps.locate ?? findLocation;
-  // The AI call and the location lookup are independent, so run them together.
-  const [plan, timings] = await Promise.all([
-    generateStructured(
-      { system: SYSTEM_INSTRUCTION, prompt: buildPlanPrompt(input, todayIST(now)), jsonSchema: PLAN_JSON_SCHEMA },
-      PlanSchema,
-      generate,
-    ),
+  // The plan is written as two halves at the same time, alongside the location lookup.
+  const request = (name: PlanPart) => ({
+    system: SYSTEM_INSTRUCTION,
+    prompt: buildPlanPartPrompt(input, todayIST(now), name),
+    jsonSchema: planPartSchema(name),
+    maxTokens: 8_000,
+  });
+  const [core, extras, timings] = await Promise.all([
+    generateStructured(request("core"), CoreSchema, generate),
+    generateStructured(request("extras"), ExtrasSchema, generate),
     timingsFor(input, locate),
   ]);
+  const plan: Plan = { ...core, ...extras };
   return { input, plan: finalize(plan, input, now), timings };
 }
 
