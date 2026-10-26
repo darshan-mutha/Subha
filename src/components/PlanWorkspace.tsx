@@ -605,7 +605,7 @@ export function PlanWorkspace({
         </div>
         {busy && (
           <p className="loading" aria-hidden="true">
-            <span className="spinner" /> Shubā is working… this can take 10–20 seconds.
+            <span className="spinner" /> Shubā is updating the whole plan… this can take 30–45 seconds.
           </p>
         )}
       </section>
