@@ -2014,3 +2014,74 @@ summary {
   font-weight: 400;
   font-size: 0.85rem;
 }
+
+/* ---------- Seating ---------- */
+.seating {
+  margin-top: 24px;
+}
+.seating-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin: 12px 0;
+}
+.seating-controls .field {
+  margin: 0;
+  min-width: 140px;
+}
+.table-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+}
+.seat-table {
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  break-inside: avoid;
+}
+.seat-table.is-over {
+  border-color: var(--danger);
+}
+.seat-table p {
+  margin: 4px 0 0;
+}
+.seat-table-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.seat-table-head h4 {
+  margin: 0;
+}
+.seat-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.seat-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--c-border);
+}
+.move-select {
+  font-size: 0.85rem;
+  min-height: 36px;
+  padding: 2px 8px;
+  width: auto;
+}
+.seat-table .chip-label {
+  display: inline-block;
+}
+.seating-controls .choices {
+  margin: 0;
+}

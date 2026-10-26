@@ -17,6 +17,8 @@ import {
 import { GUEST_NEED_LABELS, type EventInput } from "@/lib/schemas";
 import { whatsappLink } from "@/lib/team";
 import { CopyButton } from "./PlanSections";
+import { SeatingSection } from "./SeatingSection";
+import { DEFAULT_SEATING, type Seating } from "@/lib/seating";
 
 const POLL_MS = 30_000;
 
@@ -33,8 +35,8 @@ interface Props {
   onShare: (() => void) | null;
   /** Re-plans for a new guest count, with What changed and Undo. */
   onUseGuests: (guests: number) => void;
-  /** Replies changed: used by the seating plan. */
-  onReplies?: (replies: Reply[]) => void;
+  seating?: Seating;
+  onSeating: (next: Seating) => void;
 }
 
 function people(r: Reply): string {
@@ -43,7 +45,18 @@ function people(r: Reply): string {
 }
 
 /** Guests tab: the reply link, live counts, food and needs, and every reply. */
-export function GuestsSection({ planId, active, input, title, invite, busy, onShare, onUseGuests, onReplies }: Props) {
+export function GuestsSection({
+  planId,
+  active,
+  input,
+  title,
+  invite,
+  busy,
+  onShare,
+  onUseGuests,
+  seating = DEFAULT_SEATING,
+  onSeating,
+}: Props) {
   const id = useId();
   const [state, setState] = useState<GuestsState | null>(null);
   const [error, setError] = useState("");
@@ -71,9 +84,6 @@ export function GuestsSection({ planId, active, input, title, invite, busy, onSh
   }, [planId, active, refresh]);
 
   const replies = useMemo(() => state?.replies ?? [], [state]);
-  useEffect(() => {
-    onReplies?.(replies);
-  }, [replies, onReplies]);
   const summary = useMemo(() => summarize(replies), [replies]);
   const suggestion = suggestedGuests(summary, input.guests);
 
@@ -272,6 +282,10 @@ export function GuestsSection({ planId, active, input, title, invite, busy, onSh
             ))}
           </ul>
         </>
+      )}
+
+      {summary.coming.families + summary.maybe.families > 0 && (
+        <SeatingSection replies={replies} seating={seating} title={title} onChange={onSeating} />
       )}
 
       {replies.length > 0 && (

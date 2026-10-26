@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_SEATING, SeatingSchema, type Seating } from "./seating";
 import { DealsSchema, type Deals } from "./deals";
 import { InviteSchema, type Invite } from "./invite";
 import type { DayTimings } from "./muhurat";
@@ -113,6 +114,8 @@ export interface SharedPlanContent {
   invite?: Invite | null;
   /** Days each task was pushed back after something ran late. Older plans may not have it. */
   shifts?: Shifts;
+  /** Seating settings and the families the host moved. */
+  seating?: Seating;
 }
 
 export interface SharedPlan extends SharedPlanContent {
@@ -152,6 +155,7 @@ export function makeSharedContentSchema(now: Date = new Date()) {
     deals: DealsSchema.default({}),
     invite: InviteSchema.nullable().catch(null).default(null),
     shifts: ShiftsSchema.catch({}).default({}),
+    seating: SeatingSchema.catch(DEFAULT_SEATING).default(DEFAULT_SEATING),
   });
 }
 

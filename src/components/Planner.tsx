@@ -15,6 +15,7 @@ import {
   type EventEntry,
 } from "@/lib/myEvents";
 import { PlanSchema, type EventInput } from "@/lib/schemas";
+import { DEFAULT_SEATING, SeatingSchema } from "@/lib/seating";
 import { pruneDeals } from "@/lib/deals";
 import { InviteSchema } from "@/lib/invite";
 import { planStructure, pruneState, type SharedPlanContent } from "@/lib/team";
@@ -42,6 +43,7 @@ function savedWorkspace(key: string): LocalWorkspace | null {
     timings: saved.timings ?? null,
     deals: saved.deals ?? {},
     shifts: saved.shifts ?? {},
+    seating: SeatingSchema.catch(DEFAULT_SEATING).parse(saved.seating ?? DEFAULT_SEATING),
     invite: InviteSchema.nullable()
       .catch(null)
       .parse(saved.invite ?? null),

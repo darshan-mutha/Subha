@@ -14,6 +14,7 @@ Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremoni
 - **Quotes, booking and agreement** – add the quotes you get, compare them side by side against that vendor's share of the budget, book one, track advance paid and balance due (fed into the Budget tab), and get a one-page booking confirmation to send on WhatsApp or print
 - **Invitation card** – Shubā writes the invitation in English or 6 Indian languages (Hindi, Kannada, Tamil, Telugu, Marathi, Bengali) in a warm, traditional or fun tone, and draws a card in three looks (Peacock, Ivory, Haldi). Edit any word, then download the image, share it straight to WhatsApp on a phone, or send the message
 - **Guest replies (RSVP)** – one link for all guests, sent on WhatsApp with the invitation words. Each family says if they're coming, how many adults and children, their food (veg, Jain, no onion-garlic…), any needs (elderly, wheelchair, young children, allergies) and which side they're from, and can change their reply later from the same phone. The Guests tab shows live counts, a food count for the caterer, guest needs, every reply and a downloadable list, and offers to update the plan's guest count from the replies. Guests never see the plan, budget or team link, and the host can stop taking replies at any time
+- **Seating plan** – worked out from the guest replies: each family sits together (a very big family fills tables side by side), each side sits together, small groups share tables, and families with elderly or wheelchair users get the tables nearest the entrance. Choose 6–12 people per table, keep seats for "maybe" guests, move any family to another table (saved for the whole team), see the food mix per table, and copy the plan to send to the venue
 - **Personalised ideas** for theme, decor, food, activities and special touches
 - **Auspicious timings** (Rahu Kalam, Yamagandam, Gulika Kalam) calculated for the event city and date
 - **Warnings** for unrealistic budgets, short notice and seasonal risks
@@ -148,6 +149,7 @@ npm run dev
 
 ## Changelog
 
+- **26 Oct 2026** – Seating plan in the Guests tab, worked out in code from the replies (families and sides together, access needs nearest the entrance, even split for big families), with table size, "maybe" seats, moves saved with the plan and copy-as-text.
 - **26 Oct 2026** – Guest replies (RSVP): one guest link (separate from the team link), a simple reply page with food and needs, live counts and food count for the host, download as a spreadsheet, and "update the plan to N guests" through the change flow with Undo. Each guest's reply is protected by a secret kept only on their phone (stored hashed).
 - **26 Oct 2026** – My events: several events on one device without a login. A list with countdowns, open / remove (with a check), new events no longer replace the old one, shared events open from their team link. The plan saved by the one-plan version is moved into the list automatically.
 - **26 Oct 2026** – Over budget? See your choices: a banner when bookings go over, and a Budget-tab panel with several ways to save (or raise the budget), each with an estimated saving and trade-off; choosing one updates the plan with What changed and Undo.
@@ -158,4 +160,4 @@ npm run dev
 
 ## Roadmap
 
-Full panchang and muhurat via a licensed astrology API, comments and voting on ideas, sign-in so events follow you across devices, seating suggestions, multi-language UI.
+Full panchang and muhurat via a licensed astrology API, comments and voting on ideas, sign-in so events follow you across devices, multi-language UI.

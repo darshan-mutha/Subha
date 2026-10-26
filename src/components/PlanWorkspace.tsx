@@ -387,6 +387,8 @@ export function PlanWorkspace({
           onShare={
             onShare ? () => void act(() => onShare("guests"), "Creating your guest link…", "Guest link ready") : null
           }
+          seating={data.seating}
+          onSeating={(seating) => void act(() => onChange({ seating }), "Saving…", "Seating saved")}
           onUseGuests={(guests) =>
             void applyChange(`Change the guest count to ${guests}, based on the replies from guests.`)
           }

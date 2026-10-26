@@ -199,4 +199,60 @@ describe("Guests tab", () => {
     await user.click(panel.getByRole("button", { name: "Yes, remove" }));
     await waitFor(() => expect(panel.queryByText("Joseph")).not.toBeInTheDocument());
   });
+
+  it("suggests seating from replies and saves a move", async () => {
+    const user = userEvent.setup();
+    const seatReplies = [
+      reply({ id: "r000011", name: "Nani", adults: 2, kids: 0, needs: ["elderly"], group: "family" }),
+      reply({ id: "r000012", name: "Kumar", adults: 6, kids: 0, group: "friends" }),
+      reply({ id: "r000013", name: "Shah", adults: 4, kids: 2, group: "friends" }),
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => json({ link: { token: TOKEN, open: true }, replies: seatReplies })),
+    );
+    const changes: unknown[] = [];
+    function SeatHarness() {
+      const [data, setData] = useState(start);
+      return (
+        <PlanWorkspace
+          planKey="seating"
+          planId={PLAN}
+          initialTab="guests"
+          data={data}
+          shareUrl={`http://localhost/p/${PLAN}`}
+          onChange={async (c: Partial<SharedPlanContent>) => {
+            changes.push(c);
+            setData((d) => ({ ...d, ...c }));
+          }}
+          onToggle={vi.fn()}
+          onShare={null}
+          onEdit={null}
+          onStartOver={vi.fn()}
+          viewer=""
+          onViewerChange={vi.fn()}
+        />
+      );
+    }
+    const { container } = render(<SeatHarness />);
+    const panel = within(screen.getByRole("tabpanel"));
+    const seating = within(await panel.findByRole("region", { name: "Seating plan" }));
+    expect(seating.getByText(/3 tables of 8 for 14 people/)).toBeInTheDocument();
+    const first = within(seating.getAllByRole("listitem").find((li) => li.className.includes("seat-table"))!);
+    expect(first.getByRole("heading", { name: "Table 1" })).toBeInTheDocument();
+    expect(first.getByText(/Near the entrance/)).toBeInTheDocument();
+    expect(first.getByLabelText("Move Nani to")).toBeInTheDocument();
+    expect(await violations(container)).toEqual([]);
+
+    await user.selectOptions(seating.getByLabelText("Move Nani to"), "Table 2");
+    await waitFor(() =>
+      expect(changes).toContainEqual({ seating: expect.objectContaining({ moves: { r000011: 2 } }) }),
+    );
+    expect(seating.getByText(/You moved 1 family/)).toBeInTheDocument();
+    await user.click(seating.getByRole("button", { name: "Undo my moves" }));
+    await waitFor(() => expect(seating.queryByText(/You moved/)).not.toBeInTheDocument());
+
+    await user.selectOptions(seating.getByLabelText("People per table"), "12");
+    expect(seating.getByText(/of 12 for 14 people/)).toBeInTheDocument();
+  });
 });
