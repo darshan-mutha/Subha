@@ -32,7 +32,7 @@ export async function PUT(request: Request, context: Context) {
   if (!id) return errorResponse("This plan could not be found. The link may be wrong.", 404);
   const schema = z.object({ version: z.number().int().positive(), content: makeSharedContentSchema() });
   return handleJson(request, schema, ({ version, content }) => getStore().update(id, content, version), {
-    maxBytes: 128_000,
+    maxBytes: 256_000,
     kind: "data",
   });
 }

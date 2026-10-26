@@ -22,6 +22,7 @@ function contentOf(plan: SharedPlan): SharedPlanContent {
     shifts = {},
     seating,
     ideaState,
+    guestList,
   } = plan;
   return {
     input,
@@ -34,6 +35,7 @@ function contentOf(plan: SharedPlan): SharedPlanContent {
     shifts,
     ...(seating ? { seating } : {}),
     ...(ideaState ? { ideaState } : {}),
+    ...(guestList ? { guestList } : {}),
   };
 }
 

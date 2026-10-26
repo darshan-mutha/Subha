@@ -17,6 +17,7 @@ import {
 import { PlanSchema, withInputDefaults, type EventInput } from "@/lib/schemas";
 import { IdeaStateSchema } from "@/lib/ideas";
 import { DEFAULT_SEATING, SeatingSchema } from "@/lib/seating";
+import { GuestListSchema } from "@/lib/guestList";
 import { pruneDeals } from "@/lib/deals";
 import { InviteSchema } from "@/lib/invite";
 import { planStructure, pruneState, type SharedPlanContent } from "@/lib/team";
@@ -48,6 +49,7 @@ function savedWorkspace(key: string): LocalWorkspace | null {
     deals: saved.deals ?? {},
     shifts: saved.shifts ?? {},
     seating: SeatingSchema.catch(DEFAULT_SEATING).parse(saved.seating ?? DEFAULT_SEATING),
+    guestList: GuestListSchema.parse(saved.guestList ?? []),
     invite: InviteSchema.nullable()
       .catch(null)
       .parse(saved.invite ?? null),

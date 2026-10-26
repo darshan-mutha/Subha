@@ -14,6 +14,6 @@ export async function POST(request: Request) {
       const saved = await getStore().create({ ...content, assignments }, done);
       return { id: saved.id };
     },
-    { maxBytes: 128_000, kind: "data" },
+    { maxBytes: 256_000, kind: "data" },
   );
 }

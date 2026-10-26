@@ -32,7 +32,7 @@ import {
 import type { TabItem } from "./Tabs";
 import { TeamPanel } from "./TeamPanel";
 import { InviteMaker } from "./InviteMaker";
-import { GuestsSection } from "./GuestsSection";
+import { GuestsHub } from "./GuestsHub";
 import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
@@ -585,7 +585,7 @@ export function PlanWorkspace({
       id: "guests",
       label: "Guests",
       content: (
-        <GuestsSection
+        <GuestsHub
           planId={planId}
           active={tab === "guests"}
           input={input}
@@ -598,8 +598,13 @@ export function PlanWorkspace({
           seating={data.seating}
           onSeating={(seating) => void act(() => onChange({ seating }), "Saving…", "Seating saved")}
           onUseGuests={(guests) =>
-            void applyChange(`Change the guest count to ${guests}, based on the replies from guests.`)
+            void applyChange(`Change the guest count to ${guests}, based on the guest list and replies.`)
           }
+          entries={data.guestList ?? []}
+          functions={(plan.functions ?? []).map((f) => f.name)}
+          today={today}
+          onList={(guestList) => void act(() => onChange({ guestList }), "Saving…", "Guest list saved")}
+          initialPart={initialTab === "guests" ? "replies" : "list"}
         />
       ),
     },

@@ -4,6 +4,7 @@ import type { IdeasRequest, IdeasResult } from "./ideas";
 import type { InviteDetails, InviteWording } from "./invite";
 import type { SavingOption, SavingsRequest } from "./savings";
 import type { GuestEvent, Reply } from "./rsvp";
+import type { GuestGroupIdea } from "./guestGroups";
 import type { DayTimings } from "./muhurat";
 import type { EventInput, Plan } from "./schemas";
 import type { Assignments, Done, Member, SharedPlan, SharedPlanContent } from "./team";
@@ -98,6 +99,11 @@ export const requestIdeas = (body: IdeasRequest) =>
     "/api/ideas",
     body,
     (d) => Array.isArray((d as { directions?: unknown }).directions) || Array.isArray((d as { items?: unknown }).items),
+  );
+
+export const requestGuestGroups = (body: { input: EventInput; functions: string[] }) =>
+  postJson<{ groups: GuestGroupIdea[]; reminders: string[]; source: "ai" | "standard" }>("/api/guestlist", body, (d) =>
+    Array.isArray(d.groups),
   );
 
 export const createShared = (content: SharedPlanContent, done: Done) =>

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { hash } from "./hash";
 import { IdeaStateSchema, type IdeaState } from "./ideas";
 import { DEFAULT_SEATING, SeatingSchema, type Seating } from "./seating";
+import { GuestListSchema, type GuestList } from "./guestList";
 import { DealsSchema, type Deals } from "./deals";
 import { InviteSchema, type Invite } from "./invite";
 import type { DayTimings } from "./muhurat";
@@ -110,6 +111,8 @@ export interface SharedPlanContent {
   shifts?: Shifts;
   /** Seating settings and the families the host moved. */
   seating?: Seating;
+  /** The host's own guest list. */
+  guestList?: GuestList;
   /** The heart of the event, theme directions and which ideas were kept, skipped or added. */
   ideaState?: IdeaState;
 }
@@ -152,6 +155,7 @@ export function makeSharedContentSchema(now: Date = new Date()) {
     invite: InviteSchema.nullable().catch(null).default(null),
     shifts: ShiftsSchema.catch({}).default({}),
     seating: SeatingSchema.catch(DEFAULT_SEATING).default(DEFAULT_SEATING),
+    guestList: GuestListSchema.default([]),
     ideaState: IdeaStateSchema.optional().catch(undefined),
   });
 }
