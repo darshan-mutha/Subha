@@ -175,8 +175,28 @@ export type EventInput = z.infer<ReturnType<typeof makeEventInputSchema>>;
 /* Plan returned by the AI. Validated before it ever reaches the UI.   */
 /* ------------------------------------------------------------------ */
 
-const str = (max = 400) => z.string().trim().min(1).max(max);
-const strList = (maxItems: number, max = 200) => z.array(str(max)).max(maxItems).default([]);
+/**
+ * Cuts over-long text at a word boundary. A label that runs a few characters
+ * long is trimmed rather than throwing away the whole AI reply (a retry costs
+ * the host another 20-30 seconds).
+ */
+export function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:.\-–(]+$/u, "")}…`;
+}
+
+const str = (max = 400) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .transform((v) => clip(v, max));
+/** A list that keeps its first `maxItems` items instead of rejecting a longer one. */
+const upTo = <T extends z.ZodTypeAny>(item: T, maxItems: number) =>
+  z.array(item).transform((list) => list.slice(0, maxItems));
+const strList = (maxItems: number, max = 200) => upTo(str(max), maxItems).default([]);
 
 export const PRIORITIES = ["high", "medium", "low"] as const;
 export type Priority = (typeof PRIORITIES)[number];
@@ -211,18 +231,21 @@ export const PlanSchema = z.object({
       }),
     )
     .min(3)
-    .max(12),
+    .transform((l) => l.slice(0, 12)),
   budgetTips: strList(6),
   timeline: z
     .array(
       z.object({
         when: str(60),
         daysBefore: DaysBefore,
-        tasks: z.array(TaskSchema).min(1).max(8),
+        tasks: z
+          .array(TaskSchema)
+          .min(1)
+          .transform((l) => l.slice(0, 8)),
       }),
     )
     .min(3)
-    .max(10),
+    .transform((l) => l.slice(0, 10)),
   vendors: z
     .array(
       z.object({
@@ -234,7 +257,7 @@ export const PlanSchema = z.object({
       }),
     )
     .min(2)
-    .max(10),
+    .transform((l) => l.slice(0, 10)),
   ideas: z.object({
     decor: strList(6),
     food: strList(6),

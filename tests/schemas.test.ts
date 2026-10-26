@@ -78,3 +78,22 @@ describe("plan and refine validation", () => {
     );
   });
 });
+
+describe("AI replies that run a little long", () => {
+  it("trims long text at a word instead of rejecting the plan", async () => {
+    const { clip, PlanSchema } = await import("@/lib/schemas");
+    const { samplePlan } = await import("./fixtures");
+    expect(clip("Short", 60)).toBe("Short");
+    const long = "Accessibility support vendor for ramps, wheelchairs and an accessible toilet";
+    const cut = clip(long, 60);
+    expect(cut.length).toBeLessThanOrEqual(60);
+    expect(cut.endsWith("…")).toBe(true);
+    expect(cut).not.toMatch(/[ ,]…$/);
+
+    const vendors = Array.from({ length: 12 }, (_, i) => ({ ...samplePlan.vendors[0], type: `${long} ${i}` }));
+    const parsed = PlanSchema.parse({ ...samplePlan, vendors });
+    expect(parsed.vendors).toHaveLength(10);
+    expect(parsed.vendors[7].type.length).toBeLessThanOrEqual(60);
+    expect(() => PlanSchema.parse({ ...samplePlan, vendors: [] })).toThrow();
+  });
+});

@@ -368,7 +368,7 @@ export function Planner() {
         )}
         {busy && (
           <p className="loading" aria-hidden="true">
-            <span className="spinner" /> Shubā is planning… this takes about 10–20 seconds.
+            <span className="spinner" /> Shubā is planning… this takes about 20–30 seconds.
           </p>
         )}
       </section>
