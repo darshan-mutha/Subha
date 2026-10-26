@@ -1,6 +1,7 @@
 import type { Quote } from "./deals";
 import type { ExtractResult } from "./extract";
 import type { InviteDetails, InviteWording } from "./invite";
+import type { SavingOption, SavingsRequest } from "./savings";
 import type { DayTimings } from "./muhurat";
 import type { EventInput, Plan } from "./schemas";
 import type { Assignments, Done, Member, SharedPlan, SharedPlanContent } from "./team";
@@ -83,6 +84,11 @@ export const requestAgreement = (body: {
 export const requestInvite = (input: EventInput, details: InviteDetails) =>
   postJson<{ wording: InviteWording; source: "ai" | "standard" }>("/api/invite", { input, details }, (d) =>
     Boolean(d.wording?.heading),
+  );
+
+export const requestSavings = (body: SavingsRequest) =>
+  postJson<{ options: SavingOption[]; source: "ai" | "standard" }>("/api/savings", body, (d) =>
+    Array.isArray(d.options),
   );
 
 export const createShared = (content: SharedPlanContent, done: Done) =>

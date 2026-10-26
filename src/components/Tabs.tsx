@@ -9,8 +9,25 @@ export interface TabItem {
 }
 
 /** Accessible tabs following the WAI-ARIA tabs pattern (arrow keys, Home, End). */
-export function Tabs({ items, label }: { items: TabItem[]; label: string }) {
-  const [active, setActive] = useState(0);
+export function Tabs({
+  items,
+  label,
+  activeId,
+  onActiveChange,
+}: {
+  items: TabItem[];
+  label: string;
+  /** Optional: the parent picks the open tab (e.g. a "see your choices" link). */
+  activeId?: string;
+  onActiveChange?: (id: string) => void;
+}) {
+  const [own, setOwn] = useState(0);
+  const controlled = activeId !== undefined ? items.findIndex((i) => i.id === activeId) : -1;
+  const active = controlled >= 0 ? controlled : own;
+  const setActive = (index: number) => {
+    setOwn(index);
+    onActiveChange?.(items[index]?.id ?? "");
+  };
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const base = useId();
   const current = Math.min(active, items.length - 1);

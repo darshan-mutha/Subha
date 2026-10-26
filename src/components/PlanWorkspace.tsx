@@ -34,6 +34,8 @@ import { InviteMaker } from "./InviteMaker";
 import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
+import { SavingsChoices } from "./SavingsChoices";
+import { applyRaise, overLines, totalOver, type SavingOption, type SavingsRequest } from "@/lib/savings";
 
 const REFINE_SUGGESTIONS = [
   "We added 50 guests, the budget is 10% lower and the date moved 2 weeks earlier",
@@ -129,6 +131,9 @@ export function PlanWorkspace({
   );
   const payments = useMemo(() => paymentSummary(vendorRefs, deals), [vendorRefs, deals]);
   const bookedLines = useMemo(() => bookedByLine(vendorRefs, deals, plan.budget), [vendorRefs, deals, plan.budget]);
+  const overList = useMemo(() => overLines(plan.budget, bookedLines), [plan.budget, bookedLines]);
+  const overBy = totalOver(overList);
+  const [tab, setTab] = useState("budget");
 
   // "Comes alive": colour grows with the share of tasks done.
   const doneCount = items.filter((i) => i.status === "done").length;
@@ -187,13 +192,8 @@ export function PlanWorkspace({
     }
   }
 
-  async function refine(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const text = instruction.trim();
-    if (text.length < 3) {
-      setError("Please describe what you want to change.");
-      return;
-    }
+  /** Sends a change request in plain words and shows What changed with an Undo. */
+  async function applyChange(text: string): Promise<boolean> {
     const before: Snapshot = { input, plan, timings, shifts };
     let lines: string[] = [];
     const ok = await act(
@@ -208,10 +208,47 @@ export function PlanWorkspace({
       "Plan updated. See what changed above the tabs.",
     );
     if (ok) {
-      setInstruction("");
       setLastChange({ lines, before, note: "Due dates, budget and vendor messages have been updated to match." });
       requestAnimationFrame(() => changeRef.current?.focus());
     }
+    return ok;
+  }
+
+  async function refine(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = instruction.trim();
+    if (text.length < 3) {
+      setError("Please describe what you want to change.");
+      return;
+    }
+    if (await applyChange(text)) setInstruction("");
+  }
+
+  /** The host picked one of the over-budget choices. Raising the budget is done in code; the rest re-plan. */
+  async function chooseSaving(option: SavingOption, request: SavingsRequest): Promise<boolean> {
+    if (option.kind !== "raise-budget") return applyChange(option.instruction);
+    const before: Snapshot = { input, plan };
+    const raised = applyRaise(input, plan.budget, request.overLines);
+    const ok = await act(
+      () => onChange({ input: raised.input, plan: { ...plan, budget: raised.budget } }),
+      "Updating the budget…",
+      "Budget increased. See what changed above the tabs.",
+    );
+    if (ok) {
+      setLastChange({ lines: raised.changes, before, note: "Your bookings now fit the budget." });
+      requestAnimationFrame(() => changeRef.current?.focus());
+    }
+    return ok;
+  }
+
+  /** Opens the Budget tab at the over-budget choices. */
+  function showChoices() {
+    setTab("budget");
+    requestAnimationFrame(() => {
+      const heading = document.querySelector<HTMLElement>("[data-savings-heading]");
+      heading?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+      heading?.focus({ preventScroll: true });
+    });
   }
 
   async function undo() {
@@ -292,15 +329,18 @@ export function PlanWorkspace({
       id: "budget",
       label: "Budget",
       content: (
-        <BudgetSection
-          plan={plan}
-          total={input.budget}
-          booked={bookedLines}
-          payments={payments}
-          onBudgetChange={(lines) =>
-            void act(() => onChange({ plan: { ...plan, budget: lines } }), "Saving…", "Budget updated")
-          }
-        />
+        <>
+          <BudgetSection
+            plan={plan}
+            total={input.budget}
+            booked={bookedLines}
+            payments={payments}
+            onBudgetChange={(lines) =>
+              void act(() => onChange({ plan: { ...plan, budget: lines } }), "Saving…", "Budget updated")
+            }
+          />
+          <SavingsChoices input={input} plan={plan} over={overList} busy={busy} onChoose={chooseSaving} />
+        </>
       ),
     },
     {
@@ -475,8 +515,20 @@ export function PlanWorkspace({
         </section>
       )}
 
+      {overBy > 0 && (
+        <section className="over-banner no-print" aria-labelledby="over-heading">
+          <h2 id="over-heading" className="small-heading">
+            <span aria-hidden="true">⚠ </span>Bookings are {formatINR(overBy)} over budget
+          </h2>
+          <p className="small">Raise the budget or save elsewhere. Shubā shows you the choices.</p>
+          <button type="button" className="btn btn-small" onClick={showChoices}>
+            See my choices
+          </button>
+        </section>
+      )}
+
       <div className="card">
-        <Tabs items={tabs} label="Plan sections" />
+        <Tabs items={tabs} label="Plan sections" activeId={tab} onActiveChange={setTab} />
       </div>
 
       <section className="card refine no-print" aria-labelledby="refine-heading">

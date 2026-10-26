@@ -7,6 +7,7 @@ Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremoni
 - **Make it yours** – pick what matters most (food, photos, rituals…), food preference (veg, Jain, no onion-garlic…) and **guest needs** (elderly guests, wheelchair access, young children, hearing or sight support, allergies, a quiet room). Priorities get more of the budget and are protected when money is short; guest needs go into the venue and caterer messages, the budget and the checklist. Voice picks these up too ("my grandmother uses a wheelchair")
 - **Budget** split by category that always adds up to your total, with ways to save. **Change any line** and Shubā moves the difference across the other lines, showing exactly what it cost elsewhere
 - **Timeline** of tasks from today to the event day, each with a **priority (High / Medium / Low)** and a **real due date**; overdue and due-this-week tasks are highlighted
+- **Over budget? See your choices** – when bookings cost more than planned (or you just need to spend less), Shubā offers several different ways out, each with an estimated saving and what it affects: increase the budget, cheaper options in the same area, drop extras, fewer guests, change the venue, move the date, fewer functions, family helps, one vendor for several jobs. Your priorities are never cut. Pick one and the whole plan updates, with **What changed** and **Undo**
 - **Running late?** – mark any task or booking as late and pick when it will be done. Every unfinished task after it moves by the same number of days (venue before caterer, caterer before menu tasting), nothing moves onto the event day, tasks already done stay put, and a **What changed** card lists every move with **Undo**. Shared with the whole team
 - **Do next** list: the most urgent unfinished tasks (overdue first, then by date and priority), for everyone or one person
 - **Vendor checklist** with questions to ask and a ready-to-send WhatsApp brief for each vendor
@@ -61,6 +62,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 | `src/lib/muhurat.ts`                                 | Sunrise/sunset (NOAA algorithm) and Rahu Kalam / Yamagandam / Gulika Kalam      |
 | `src/lib/locations.ts`                               | Built-in Indian city list with Open-Meteo geocoding fallback                    |
 | `src/lib/budget.ts`                                  | Rupee formatting, budget normalisation and rule-based warnings                  |
+| `src/lib/savings.ts`, `SavingsChoices.tsx`           | Over-budget choices: overspend per line, raise-budget in code, AI choices       |
 | `src/lib/budgetGuide.ts`, `BudgetHelper.tsx`         | "Not sure? Help me decide": three estimated budget levels and per-guest spend   |
 | `src/lib/http.ts`                                    | Shared API handling: cross-site block, rate limits, body limit, validation      |
 | `src/components/*`                                   | Form, accessible tabs and plan sections                                         |
@@ -74,6 +76,7 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 - **Task split** – given the helpers' names and roles ("cousin, knows caterers"), Claude assigns each task and vendor booking to the best person; anything left out is balanced evenly in code.
 - **Priorities and dates** – the plan returns each step's days-before-event and a priority per task; Shubā turns these into real dates in code (never before today) and builds the "Do next" list.
 - **Personal plans** – the host's top priorities, food preference and guest needs are part of the prompt; Claude weights the budget toward the priorities and builds access needs into briefs, questions, budget and tasks.
+- **Over-budget choices** – Claude suggests 4–6 different ways to save for this event and city (cheaper options, fewer functions, a venue with in-house catering…), each with an estimated saving and what it affects, never touching the host's priorities or guest needs. "Increase the budget" is worked out in code (exactly what each over-booked line is short, rounded up to ₹1,000) and applied without AI. Picking another choice sends it through the change flow below. If the AI is busy, rule-based choices are used and the host is told.
 - **Plan refinement** – the current plan plus the user's change request are sent back; Claude returns an updated plan, any new total budget, guest count or date, and plain lines on what changed and which trade-offs it made. The new date is re-checked with the form's rules, and Shubā adds its own factual lines (date, guests, budget before → after).
 - **What AI is _not_ trusted with** – the "Not sure? Help me decide" budget levels (Simple / Comfortable / Grand) come from rule-based per-guest ranges by event type and city, so they are instant, free and repeatable; budget totals are re-balanced in code (also when the host edits a line), warnings for budget-per-guest and short notice are rule-based, and auspicious timings are calculated, never generated.
 
@@ -140,6 +143,7 @@ npm run dev
 
 ## Changelog
 
+- **26 Oct 2026** – Over budget? See your choices: a banner when bookings go over, and a Budget-tab panel with several ways to save (or raise the budget), each with an estimated saving and trade-off; choosing one updates the plan with What changed and Undo.
 - **25 Oct 2026** – Running late: mark a task late and the tasks after it shift by the same days (capped at the day before the event), with What changed and Undo. Saved with the plan and the team link.
 - **25 Oct 2026** – Make it yours (priorities, food, guest needs, also by voice); mid-way changes can move the date, with a What changed card and Undo; editable budget lines that rebalance the rest; prompt v7.
 - **25 Oct 2026** – Vendor quotes, booking and agreement: compare quotes against budget, book a vendor, track advance and balance, AI-drafted booking confirmation (WhatsApp / print). Booked amounts now show on the Budget tab.
