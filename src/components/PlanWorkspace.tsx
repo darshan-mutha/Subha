@@ -249,7 +249,7 @@ export function PlanWorkspace({
         });
       },
       "Updating your plan…",
-      "Plan updated. See what changed above the tabs.",
+      "Plan updated. See what changed on Home.",
     );
     if (ok) {
       setLastChange({ lines, before, note: "Due dates, budget and vendor messages have been updated to match." });
@@ -276,7 +276,7 @@ export function PlanWorkspace({
     const ok = await act(
       () => onChange({ input: raised.input, plan: { ...plan, budget: raised.budget } }),
       "Updating the budget…",
-      "Budget increased. See what changed above the tabs.",
+      "Budget increased. See what changed on Home.",
     );
     if (ok) {
       setLastChange({ lines: raised.changes, before, note: "Your bookings now fit the budget." });
@@ -321,7 +321,7 @@ export function PlanWorkspace({
     const ok = await act(
       () => onChange({ shifts: result.shifts }),
       "Moving tasks…",
-      `Moved ${moved + 1} ${moved === 0 ? "task" : "tasks"}. See what changed above the tabs.`,
+      `Moved ${moved + 1} ${moved === 0 ? "task" : "tasks"}. See what changed on Home.`,
     );
     if (ok) {
       setLastChange({
