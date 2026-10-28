@@ -4,11 +4,13 @@ import { findLocation } from "./locations";
 import { normalizeTimeline } from "./schedule";
 import { calculateTimings, type DayTimings } from "./muhurat";
 import {
-  REFINE_JSON_SCHEMA,
+  REFINE_FACTS_JSON_SCHEMA,
   SYSTEM_INSTRUCTION,
   buildPlanPartPrompt,
+  buildRefineFactsPrompt,
   buildRefinePrompt,
   planPartSchema,
+  refinePartSchema,
   type PlanPart,
 } from "./prompt";
 import {
@@ -112,6 +114,18 @@ export async function createPlan(input: EventInput, deps: PlannerDeps = {}): Pro
   return { input, plan: finalize(plan, input, now), timings };
 }
 
+/** Step 1 of a change: only the new facts. */
+const FactsSchema = RefineReplySchema.pick({ newTotalBudget: true, newGuestCount: true, newDate: true });
+/** Step 2 of a change: each half of the plan plus notes on what changed. */
+const ChangeNotes = RefineReplySchema.pick({ changes: true });
+const RefineCoreSchema = CoreSchema.extend(ChangeNotes.shape);
+const RefineExtrasSchema = ExtrasSchema.extend(ChangeNotes.shape);
+
+/**
+ * Changes a plan without starting again. A short first call settles the new
+ * budget, guests and date (checked in code); then both halves of the plan are
+ * rewritten at the same time with those facts.
+ */
 export async function refinePlan(
   input: EventInput,
   current: Plan,
@@ -119,39 +133,51 @@ export async function refinePlan(
   deps: PlannerDeps = {},
 ): Promise<PlanResult> {
   const now = deps.now ?? new Date();
+  const today = todayIST(now);
   const generate = deps.generate ?? claudeGenerator;
   const locate = deps.locate ?? findLocation;
-  const [reply, timings] = await Promise.all([
-    generateStructured(
-      {
-        system: SYSTEM_INSTRUCTION,
-        prompt: buildRefinePrompt(input, current, instruction, todayIST(now)),
-        jsonSchema: REFINE_JSON_SCHEMA,
-      },
-      RefineReplySchema,
-      generate,
-    ),
-    timingsFor(input, locate),
-  ]);
 
-  const { newTotalBudget, newGuestCount, newDate, changes, ...plan } = reply;
+  const facts = await generateStructured(
+    {
+      system: SYSTEM_INSTRUCTION,
+      prompt: buildRefineFactsPrompt(input, instruction, today),
+      jsonSchema: REFINE_FACTS_JSON_SCHEMA,
+      maxTokens: 1_000,
+    },
+    FactsSchema,
+    generate,
+  );
   // A new date is only accepted if it passes the same rules as the form (real, not past, within limits).
-  const dateOk = newDate !== "" && makeEventInputSchema(now).shape.date.safeParse(newDate).success;
+  const dateOk = facts.newDate !== "" && makeEventInputSchema(now).shape.date.safeParse(facts.newDate).success;
   const updated: EventInput = {
     ...input,
-    budget: withinLimits(newTotalBudget, LIMITS.minBudget, LIMITS.maxBudget)
-      ? Math.round(newTotalBudget)
+    budget: withinLimits(facts.newTotalBudget, LIMITS.minBudget, LIMITS.maxBudget)
+      ? Math.round(facts.newTotalBudget)
       : input.budget,
-    guests: withinLimits(newGuestCount, LIMITS.minGuests, LIMITS.maxGuests) ? newGuestCount : input.guests,
-    date: dateOk ? newDate : input.date,
+    guests: withinLimits(facts.newGuestCount, LIMITS.minGuests, LIMITS.maxGuests) ? facts.newGuestCount : input.guests,
+    date: dateOk ? facts.newDate : input.date,
   };
-  // The date moved, so auspicious timings must be worked out for the new day.
-  const dayTimings = updated.date === input.date ? timings : await timingsFor(updated, locate);
+  const settled = factChanges(input, updated);
+
+  const request = (part: PlanPart) => ({
+    system: SYSTEM_INSTRUCTION,
+    prompt: buildRefinePrompt(updated, current, instruction, today, part, settled),
+    jsonSchema: refinePartSchema(part),
+    maxTokens: 8_000,
+  });
+  const [core, extras, timings] = await Promise.all([
+    generateStructured(request("core"), RefineCoreSchema, generate),
+    generateStructured(request("extras"), RefineExtrasSchema, generate),
+    timingsFor(updated, locate),
+  ]);
+  const { changes: coreNotes, ...corePlan } = core;
+  const { changes: extraNotes, ...extrasPlan } = extras;
+  const plan: Plan = { ...corePlan, ...extrasPlan };
   return {
     input: updated,
     plan: finalize(plan, updated, now),
-    timings: dayTimings,
-    changes: [...factChanges(input, updated), ...changes].slice(0, 8),
+    timings,
+    changes: [...new Set([...settled, ...coreNotes, ...extraNotes])].slice(0, 8),
   };
 }
 

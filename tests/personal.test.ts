@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { rebalance } from "@/lib/budget";
 import { cleanExtraction, type RawExtraction } from "@/lib/extract";
 import { factChanges, refinePlan } from "@/lib/planner";
-import { buildPlanPrompt, buildRefinePrompt, SYSTEM_INSTRUCTION } from "@/lib/prompt";
+import { buildPlanPrompt, buildRefineFactsPrompt, buildRefinePrompt, SYSTEM_INSTRUCTION } from "@/lib/prompt";
 import { makeEventInputSchema, RefineReplySchema } from "@/lib/schemas";
 import { NOW, baseInput, samplePlan } from "./fixtures";
 
@@ -67,9 +67,13 @@ describe("prompts", () => {
   });
 
   it("asks change requests to handle a new date and explain the changes", () => {
-    const prompt = buildRefinePrompt(baseInput, samplePlan, "Move it 2 weeks earlier", "2026-10-24");
-    expect(prompt).toContain("newDate");
+    const facts = buildRefineFactsPrompt(baseInput, "Move it 2 weeks earlier", "2026-10-24");
+    expect(facts).toContain("newDate");
+    const prompt = buildRefinePrompt(baseInput, samplePlan, "Move it 2 weeks earlier", "2026-10-24", "core", [
+      "Date moved from 12 Dec to 28 Nov",
+    ]);
     expect(prompt).toContain('"changes"');
+    expect(prompt).toContain("already settled; use them exactly: Date moved from 12 Dec to 28 Nov");
   });
 });
 

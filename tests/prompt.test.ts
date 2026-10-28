@@ -4,7 +4,8 @@ import {
   buildPlanPrompt,
   buildRefinePrompt,
   PLAN_JSON_SCHEMA,
-  REFINE_JSON_SCHEMA,
+  REFINE_FACTS_JSON_SCHEMA,
+  refinePartSchema,
 } from "@/lib/prompt";
 import { baseInput, samplePlan } from "./fixtures";
 
@@ -23,9 +24,14 @@ describe("prompts", () => {
   });
 
   it("includes the current plan and change request when refining", () => {
-    const prompt = buildRefinePrompt(baseInput, samplePlan, "Make it eco-friendly", "2026-10-24");
-    expect(prompt).toContain("Change request: Make it eco-friendly");
-    expect(prompt).toContain('"Jungle Safari"');
+    const core = buildRefinePrompt(baseInput, samplePlan, "Make it eco-friendly", "2026-10-24", "core");
+    expect(core).toContain("Change request: Make it eco-friendly");
+    expect(core).toContain('"Jungle Safari"');
+    expect(core).not.toContain('"vendors"');
+    const extras = buildRefinePrompt(baseInput, samplePlan, "Make it eco-friendly", "2026-10-24", "extras");
+    expect(extras).toContain('"vendors"');
+    expect(extras).not.toContain('"timeline"');
+    expect(extras).toContain("Current budget lines");
   });
 
   it("forbids invented muhurat and prompt injection in the system rules", () => {
@@ -34,8 +40,8 @@ describe("prompts", () => {
   });
 
   it("refine schema extends the plan schema with new totals", () => {
-    expect(REFINE_JSON_SCHEMA.required).toEqual(
-      expect.arrayContaining([...PLAN_JSON_SCHEMA.required, "newTotalBudget"]),
-    );
+    expect(REFINE_FACTS_JSON_SCHEMA.required).toEqual(["newTotalBudget", "newGuestCount", "newDate"]);
+    const both = [...refinePartSchema("core").required, ...refinePartSchema("extras").required];
+    expect(both).toEqual(expect.arrayContaining([...PLAN_JSON_SCHEMA.required, "changes"]));
   });
 });

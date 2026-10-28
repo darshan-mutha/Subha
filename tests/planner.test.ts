@@ -65,6 +65,33 @@ describe("refinePlan", () => {
   });
 });
 
+describe("refinePlan speed", () => {
+  it("settles the facts first, then rewrites both halves at the same time", async () => {
+    const { vendors, ideas, ...core } = samplePlan;
+    const calls: string[] = [];
+    const generate = vi.fn(async (request: { prompt: string; jsonSchema: object }) => {
+      const keys = Object.keys((request.jsonSchema as { properties: object }).properties);
+      if (keys.includes("newDate")) {
+        calls.push("facts");
+        return JSON.stringify({ newTotalBudget: 0, newGuestCount: 60, newDate: "" });
+      }
+      calls.push(keys.includes("vendors") ? "extras" : "core");
+      expect(request.prompt).toContain("Guests: 40 → 60");
+      return JSON.stringify(
+        keys.includes("vendors")
+          ? { vendors, ideas, changes: ["Briefs now say 60 guests"] }
+          : { ...core, changes: ["More food, less decor"] },
+      );
+    });
+    const result = await refinePlan(baseInput, samplePlan, "20 more guests", { generate, locate, now: NOW });
+    expect(calls[0]).toBe("facts");
+    expect(calls.slice(1).sort()).toEqual(["core", "extras"]);
+    expect(result.input.guests).toBe(60);
+    expect(result.plan.vendors.map((v) => v.type)).toEqual(vendors.map((v) => v.type));
+    expect(result.changes).toEqual(["Guests: 40 → 60", "More food, less decor", "Briefs now say 60 guests"]);
+  });
+});
+
 describe("createPlan speed", () => {
   it("writes the plan as two halves at the same time and joins them", async () => {
     const { vendors, ideas, ...core } = samplePlan;

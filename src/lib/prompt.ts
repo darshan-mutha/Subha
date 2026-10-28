@@ -28,6 +28,9 @@ import { ADDITION_LABELS, TRADITION_LABELS, dayLabel, functionsToPlan } from "./
  *     (always "usually done", check with elders) and what is needed. Ideas grow
  *     from the theme and follow the guest's day, each saying why it fits, a
  *     rough cost and the effort, plus one signature moment.
+ * v10 Faster changes: a short first call settles the new budget, guests and
+ *     date; then both halves of the plan are rewritten at the same time with
+ *     those facts, each seeing only its own part of the current plan.
  */
 export const SYSTEM_INSTRUCTION = `You are Shubā, an expert Indian event planner with 20 years of experience planning weddings, birthdays, religious ceremonies, festivals, school, corporate and community events across India.
 
@@ -99,20 +102,61 @@ ${details(input, today)}
 </user_details>`;
 }
 
-export function buildRefinePrompt(input: EventInput, plan: Plan, instruction: string, today: string): string {
-  return `Here is an existing plan. Update it according to the host's change request, keeping everything else that still fits, so the host does not have to start again.
-- If the request changes the total budget or guest count, set newTotalBudget / newGuestCount to the new numbers and use them consistently; otherwise set them to 0.
-- If the request moves the event date, set newDate to the new date as YYYY-MM-DD (work it out from today's date and the current event date) and redo the timeline for the new date; otherwise set newDate to "".
-- If money gets tighter (fewer rupees, or more guests for the same money), do not cut everything equally: protect what matters most to the host and cut the least important areas first.
-- In "changes", list 2 to 6 short, plain lines saying what you changed and any trade-off you made (what was cut and what was protected).
+/**
+ * Step 1 of a change: a short call that only works out the new total budget,
+ * guest count and date, so both halves of the plan can then be rewritten at
+ * the same time with the same facts.
+ */
+export function buildRefineFactsPrompt(input: EventInput, instruction: string, today: string): string {
+  return `The host wants to change an existing plan. Work out only the new facts from the change request.
+- If the request changes the total budget or guest count, set newTotalBudget / newGuestCount to the new numbers; otherwise set them to 0.
+- If the request moves the event date, set newDate to the new date as YYYY-MM-DD (work it out from today's date and the current event date); otherwise set newDate to "".
 
 <user_details>
 ${details(input, today)}
 Change request: ${instruction}
-</user_details>
+</user_details>`;
+}
 
-Current plan JSON:
-${JSON.stringify(plan)}`;
+const REFINE_PART_FOCUS: Record<PlanPart, string> = {
+  core: "You are updating only these parts of the plan: summary, theme, functions, budget, budgetTips, timeline and warnings. Another planner is updating the vendors and ideas at the same time.",
+  extras:
+    "You are updating only these parts of the plan: vendors and ideas. Another planner is updating the summary, theme, functions, budget, timeline and warnings at the same time. Vendor briefs must use the guest count, date and budget below.",
+};
+
+/**
+ * Step 2 of a change: one half of the plan, rewritten with the facts already
+ * settled in step 1 (`input` already holds the new budget, guests and date).
+ */
+export function buildRefinePrompt(
+  input: EventInput,
+  plan: Plan,
+  instruction: string,
+  today: string,
+  part: PlanPart,
+  facts: string[] = [],
+): string {
+  const keys = PLAN_PARTS[part] as readonly string[];
+  const current = Object.fromEntries(Object.entries(plan).filter(([key]) => keys.includes(key)));
+  const context =
+    part === "extras"
+      ? `\nCurrent budget lines (for reference; the other planner may adjust them): ${plan.budget
+          .map((line) => `${line.category} ${formatINR(line.amount)}`)
+          .join("; ")}`
+      : "";
+  return `${REFINE_PART_FOCUS[part]}
+Update your parts according to the host's change request, keeping everything else that still fits, so the host does not have to start again.
+${facts.length ? `These facts are already settled; use them exactly: ${facts.join("; ")}.\n` : ""}- If the date moved, redo the timeline for the new date.
+- If money gets tighter (fewer rupees, or more guests for the same money), do not cut everything equally: protect what matters most to the host and cut the least important areas first.
+- In "changes", list ${part === "core" ? "2 to 5" : "0 to 2"} short, plain lines saying what you changed in your parts and any trade-off you made (what was cut and what was protected).
+
+<user_details>
+${details(input, today)}
+Change request: ${instruction}
+</user_details>${context}
+
+Current ${keys.join(", ")} JSON:
+${JSON.stringify(current)}`;
 }
 
 /** The two halves of a new plan, written at the same time. */
@@ -272,15 +316,26 @@ export const PLAN_JSON_SCHEMA = {
   required: ["summary", "theme", "functions", "budget", "budgetTips", "timeline", "vendors", "ideas", "warnings"],
 } as const;
 
-/** Refine replies may also change the total budget or guest count. */
-export const REFINE_JSON_SCHEMA = {
-  ...PLAN_JSON_SCHEMA,
+/** Step 1 of a change: the new facts only. */
+export const REFINE_FACTS_JSON_SCHEMA = {
+  type: "object",
   properties: {
-    ...PLAN_JSON_SCHEMA.properties,
     newTotalBudget: { type: "number", description: "New total budget in INR, or 0 if unchanged" },
     newGuestCount: { type: "integer", description: "New guest count, or 0 if unchanged" },
     newDate: { type: "string", description: "New event date YYYY-MM-DD, or empty if unchanged" },
-    changes: { type: "array", items: { type: "string" }, description: "2-6 short lines: what changed and trade-offs" },
   },
-  required: [...PLAN_JSON_SCHEMA.required, "newTotalBudget", "newGuestCount", "newDate", "changes"],
+  required: ["newTotalBudget", "newGuestCount", "newDate"],
 } as const;
+
+/** Step 2 of a change: one half of the plan plus short notes on what changed. */
+export function refinePartSchema(part: PlanPart) {
+  const base = planPartSchema(part);
+  return {
+    ...base,
+    properties: {
+      ...base.properties,
+      changes: { type: "array", items: { type: "string" }, description: "Short lines: what changed and trade-offs" },
+    },
+    required: [...base.required, "changes"],
+  } as const;
+}
