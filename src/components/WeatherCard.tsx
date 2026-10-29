@@ -55,7 +55,9 @@ export function WeatherCard({ city, date, days }: { city: string; date: string; 
             Usually {range}, {RAIN_WORDS[weather.rain]}
           </p>
           <p className="small">
-            Around these dates in {city}, it rained on about {share} in 10 days over the past {weather.years} years.{" "}
+            {share === 0
+              ? `Around these dates in ${city}, it hardly ever rained over the past ${weather.years} years.`
+              : `Around these dates in ${city}, it rained on about ${share} in 10 days over the past ${weather.years} years.`}{" "}
             {tip}
           </p>
           <p className="weather-tag">

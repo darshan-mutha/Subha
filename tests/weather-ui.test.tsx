@@ -60,6 +60,23 @@ describe("WeatherCard", () => {
     expect(screen.getByText(/Day 2 Sat: 14–27°C, partly cloudy, 30% chance of rain/)).toBeInTheDocument();
   });
 
+  it("says it hardly ever rains when past years were dry", async () => {
+    stubWeather({
+      kind: "usual",
+      place: "Jaipur",
+      min: 11,
+      max: 25,
+      rain: "low",
+      rainyShare: 0.02,
+      years: 10,
+      days: [],
+      forecastFrom: "2027-01-29",
+    });
+    render(<WeatherCard city="Jaipur" date="2027-02-11" days={3} />);
+    expect(await screen.findByText(/it hardly ever rained over the past 10 years/)).toBeInTheDocument();
+    expect(screen.getByText(/Cool evenings/)).toBeInTheDocument();
+  });
+
   it("stays hidden when the weather is not available", async () => {
     stubWeather({ error: "nope" }, false);
     const { container } = render(<WeatherCard city="Jaipur" date="2026-11-06" days={1} />);
