@@ -1,3 +1,4 @@
+import type { WeatherSummary } from "./weather";
 import type { Quote } from "./deals";
 import type { ExtractResult } from "./extract";
 import type { IdeasRequest, IdeasResult } from "./ideas";
@@ -210,3 +211,6 @@ export function saveBlooms(planKey: string, ids: string[]): void {
     /* optional */
   }
 }
+
+export const requestWeather = (body: { city: string; date: string; days: number }) =>
+  postJson<WeatherSummary>("/api/weather", body, (d) => typeof d.kind === "string");

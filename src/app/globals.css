@@ -3111,3 +3111,36 @@ main:has(.plan, .my-events) > .lead {
 .fn-warn {
   color: var(--danger);
 }
+
+/* Weather card under the event facts */
+.weather {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 4px 0 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--c-accent-soft) 45%, transparent);
+}
+.weather-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.weather p {
+  margin: 0;
+}
+.weather-title {
+  font-weight: 600;
+}
+.weather .small {
+  margin-top: 2px;
+}
+.weather-tag {
+  display: inline-block;
+  margin-top: 6px !important;
+  font-size: 0.8rem;
+  padding: 1px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--c-border);
+  color: var(--muted);
+}

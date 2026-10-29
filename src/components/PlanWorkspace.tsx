@@ -1,5 +1,6 @@
 "use client";
 
+import { WeatherCard } from "./WeatherCard";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { formatINR } from "@/lib/budget";
 import { ApiError, loadBlooms, requestAssign, requestRefine, saveBlooms, type LocalWorkspace } from "@/lib/client";
@@ -70,9 +71,10 @@ const SECTION_ORDER = [
 /** The plan as it was before the last change, so the host can undo it. */
 type Snapshot = Partial<SharedPlanContent>;
 
+/** e.g. "Wednesday, 27 October 2027". */
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { dateStyle: "long", timeZone: "UTC" }).format(
+  return new Intl.DateTimeFormat("en-IN", { dateStyle: "full", timeZone: "UTC" }).format(
     new Date(Date.UTC(y, m - 1, d)),
   );
 }
@@ -704,6 +706,7 @@ export function PlanWorkspace({
           <li>{input.guests.toLocaleString("en-IN")} guests</li>
           <li>{formatINR(input.budget)}</li>
         </ul>
+        <WeatherCard city={input.city} date={input.date} days={input.days ?? 1} />
         {notice && (
           <p className="small muted" role="status">
             {notice}
