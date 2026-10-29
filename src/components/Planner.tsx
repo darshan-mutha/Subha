@@ -369,7 +369,7 @@ export function Planner() {
               setMode("voice");
             }}
           >
-            Use a voice note instead
+            Type or speak instead
           </button>
         )}
         {busy && (

@@ -34,6 +34,17 @@ describe("VoiceStart", () => {
     await userEvent.click(screen.getByRole("button", { name: /Fill in the details yourself/ }));
     expect(onUseForm).toHaveBeenCalled();
   });
+
+  it("fills the box from an example and sends with Enter", async () => {
+    const onSubmit = vi.fn();
+    render(<VoiceStart busy={false} error="" onSubmit={onSubmit} onUseForm={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "3-day wedding in Jaipur" }));
+    const box = screen.getByLabelText(/Describe your event/);
+    expect((box as HTMLTextAreaElement).value).toMatch(/^3-day wedding in Jaipur on 14 February/);
+    box.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(onSubmit).toHaveBeenCalledWith({ text: expect.stringContaining("pheras on day 3") });
+  });
 });
 
 describe("Planner voice-first flow", () => {
@@ -98,37 +109,37 @@ describe("VoiceStart speech to text", () => {
     abort() {}
   }
 
-  function speak(words: string, isFinal = true) {
-    const result = Object.assign([{ transcript: words }], { isFinal });
-    act(() => last!.onresult!({ resultIndex: 0, results: [result] }));
-  }
-
-  it("shows spoken words in the box in the chosen language, then sends only text", async () => {
+  it("shows a calm listening sign while speaking, then puts the words in the box", async () => {
     vi.stubGlobal("webkitSpeechRecognition", FakeRecognition);
     const onSubmit = vi.fn();
     render(<VoiceStart busy={false} error="" onSubmit={onSubmit} onUseForm={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText(/Describe your event/), "Birthday in Pune");
     await userEvent.selectOptions(screen.getByLabelText("Speaking in"), "hi-IN");
-    await userEvent.click(screen.getByRole("button", { name: "Start speaking about your event" }));
+    await userEvent.click(screen.getByRole("button", { name: "Speak about your event" }));
     expect(last!.lang).toBe("hi-IN");
-    expect(screen.getByRole("button", { name: "Stop listening" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText(/seconds left/)).toBeInTheDocument();
-    speak("Birthday in Pune for 30 people, budget 40k");
-    expect(screen.getByLabelText(/Or type it/)).toHaveValue("Birthday in Pune for 30 people, budget 40k");
+    expect(screen.getByRole("status")).toHaveTextContent(/Listening… 0:00/);
+    const heard = (words: string, isFinal: boolean) => Object.assign([{ transcript: words }], { isFinal });
+    act(() => last!.onresult!({ resultIndex: 0, results: [heard("for 30 people,", true)] }));
+    act(() => last!.onresult!({ resultIndex: 1, results: [heard("for 30 people,", true), heard("budget 4", false)] }));
+    // Half-heard words are not shown while the host is still talking.
+    expect(screen.queryByText(/budget 4/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Describe your event/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Stop listening" }));
+    expect(screen.getByLabelText(/Describe your event/)).toHaveValue("Birthday in Pune for 30 people, budget 4");
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
-    expect(onSubmit).toHaveBeenCalledWith({ text: "Birthday in Pune for 30 people, budget 40k" });
+    expect(onSubmit).toHaveBeenCalledWith({ text: "Birthday in Pune for 30 people, budget 4" });
   });
 
   it("explains when the microphone is blocked or nothing was heard", async () => {
     vi.stubGlobal("webkitSpeechRecognition", FakeRecognition);
     render(<VoiceStart busy={false} error="" onSubmit={vi.fn()} onUseForm={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Start speaking about your event" }));
+    await userEvent.click(screen.getByRole("button", { name: "Speak about your event" }));
     act(() => last!.onerror!({ error: "not-allowed" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/allow microphone access/);
-    await userEvent.click(screen.getByRole("button", { name: "Start speaking about your event" }));
+    await userEvent.click(screen.getByRole("button", { name: "Speak about your event" }));
     act(() => last!.onerror!({ error: "no-speech" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/didn't hear anything/);
-    await userEvent.click(screen.getByRole("button", { name: "Start speaking about your event" }));
+    await userEvent.click(screen.getByRole("button", { name: "Speak about your event" }));
     act(() => last!.onerror!({ error: "network" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/Listening stopped/);
   });

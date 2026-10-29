@@ -321,7 +321,7 @@ describe("Planner", () => {
     await userEvent.click(screen.getByRole("button", { name: "Kid's birthday" }));
     await userEvent.click(screen.getByRole("button", { name: "Create my plan" }));
     expect(await screen.findByText(/busy right now/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Use a voice note instead" }));
+    await userEvent.click(screen.getByRole("button", { name: "Type or speak instead" }));
     expect(screen.getByLabelText(/Describe your event/)).toBeInTheDocument();
   });
 
