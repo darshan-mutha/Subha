@@ -194,3 +194,68 @@ export const ADDITION_FUNCTIONS: Partial<Record<ModernAddition, { name: string; 
 export function additionDay(where: "before" | "first" | "last", days: number): number {
   return where === "before" ? 0 : where === "first" ? 1 : Math.max(1, days);
 }
+
+/** Functions for the chosen traditions and days, plus any modern additions that are functions. */
+export function suggestedFunctions(
+  traditions: Tradition[],
+  eventType: string,
+  days: number,
+  additions: ModernAddition[],
+): FunctionChoice[] {
+  // The host's family's functions plus the shared ceremonies are ticked; the other
+  // family's extra functions are listed for the host to tick if they want them.
+  const own = usualFunctions(traditions.slice(0, 1), eventType);
+  const all = usualFunctions(traditions, eventType);
+  const ticked = all.filter(
+    (f) => own.includes(f) || /wedding|pheras|anand karaj|muhurt|nikah|church|reception|walima/i.test(f),
+  );
+  const base = days > 1 ? spreadOverDays(ticked, days) : [];
+  const extra = additions
+    .map((a) => ADDITION_FUNCTIONS[a])
+    .filter((x): x is NonNullable<typeof x> => Boolean(x))
+    .map((x) => ({ name: x.name, day: additionDay(x.day, days) }));
+  return [...extra.filter((e) => e.day === 0), ...base, ...extra.filter((e) => e.day !== 0)].slice(0, MAX_FUNCTIONS);
+}
+
+/** True when two function lists have the same names on the same days (order ignored). */
+export function sameFunctions(a: readonly FunctionChoice[], b: readonly FunctionChoice[]): boolean {
+  const key = (l: readonly FunctionChoice[]) =>
+    l
+      .map((f) => `${f.name}|${f.day}`)
+      .sort()
+      .join(";");
+  return key(a) === key(b);
+}
+
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+/**
+ * The usual name for a function the host said ("pheras" → "Wedding (pheras)",
+ * "haldi" → "Haldi (pithi)" for a Marwari family). The chosen traditions are
+ * tried first, then every tradition and the modern additions; otherwise the
+ * host's own word is kept.
+ */
+export function matchFunctionName(spoken: string, traditions: readonly Tradition[]): string {
+  const said = norm(spoken);
+  if (!said) return "";
+  const lists = [
+    usualFunctions(traditions, "wedding"),
+    ...TRADITIONS.map((t) => WEDDING_FUNCTIONS[t]),
+    Object.values(ADDITION_FUNCTIONS).map((f) => f!.name),
+  ];
+  for (const list of lists) {
+    const exact = list.find((name) => norm(name) === said);
+    if (exact) return exact;
+    const part = list.find((name) => {
+      const words = norm(name).split(" ");
+      return said.split(" ").every((w) => w.length >= 4 && words.some((x) => x.startsWith(w)));
+    });
+    if (part) return part;
+  }
+  const clean = spoken.trim().replace(/\s+/g, " ").slice(0, 40);
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}

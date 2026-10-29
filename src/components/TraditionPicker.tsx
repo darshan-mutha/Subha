@@ -12,7 +12,8 @@ import {
   TRADITION_LABELS,
   additionDay,
   dayLabel,
-  spreadOverDays,
+  sameFunctions,
+  suggestedFunctions,
   usualFunctions,
   type FunctionChoice,
   type ModernAddition,
@@ -37,27 +38,7 @@ interface Props {
 
 const NAME_OK = /^[\p{L}\p{M}\p{N}\s.,'&()\-/]+$/u;
 
-/** Functions for the chosen traditions and days, plus any modern additions that are functions. */
-export function suggestedFunctions(
-  traditions: Tradition[],
-  eventType: string,
-  days: number,
-  additions: ModernAddition[],
-): FunctionChoice[] {
-  // The host's family's functions plus the shared ceremonies are ticked; the other
-  // family's extra functions are listed for the host to tick if they want them.
-  const own = usualFunctions(traditions.slice(0, 1), eventType);
-  const all = usualFunctions(traditions, eventType);
-  const ticked = all.filter(
-    (f) => own.includes(f) || /wedding|pheras|anand karaj|muhurt|nikah|church|reception|walima/i.test(f),
-  );
-  const base = days > 1 ? spreadOverDays(ticked, days) : [];
-  const extra = additions
-    .map((a) => ADDITION_FUNCTIONS[a])
-    .filter((x): x is NonNullable<typeof x> => Boolean(x))
-    .map((x) => ({ name: x.name, day: additionDay(x.day, days) }));
-  return [...extra.filter((e) => e.day === 0), ...base, ...extra.filter((e) => e.day !== 0)].slice(0, MAX_FUNCTIONS);
-}
+export { suggestedFunctions };
 
 /**
  * Tradition, days, functions and modern additions. For weddings the functions
@@ -65,7 +46,15 @@ export function suggestedFunctions(
  */
 export function TraditionPicker({ id, values, onChange, errors }: Props) {
   const multiDay = MULTI_DAY_EVENT_TYPES.has(values.eventType);
-  const [touched, setTouched] = useState(values.functions.length > 0);
+  // Functions filled in by Shubā (from the traditions, or from a voice note) still follow later changes.
+  const [touched, setTouched] = useState(
+    () =>
+      values.functions.length > 0 &&
+      !sameFunctions(
+        values.functions,
+        suggestedFunctions(values.traditions, values.eventType, values.days, values.additions),
+      ),
+  );
   const [custom, setCustom] = useState("");
   const [customError, setCustomError] = useState("");
   const [ours, theirs = ""] = values.traditions;
