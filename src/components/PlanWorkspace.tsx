@@ -33,6 +33,8 @@ import type { TabItem } from "./Tabs";
 import { TeamPanel } from "./TeamPanel";
 import { InviteMaker } from "./InviteMaker";
 import { GuestsHub } from "./GuestsHub";
+import { useReplies } from "./useReplies";
+import { DEFAULT_SEATING } from "@/lib/seating";
 import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
@@ -170,6 +172,9 @@ export function PlanWorkspace({
   const overList = useMemo(() => overLines(plan.budget, bookedLines), [plan.budget, bookedLines]);
   const overBy = totalOver(overList);
   const [tab, setTab] = useState(initialTab);
+  // "Seat this function" reopens Guests on its Seating part.
+  const [guestsOpen, setGuestsOpen] = useState<{ part: "list" | "replies" | "seating"; n: number } | null>(null);
+  const { replies: fnReplies } = useReplies(planId, tab === "functions");
 
   // "Comes alive": colour grows with the share of tasks done.
   const doneCount = items.filter((i) => i.status === "done").length;
@@ -439,7 +444,12 @@ export function PlanWorkspace({
               </ul>
             )}
           </section>
-          <FunctionsSummary plan={plan} firstDay={input.date} onOpen={() => goTo("functions")} />
+          <FunctionsSummary
+            plan={plan}
+            firstDay={input.date}
+            entries={data.guestList ?? []}
+            onOpen={() => goTo("functions")}
+          />
           {plan.warnings.length > 0 && (
             <section className="warnings" aria-labelledby="warn-heading">
               <h2 id="warn-heading" className="small-heading">
@@ -586,6 +596,7 @@ export function PlanWorkspace({
       label: "Guests",
       content: (
         <GuestsHub
+          key={guestsOpen?.n ?? 0}
           planId={planId}
           active={tab === "guests"}
           input={input}
@@ -604,7 +615,7 @@ export function PlanWorkspace({
           functions={(plan.functions ?? []).map((f) => f.name)}
           today={today}
           onList={(guestList) => void act(() => onChange({ guestList }), "Saving…", "Guest list saved")}
-          initialPart={initialTab === "guests" ? "replies" : "list"}
+          initialPart={guestsOpen?.part ?? (initialTab === "guests" ? "replies" : "list")}
         />
       ),
     },
@@ -630,7 +641,29 @@ export function PlanWorkspace({
   });
   if (timings) tabs.push({ id: "timings", label: "Timings", content: <TimingsSection timings={timings} /> });
   if (plan.functions.length > 0)
-    tabs.push({ id: "functions", label: "Functions", content: <FunctionsSection plan={plan} firstDay={input.date} /> });
+    tabs.push({
+      id: "functions",
+      label: "Functions",
+      content: (
+        <FunctionsSection
+          plan={plan}
+          firstDay={input.date}
+          entries={data.guestList ?? []}
+          replies={fnReplies}
+          busy={busy}
+          onPlanFor={(fn, guests) =>
+            void applyChange(
+              `Plan the ${fn} for ${guests} guests, based on the guest list. Keep the other functions as they are.`,
+            )
+          }
+          onSeat={(fn) => {
+            void act(() => onChange({ seating: { ...(data.seating ?? DEFAULT_SEATING), fn } }), "Saving…", "");
+            setGuestsOpen((g) => ({ part: "seating", n: (g?.n ?? 0) + 1 }));
+            goTo("guests");
+          }}
+        />
+      ),
+    });
   tabs.sort((a, b) => SECTION_ORDER.indexOf(a.id) - SECTION_ORDER.indexOf(b.id));
   // A section that is not in this plan (e.g. Timings) falls back to Home.
   const current = tabs.some((t) => t.id === tab) ? tab : "home";

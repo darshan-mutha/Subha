@@ -17,8 +17,7 @@ import {
 import { GUEST_NEED_LABELS, type EventInput } from "@/lib/schemas";
 import { whatsappLink } from "@/lib/team";
 import { CopyButton } from "./PlanSections";
-import { SeatingSection } from "./SeatingSection";
-import { DEFAULT_SEATING, type Seating } from "@/lib/seating";
+import type { Seating } from "@/lib/seating";
 
 const POLL_MS = 30_000;
 
@@ -37,8 +36,8 @@ interface Props {
   onUseGuests: (guests: number) => void;
   seating?: Seating;
   onSeating: (next: Seating) => void;
-  /** Which part to show: the replies, or the seating plan worked out from them. */
-  part?: "replies" | "seating";
+  /** Kept for the Guests hub, which shows the seating plan itself. */
+  part?: "replies";
 }
 
 function people(r: Reply): string {
@@ -47,19 +46,7 @@ function people(r: Reply): string {
 }
 
 /** Guests tab: the reply link, live counts, food and needs, and every reply. */
-export function GuestsSection({
-  planId,
-  active,
-  input,
-  title,
-  invite,
-  busy,
-  onShare,
-  onUseGuests,
-  seating = DEFAULT_SEATING,
-  onSeating,
-  part = "replies",
-}: Props) {
+export function GuestsSection({ planId, active, input, title, invite, busy, onShare, onUseGuests }: Props) {
   const id = useId();
   const [state, setState] = useState<GuestsState | null>(null);
   const [error, setError] = useState("");
@@ -105,17 +92,10 @@ export function GuestsSection({
 
   const heading = (
     <>
-      {part === "seating" ? (
-        <p className="muted">
-          Tables are suggested from the replies: families and sides sit together, and elderly or wheelchair guests get
-          the tables nearest the entrance.
-        </p>
-      ) : (
-        <p className="muted">
-          Send guests one link. Each family says if they&rsquo;re coming, how many, their food and any needs. Shubā
-          counts it all for you, and guests never see your plan or budget.
-        </p>
-      )}
+      <p className="muted">
+        Send guests one link. Each family says if they&rsquo;re coming, how many, their food and any needs. Shubā counts
+        it all for you, and guests never see your plan or budget.
+      </p>
     </>
   );
 
@@ -153,19 +133,6 @@ export function GuestsSection({
   const link = state.link ? `${window.location.origin}/r/${state.link.token}` : "";
   const inviteText = invite ? inviteMessage(invite.wording, inviteFacts(input, invite.details)) : "";
   const csv = replies.length ? `data:text/csv;charset=utf-8,${encodeURIComponent(repliesCsv(replies))}` : "";
-
-  if (part === "seating") {
-    return (
-      <>
-        {heading}
-        {summary.coming.families + summary.maybe.families > 0 ? (
-          <SeatingSection replies={replies} seating={seating} title={title} onChange={onSeating} />
-        ) : (
-          <p className="hint">Tables appear here once guests reply that they are coming.</p>
-        )}
-      </>
-    );
-  }
 
   return (
     <>

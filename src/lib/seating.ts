@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GUEST_FOOD_LABELS, GUEST_GROUP_LABELS, type GuestFood, type GuestGroup, type Reply } from "./rsvp";
+import { invitedTo, matchReplies, type GuestList } from "./guestList";
 
 /**
  * Seating suggestions from guest replies, worked out in code so they are
@@ -11,12 +12,20 @@ import { GUEST_FOOD_LABELS, GUEST_GROUP_LABELS, type GuestFood, type GuestGroup,
  * - families with an elderly person or a wheelchair user get the tables
  *   nearest the entrance, with a step-free path;
  * - the host can move any family to another table.
+ *
+ * With a guest list, families can be seated before they reply ("no reply
+ * yet"), and one function can be seated at a time (only the families invited
+ * to it). Families who said no are always left out.
  */
 
 export const TABLE_SIZES = [6, 8, 10, 12] as const;
 export const MAX_TABLES = 400;
 
-const ReplyRef = z.string().regex(/^r[a-z0-9]{6,16}$/);
+/** A reply id (r…) or a guest-list entry id (g…). */
+const PartyRef = z.string().regex(/^[rg][a-z0-9]{4,16}$/);
+
+export const SEAT_FROM = ["list", "replies"] as const;
+export type SeatFrom = (typeof SEAT_FROM)[number];
 
 export const SeatingSchema = z.object({
   tableSize: z.coerce
@@ -26,11 +35,15 @@ export const SeatingSchema = z.object({
     .catch(8)
     .default(8),
   includeMaybe: z.boolean().catch(false).default(false),
-  /** Families the host moved: reply id → table number. */
-  moves: z.record(ReplyRef, z.number().int().min(1).max(MAX_TABLES)).catch({}).default({}),
+  /** "list": everyone on the guest list (not only those who replied); "replies": only those coming. */
+  from: z.enum(SEAT_FROM).catch("list").default("list"),
+  /** Function being seated ("" = all functions). */
+  fn: z.string().trim().max(60).catch("").default(""),
+  /** Families the host moved: reply or guest-list id → table number. */
+  moves: z.record(PartyRef, z.number().int().min(1).max(MAX_TABLES)).catch({}).default({}),
 });
 export type Seating = z.infer<typeof SeatingSchema>;
-export const DEFAULT_SEATING: Seating = { tableSize: 8, includeMaybe: false, moves: {} };
+export const DEFAULT_SEATING: Seating = { tableSize: 8, includeMaybe: false, from: "list", fn: "", moves: {} };
 
 export interface Seat {
   replyId: string;
@@ -41,6 +54,8 @@ export interface Seat {
   food: GuestFood;
   group: GuestGroup;
   maybe: boolean;
+  /** On the guest list but has not replied yet: food and needs are not known. */
+  waiting: boolean;
   access: boolean;
   kids: number;
   moved: boolean;
@@ -62,27 +77,84 @@ export interface SeatingPlan {
   tables: Table[];
   people: number;
   families: number;
+  /** People who said yes (or maybe, when kept) and people with no reply yet. */
+  replied: number;
+  waiting: number;
 }
 
 interface Party {
-  reply: Reply;
+  id: string;
+  name: string;
   people: number;
+  food: GuestFood;
+  group: GuestGroup;
+  maybe: boolean;
+  waiting: boolean;
   access: boolean;
+  kids: number;
 }
 
 const isAccess = (r: Reply) => r.needs.includes("elderly") || r.needs.includes("wheelchair");
 
+function fromReply(r: Reply, id = r.id, name = r.name, side: GuestGroup = ""): Party {
+  return {
+    id,
+    name,
+    people: r.adults + r.kids,
+    food: r.food,
+    group: r.group || side,
+    maybe: r.coming === "maybe",
+    waiting: false,
+    access: isAccess(r),
+    kids: r.kids,
+  };
+}
+
+/**
+ * Who gets a seat. With a guest list (and "list"), every family on it except
+ * those who said no; their reply, if any, gives the head count, food and needs.
+ * Replies that match nobody on the list are seated too.
+ */
+function partiesFor(replies: Reply[], seating: Seating, entries: GuestList): Party[] {
+  const counts = (r: Reply) => r.coming === "yes" || (seating.includeMaybe && r.coming === "maybe");
+  const matched = matchReplies(entries, replies);
+  const usedReplies = new Set([...matched.values()].map((r) => r.id));
+  const out: Party[] = [];
+  for (const entry of entries) {
+    if (seating.fn && !invitedTo(entry, seating.fn)) continue;
+    const reply = matched.get(entry.id);
+    if (reply) {
+      if (counts(reply)) out.push(fromReply(reply, entry.id, entry.name, entry.side));
+    } else if (seating.from === "list") {
+      out.push({
+        id: entry.id,
+        name: entry.name,
+        people: entry.people,
+        food: "any",
+        group: entry.side,
+        maybe: false,
+        waiting: true,
+        access: false,
+        kids: 0,
+      });
+    }
+  }
+  for (const r of replies) if (!usedReplies.has(r.id) && counts(r)) out.push(fromReply(r));
+  return out.filter((p) => p.people > 0);
+}
+
 function seatOf(p: Party, people: number, part?: string): Seat {
   return {
-    replyId: p.reply.id,
-    name: p.reply.name,
+    replyId: p.id,
+    name: p.name,
     people,
     part,
-    food: p.reply.food,
-    group: p.reply.group,
-    maybe: p.reply.coming === "maybe",
+    food: p.food,
+    group: p.group,
+    maybe: p.maybe,
+    waiting: p.waiting,
     access: p.access,
-    kids: p.reply.kids,
+    kids: p.kids,
     moved: false,
   };
 }
@@ -92,7 +164,7 @@ const used = (seats: Seat[]) => seats.reduce((s, x) => s + x.people, 0);
 /** Places parties into tables, biggest first, each into the first table with room. */
 function pack(parties: Party[], size: number): Seat[][] {
   const tables: Seat[][] = [];
-  for (const p of [...parties].sort((a, b) => b.people - a.people || a.reply.name.localeCompare(b.reply.name))) {
+  for (const p of [...parties].sort((a, b) => b.people - a.people || a.name.localeCompare(b.name))) {
     if (p.people > size) {
       // A big family fills tables side by side, split evenly (9 at tables of 8 → 5 and 4).
       const parts = Math.ceil(p.people / size);
@@ -113,7 +185,8 @@ function pack(parties: Party[], size: number): Seat[][] {
 function describe(seats: Seat[], number: number, size: number): Table {
   const people = used(seats);
   const food = new Map<GuestFood, number>();
-  for (const s of seats) food.set(s.food, (food.get(s.food) ?? 0) + s.people);
+  // Families who have not replied have no known food choice.
+  for (const s of seats) if (!s.waiting) food.set(s.food, (food.get(s.food) ?? 0) + s.people);
   return {
     number,
     seats,
@@ -126,16 +199,17 @@ function describe(seats: Seat[], number: number, size: number): Table {
   };
 }
 
-export function planSeating(replies: Reply[], seating: Seating = DEFAULT_SEATING): SeatingPlan {
+export function planSeating(
+  replies: Reply[],
+  seating: Seating = DEFAULT_SEATING,
+  entries: GuestList = [],
+): SeatingPlan {
   const size = seating.tableSize;
-  const parties: Party[] = replies
-    .filter((r) => r.coming === "yes" || (seating.includeMaybe && r.coming === "maybe"))
-    .map((r) => ({ reply: r, people: r.adults + r.kids, access: isAccess(r) }))
-    .filter((p) => p.people > 0);
+  const parties = partiesFor(replies, seating, entries);
 
   // 1. Each side packs into its own tables.
   const bySide = new Map<GuestGroup, Party[]>();
-  for (const p of parties) bySide.set(p.reply.group, [...(bySide.get(p.reply.group) ?? []), p]);
+  for (const p of parties) bySide.set(p.group, [...(bySide.get(p.group) ?? []), p]);
   const sideOrder = [...bySide.keys()].sort((a, b) => (a === "" ? 1 : 0) - (b === "" ? 1 : 0) || a.localeCompare(b));
   let tables: Seat[][] = [];
   const leftovers: Party[] = [];
@@ -145,7 +219,7 @@ export function planSeating(replies: Reply[], seating: Seating = DEFAULT_SEATING
     const last = packed.at(-1);
     if (packed.length > 0 && last && !last.some((s) => s.part) && used(last) <= size / 2) {
       packed.pop();
-      for (const seat of last) leftovers.push(parties.find((p) => p.reply.id === seat.replyId)!);
+      for (const seat of last) leftovers.push(parties.find((p) => p.id === seat.replyId)!);
     }
     tables.push(...packed);
   }
@@ -155,7 +229,7 @@ export function planSeating(replies: Reply[], seating: Seating = DEFAULT_SEATING
   tables = [...tables.filter((t) => t.some((s) => s.access)), ...tables.filter((t) => !t.some((s) => s.access))];
 
   // 4. The host's moves. A moved family goes to that table, which may be a new one.
-  const moved = Object.entries(seating.moves).filter(([id]) => parties.some((p) => p.reply.id === id));
+  const moved = Object.entries(seating.moves).filter(([id]) => parties.some((p) => p.id === id));
   if (moved.length) {
     for (const [id, number] of moved) {
       const seats = tables.flatMap((t) => t.filter((s) => s.replyId === id));
@@ -169,11 +243,9 @@ export function planSeating(replies: Reply[], seating: Seating = DEFAULT_SEATING
   }
 
   const described = tables.map((seats, i) => describe(seats, i + 1, size));
-  return {
-    tables: described,
-    people: described.reduce((s, t) => s + t.people, 0),
-    families: parties.length,
-  };
+  const waiting = parties.filter((p) => p.waiting).reduce((s, p) => s + p.people, 0);
+  const people = described.reduce((s, t) => s + t.people, 0);
+  return { tables: described, people, families: parties.length, replied: people - waiting, waiting };
 }
 
 /** Short line about a table, e.g. "Bride's side · Veg 6, Jain 2". */
@@ -186,7 +258,9 @@ export function tableLine(table: Table): string {
 /** The seating plan as plain text, for WhatsApp or the venue. */
 export function seatingText(title: string, plan: SeatingPlan): string {
   const lines = plan.tables.map((t) => {
-    const who = t.seats.map((s) => `${s.name} (${s.people}${s.part ? `, ${s.part}` : ""})`).join(", ");
+    const who = t.seats
+      .map((s) => `${s.name} (${s.people}${s.part ? `, ${s.part}` : ""}${s.waiting ? ", no reply yet" : ""})`)
+      .join(", ");
     const near = t.nearEntrance ? " – near the entrance, step-free" : "";
     return `Table ${t.number}${near}: ${who || "empty"}`;
   });

@@ -3068,3 +3068,46 @@ main:has(.plan, .my-events) > .lead {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---------------- Guest list → seating and functions ---------------- */
+.seating-scope {
+  margin: 12px 0;
+}
+.seating-scope .fn-label {
+  margin: 10px 0 4px;
+}
+.seating-scope .segmented {
+  margin: 0;
+}
+.fn-guests {
+  margin: 10px 0 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-border);
+}
+.fn-guests .fn-label {
+  margin: 0;
+}
+.fn-guests p {
+  margin: 4px 0;
+}
+.fn-bar {
+  display: flex;
+  height: 8px;
+  margin: 6px 0;
+  background: var(--c-accent-soft);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.fn-bar span {
+  display: block;
+  height: 100%;
+}
+.fn-bar .is-coming {
+  background: var(--success);
+}
+.fn-bar .is-waiting {
+  background: var(--gold);
+}
+.fn-warn {
+  color: var(--danger);
+}
