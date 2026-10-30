@@ -1,0 +1,333 @@
+/* ---------- Guests: parts, guest list ---------- */
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 8px 0 16px;
+  background: var(--c-bg);
+  border-radius: var(--radius-full);
+}
+.segmented button {
+  flex: 1 1 0;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-height: 40px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--c-primary);
+  color: var(--on-primary);
+}
+.gl-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.gl-tile {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 9px 10px;
+  min-width: 0;
+}
+.gl-tile .vs-n {
+  font-size: 1.35rem;
+}
+.gl-tile .vs-l {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.gl-tile.is-good .vs-n {
+  color: var(--success);
+}
+.gl-tile.is-warn .vs-n {
+  color: var(--danger);
+}
+.gl-bar-listed {
+  background: color-mix(in oklch, var(--c-primary) 35%, var(--surface));
+}
+.gl-target {
+  margin: 6px 0 10px;
+}
+.gl-remind {
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+.btn-inline {
+  font: inherit;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  min-height: 24px;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.btn-inline.is-danger {
+  color: var(--danger);
+}
+.gl-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.gl-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--c-border);
+}
+.gl-row.is-editing {
+  display: block;
+}
+.gl-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.gl-main p {
+  margin: 0;
+}
+.gl-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.gl-fns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px !important;
+}
+.gl-fns > span:not(.sr-only) {
+  font-size: 0.72rem;
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  background: var(--c-bg);
+}
+.gl-row-actions {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85rem;
+  margin-top: 4px !important;
+}
+.gl-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex: none;
+}
+.gl-status {
+  white-space: nowrap;
+}
+.vs-tag.is-coming {
+  background: color-mix(in oklch, var(--success) 16%, var(--surface));
+  color: var(--text);
+}
+.vs-tag.is-no {
+  background: var(--c-border);
+  color: var(--text);
+}
+.gl-actions {
+  margin-top: 12px;
+}
+.add-guests-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.add-guests-head h3 {
+  margin: 0;
+}
+.ways {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.way {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: 12px;
+  cursor: pointer;
+}
+.way.is-ai {
+  border-color: var(--c-primary);
+}
+.way > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.way-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--c-accent-soft);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.gl-groups {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  display: grid;
+  gap: 8px;
+}
+.gl-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--c-border);
+  background: color-mix(in oklch, var(--c-bg) 60%, var(--surface));
+}
+.gl-group > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.gl-drafts {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+}
+.gl-drafts li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--c-border);
+}
+.gl-drafts li:first-child {
+  border-top: none;
+}
+.gl-draft-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gl-draft-n {
+  width: 64px !important;
+  min-height: 36px;
+  padding: 4px 8px;
+}
+.gl-guess {
+  color: var(--danger);
+}
+.gl-draft-side {
+  max-width: 280px;
+}
+.gl-form {
+  display: grid;
+  gap: 4px;
+}
+@media (max-width: 640px) {
+  .gl-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------------- Guest list → seating and functions ---------------- */
+.seating-scope {
+  margin: 12px 0;
+}
+.seating-scope .fn-label {
+  margin: 10px 0 4px;
+}
+.seating-scope .segmented {
+  margin: 0;
+}
+.fn-guests {
+  margin: 10px 0 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-border);
+}
+.fn-guests .fn-label {
+  margin: 0;
+}
+.fn-guests p {
+  margin: 4px 0;
+}
+.fn-bar {
+  display: flex;
+  height: 8px;
+  margin: 6px 0;
+  background: var(--c-accent-soft);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.fn-bar span {
+  display: block;
+  height: 100%;
+}
+.fn-bar .is-coming {
+  background: var(--success);
+}
+.fn-bar .is-waiting {
+  background: var(--gold);
+}
+.fn-warn {
+  color: var(--danger);
+}
+
+/* Weather card under the event facts */
+.weather {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 4px 0 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--c-accent-soft) 45%, transparent);
+}
+.weather-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.weather p {
+  margin: 0;
+}
+.weather-title {
+  font-weight: 600;
+}
+.weather .small {
+  margin-top: 2px;
+}
+.weather-tag {
+  display: inline-block;
+  margin-top: 6px !important;
+  font-size: 0.8rem;
+  padding: 1px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--c-border);
+  color: var(--muted);
+}

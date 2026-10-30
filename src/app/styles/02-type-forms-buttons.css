@@ -1,0 +1,245 @@
+/* ---------------- Typography ---------------- */
+.hero {
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  line-height: 1.1;
+  margin: 36px 0 10px;
+}
+.accent-word {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 4px;
+  text-underline-offset: 6px;
+}
+.lead {
+  color: var(--muted);
+  font-size: 1.1rem;
+  margin: 0 0 28px;
+  max-width: 60ch;
+}
+.section-title {
+  font-size: 1.375rem;
+  margin: 0 0 12px;
+}
+.small-heading {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+h3 {
+  font-size: 1.125rem;
+  margin: 16px 0 6px;
+}
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.875rem;
+}
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ---------------- Cards ---------------- */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid color-mix(in oklch, var(--c-border) 60%, transparent);
+  padding: 24px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.card-inner {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: var(--surface);
+}
+
+/* ---------------- Forms ---------------- */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.span-2 {
+  grid-column: span 2;
+}
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .span-2 {
+    grid-column: auto;
+  }
+}
+.field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+input[type="text"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid color-mix(in oklch, var(--muted) 55%, var(--surface));
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  min-height: 46px;
+  transition: border-color 200ms var(--ease);
+}
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--muted);
+}
+textarea {
+  resize: vertical;
+}
+[aria-invalid="true"] {
+  border-color: var(--danger) !important;
+}
+.field-error,
+.form-error {
+  color: var(--danger);
+  font-weight: 600;
+  margin: 6px 0 0;
+}
+.field-error::before,
+.form-error::before {
+  content: "! ";
+  font-weight: 700;
+}
+.form-error {
+  margin: 0 0 12px;
+}
+.checkbox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.checkbox label {
+  font-weight: 400;
+  margin: 0;
+}
+input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  accent-color: var(--c-primary);
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* ---------------- Buttons and chips ---------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 20px;
+  font: inherit;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--c-primary);
+  background: var(--surface);
+  color: var(--c-primary);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform 150ms var(--ease),
+    background-color 200ms var(--ease),
+    box-shadow 200ms var(--ease);
+}
+.btn:hover {
+  background: var(--c-accent-soft);
+  box-shadow: var(--shadow);
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn-primary {
+  background: var(--c-primary);
+  color: var(--on-primary);
+}
+.btn-primary:hover {
+  background: color-mix(in oklch, var(--c-primary) 88%, black);
+}
+.btn[disabled] {
+  opacity: 0.65;
+  cursor: progress;
+}
+.btn-lg {
+  width: 100%;
+  font-size: 1.1rem;
+  min-height: 54px;
+  margin-top: 8px;
+}
+.btn-small {
+  min-height: 36px;
+  padding: 4px 14px;
+  font-size: 0.9rem;
+}
+.btn-link {
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.btn-link:hover {
+  box-shadow: none;
+}
+.chip {
+  font: inherit;
+  font-size: 0.9rem;
+  border: 1.5px solid var(--c-border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-full);
+  padding: 6px 16px;
+  min-height: 38px;
+  cursor: pointer;
+  transition:
+    border-color 200ms var(--ease),
+    background-color 200ms var(--ease);
+}
+.chip:hover {
+  border-color: var(--c-primary);
+  background: var(--c-accent-soft);
+}
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.examples-label {
+  font-weight: 500;
+  color: var(--muted);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}

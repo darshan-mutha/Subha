@@ -4,7 +4,21 @@ import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/Brand";
-import "./globals.css";
+/* Styles load in this order; later files build on the tokens in the first. */
+import "./styles/01-tokens-base.css";
+import "./styles/02-type-forms-buttons.css";
+import "./styles/03-start.css";
+import "./styles/04-plan.css";
+import "./styles/05-vendors-team.css";
+import "./styles/06-print.css";
+import "./styles/07-budget-personal.css";
+import "./styles/08-invite-savings-events.css";
+import "./styles/09-guests-nav.css";
+import "./styles/10-traditions-ideas.css";
+import "./styles/11-vendors-board.css";
+import "./styles/12-guest-list.css";
+import "./styles/13-wide.css";
+import "./styles/14-high-contrast.css";
 
 /** Pages render per request so each gets its own CSP nonce (see src/proxy.ts). */
 export const dynamic = "force-dynamic";

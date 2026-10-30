@@ -1,0 +1,45 @@
+/* ---------------- High contrast (Windows contrast themes) ----------------
+   With forced colours the browser removes backgrounds and shadows, so bars,
+   selected chips and swatches would vanish. Give them system colours and
+   outlines so progress and "selected" stay visible. Text labels already say
+   the same thing, so nothing relies on these alone. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight;
+  }
+
+  .progress-bar,
+  .vs-bar,
+  .fn-bar,
+  .gl-bar-listed {
+    border: 1px solid CanvasText;
+  }
+  .progress-bar span,
+  .vs-bar > *,
+  .fn-bar > * {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+
+  .chip.is-on,
+  .choice.is-on,
+  .fn-row.is-on,
+  .vb-row.is-selected,
+  .direction.is-current,
+  .event-row.is-current,
+  [aria-pressed="true"],
+  [aria-current="page"] {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+  }
+
+  .card,
+  .card-inner {
+    border: 1px solid CanvasText;
+  }
+
+  .swatch {
+    forced-color-adjust: none;
+    border: 1px solid CanvasText;
+  }
+}

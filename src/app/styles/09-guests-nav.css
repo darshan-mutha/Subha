@@ -1,0 +1,376 @@
+/* ---------- Guests tab ---------- */
+.guest-link {
+  margin: 12px 0 8px;
+}
+.guest-link .small-heading {
+  margin: 0 0 4px;
+}
+.link-text {
+  overflow-wrap: anywhere;
+  margin: 0 0 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.guest-counts {
+  margin-top: 8px;
+}
+.replies-head {
+  justify-content: space-between;
+  align-items: center;
+}
+.replies-head h3 {
+  margin: 0;
+}
+.reply-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.reply-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+.reply-row > div:first-child {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+.reply-row p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.reply-name {
+  font-weight: 600;
+}
+.chip-label.reply-yes {
+  background: color-mix(in oklch, var(--success) 18%, var(--surface));
+  color: var(--text);
+}
+.chip-label.reply-no {
+  background: var(--c-border);
+  color: var(--text);
+}
+.payments dd.payments-sub {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+/* ---------- Seating ---------- */
+.seating {
+  margin-top: 24px;
+}
+.seating-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin: 12px 0;
+}
+.seating-controls .field {
+  margin: 0;
+  min-width: 140px;
+}
+.table-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+}
+.seat-table {
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  break-inside: avoid;
+}
+.seat-table.is-over {
+  border-color: var(--danger);
+}
+.seat-table p {
+  margin: 4px 0 0;
+}
+.seat-table-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.seat-table-head h4 {
+  margin: 0;
+}
+.seat-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.seat-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--c-border);
+}
+.move-select {
+  font-size: 0.85rem;
+  min-height: 36px;
+  padding: 2px 8px;
+  width: auto;
+}
+.seat-table .chip-label {
+  display: inline-block;
+}
+.seating-controls .choices {
+  margin: 0;
+}
+
+/* Phones: every tab stays in view (two rows) instead of hiding off to the side. */
+@media (max-width: 640px) {
+  .tablist {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+    border-radius: var(--radius-lg);
+  }
+  .tab {
+    padding: 8px 12px;
+  }
+}
+
+/* Once a plan or the events list is open, the welcome text gives way to it. */
+main:has(.plan, .my-events) > .hero,
+main:has(.plan, .my-events) > .lead {
+  display: none;
+}
+
+/* ---------- Plan navigation ---------- */
+.plan-about {
+  margin-bottom: 20px;
+}
+.plan-about .summary {
+  margin: 0 0 10px;
+}
+.plan-tabs .warnings {
+  margin-bottom: 20px;
+}
+.plan-tabs .refine {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--c-border);
+}
+.plan-tabs .do-next,
+.plan-tabs .celebrate {
+  margin-bottom: 0;
+}
+
+/* Computers and tablets: the section bar stays in view while scrolling. */
+@media (min-width: 641px) {
+  .plan-tabs .tablist {
+    position: sticky;
+    top: 8px;
+    z-index: 5;
+    box-shadow: var(--shadow);
+  }
+}
+
+/* Phones: a bar fixed to the bottom of the screen replaces the tabs. */
+.section-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--surface);
+  border-top: 1px solid var(--c-border);
+  box-shadow: 0 -4px 16px rgb(22 36 38 / 8%);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.section-nav-bar {
+  list-style: none;
+  margin: 0 auto;
+  padding: 4px 4px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 560px;
+}
+.section-nav-item {
+  font: inherit;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.section-nav-item[aria-current="page"] {
+  color: var(--c-primary);
+  background: color-mix(in oklch, var(--c-primary) 10%, transparent);
+}
+.nav-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 8px;
+  left: 8px;
+  margin-bottom: 8px;
+  background: var(--surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.nav-menu-title {
+  margin: 4px 8px 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.nav-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-menu-actions {
+  border-top: 1px solid var(--c-border);
+  margin-top: 6px !important;
+  padding-top: 6px !important;
+}
+.nav-menu-item {
+  font: inherit;
+  width: 100%;
+  text-align: left;
+  min-height: 46px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+}
+.nav-menu-item:hover,
+.nav-menu-item[aria-current="page"] {
+  background: color-mix(in oklch, var(--c-primary) 10%, transparent);
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .plan-tabs .tablist,
+  .plan .header-actions {
+    display: none;
+  }
+  body:has(.section-nav) {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+  .plan-tabs {
+    scroll-margin-top: 8px;
+  }
+  .plan-header h2 {
+    font-size: 1.5rem;
+  }
+  .plan-header .rangoli {
+    width: 60px;
+    height: 60px;
+  }
+}
+@media print {
+  .section-nav {
+    display: none !important;
+  }
+}
+@media (min-width: 641px) {
+  .plan-tabs .tablist {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+    border-radius: var(--radius-lg);
+  }
+  .plan-tabs .tab {
+    padding: 8px 14px;
+  }
+}
+.refine-form .btn {
+  white-space: nowrap;
+}
+
+/* ---------- Section navigation: computers ---------- */
+@media (min-width: 641px) {
+  .section-nav {
+    position: sticky;
+    left: auto;
+    right: auto;
+    top: 8px;
+    z-index: 10;
+    margin: 0 0 20px;
+    background: var(--c-bg);
+    border: none;
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow);
+    padding: 0;
+  }
+  .section-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    max-width: none;
+    gap: 4px;
+    padding: 4px;
+  }
+  .section-nav-bar li {
+    flex: 1 1 0;
+  }
+  .section-nav-item {
+    flex-direction: row;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: var(--radius-full);
+  }
+  .section-nav-item[aria-current="page"] {
+    background: var(--c-primary);
+    color: var(--on-primary);
+  }
+  .nav-menu {
+    bottom: auto;
+    top: 100%;
+    left: auto;
+    right: 0;
+    width: 280px;
+    margin: 8px 0 0;
+  }
+  body:has(.section-nav) {
+    padding-bottom: 0;
+  }
+}
+.section-nav-item:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+.section-panel:focus {
+  outline: none;
+}
+.section-panel:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 6px;
+  border-radius: var(--radius-md);
+}
+.nav-menu-actions {
+  border-top: 1px solid var(--c-border);
+  margin-top: 6px !important;
+  padding-top: 10px;
+}

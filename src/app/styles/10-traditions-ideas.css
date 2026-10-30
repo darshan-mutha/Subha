@@ -1,0 +1,302 @@
+/* ---------------- Traditions & functions (form) ---------------- */
+.traditions .grid {
+  margin: 12px 0 8px;
+}
+.fn-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.fn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  padding: 4px 6px 4px 14px;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.fn-row.is-on {
+  border-color: var(--c-primary);
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
+}
+.fn-row .fn-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  margin: 0;
+  cursor: pointer;
+  min-height: 44px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.fn-row .fn-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--c-primary);
+  margin: 0;
+  flex: none;
+}
+.fn-row .fn-day {
+  width: 112px;
+  flex: none;
+  min-height: 40px;
+  padding-block: 6px;
+}
+.fn-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.fn-add input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------------- Functions (plan) ---------------- */
+.fn-day-block {
+  margin-top: 20px;
+}
+.fn-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.fn-card h4 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+.fn-card .facts {
+  margin: 4px 0 8px;
+}
+.fn-mood {
+  font-style: italic;
+  margin: 0 0 8px;
+}
+.fn-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 10px 0 2px;
+}
+.fn-summary {
+  margin: 16px 0;
+}
+.fn-summary .list {
+  margin: 4px 0 8px;
+}
+
+/* ---------------- Ideas ---------------- */
+.ideas > .card-inner {
+  margin-top: 16px;
+}
+.ideas h3 {
+  margin-top: 0;
+}
+.heart .field {
+  margin-bottom: 12px;
+}
+.theme-now {
+  border-top: 1px solid var(--c-border);
+  margin: 4px 0 16px;
+  padding-top: 12px;
+}
+.theme-now p {
+  margin: 0 0 4px;
+}
+.swatches {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.swatches li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgb(0 0 0 / 15%);
+  flex: none;
+}
+.directions-block {
+  margin-top: 20px;
+}
+.directions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.direction {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.direction h4 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.direction p {
+  margin: 0;
+}
+.direction .btn,
+.direction .done-text {
+  margin-top: auto;
+  align-self: flex-start;
+}
+.direction.is-current {
+  border-color: var(--c-primary);
+  border-width: 2px;
+}
+.direction-lines {
+  margin: 4px 0 8px;
+}
+.direction-lines dt {
+  font-weight: 600;
+  margin-top: 6px;
+}
+.direction-lines dd {
+  margin: 0;
+}
+.badge-fit {
+  align-self: flex-start;
+  background: color-mix(in oklch, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+.badge-stretch {
+  align-self: flex-start;
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
+}
+.badge-new {
+  background: var(--c-primary);
+  color: var(--on-primary);
+  flex: none;
+}
+.signature {
+  border-width: 2px;
+  border-color: var(--c-accent);
+  background: color-mix(in oklch, var(--c-accent-soft) 45%, var(--surface));
+}
+.signature h3 {
+  margin: 2px 0 6px;
+}
+.own-idea textarea {
+  margin: 6px 0 4px;
+}
+.own-idea label {
+  font-weight: 500;
+}
+.own-fn {
+  max-width: 280px;
+  margin: 12px 0;
+}
+.own-idea .btn[type="submit"] {
+  margin-top: 12px;
+}
+.chip.is-on {
+  border-color: var(--c-primary);
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
+}
+.ideas-heading {
+  margin-top: 28px;
+}
+.fn-filter {
+  margin-bottom: 8px;
+}
+.moment {
+  margin-top: 16px;
+}
+.moment-title {
+  font-family: var(--font-display), var(--font-display-fallback);
+  font-size: 1.05rem;
+  margin: 0 0 8px;
+}
+.idea-cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.idea {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.idea p {
+  margin: 0;
+}
+.idea-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.idea h5 {
+  margin: 0;
+  font-size: 1rem;
+}
+.idea-tags {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.idea-tags li {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-full);
+  padding: 1px 10px;
+  color: var(--muted);
+}
+.why {
+  color: var(--muted);
+}
+.why-label {
+  font-weight: 600;
+  color: var(--text);
+}
+.idea-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.idea.is-kept {
+  border-color: var(--c-primary);
+}
+.idea.is-skipped {
+  opacity: 0.6;
+}
+.done-text {
+  color: var(--success);
+  font-weight: 600;
+}
+@media print {
+  .heart,
+  .own-idea,
+  .directions-block,
+  .fn-filter,
+  .idea.is-skipped {
+    display: none;
+  }
+}

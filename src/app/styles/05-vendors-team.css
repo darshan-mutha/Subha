@@ -1,0 +1,337 @@
+/* ---------------- Vendors and ideas ---------------- */
+details {
+  margin-top: 10px;
+}
+summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--c-primary);
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+}
+.brief {
+  white-space: pre-wrap;
+  background: var(--c-bg);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin: 8px 0 0;
+}
+.ideas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.ideas-grid h3,
+.theme h3 {
+  margin-top: 0;
+}
+.note {
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+/* ---------------- Refine ---------------- */
+.refine-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+@media (max-width: 640px) {
+  .refine-form {
+    flex-direction: column;
+  }
+}
+
+/* ---------------- Team ---------------- */
+.progress {
+  margin: 12px 0;
+}
+.progress-bar {
+  height: 12px;
+  background: var(--c-accent-soft);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.progress-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-primary), var(--c-accent));
+  border-radius: var(--radius-full);
+  transition: width 600ms var(--ease);
+}
+.progress p {
+  margin: 6px 0 0;
+}
+.members {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: grid;
+  gap: 8px;
+}
+.member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+}
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background: var(--c-primary);
+  color: var(--on-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.member-info {
+  flex: 1;
+  min-width: 140px;
+}
+.member-count {
+  display: block;
+}
+.member-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.add-member {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+  margin: 12px 0;
+}
+.add-member .field-error {
+  grid-column: 1 / -1;
+}
+@media (max-width: 640px) {
+  .add-member {
+    grid-template-columns: 1fr;
+  }
+}
+.share {
+  margin-top: 18px;
+  border-top: 1px solid var(--c-border);
+  padding-top: 18px;
+}
+.share-url code {
+  display: block;
+  word-break: break-all;
+  background: var(--c-bg);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 0.9rem;
+}
+.viewer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.viewer label {
+  font-weight: 500;
+}
+.viewer select {
+  width: auto;
+  min-width: 170px;
+  border-radius: var(--radius-full);
+}
+.shared-page {
+  padding-top: 24px;
+}
+
+/* ---------------- Loading ---------------- */
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--c-accent-soft);
+  border-top-color: var(--c-primary);
+  border-radius: var(--radius-full);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------------- Vendor quotes, booking and agreement ---------------- */
+.deal {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.deal select {
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+.deal .row label {
+  font-weight: 500;
+}
+.deal .row select {
+  width: auto;
+  min-height: 38px;
+  padding: 4px 12px;
+}
+.quote-list {
+  list-style: none;
+  margin: 10px 0 12px;
+  padding: 0;
+}
+.quote-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 12px 0;
+  border-top: 1px solid color-mix(in oklch, var(--c-border) 60%, transparent);
+}
+.quote-item:first-child {
+  border-top: 0;
+}
+.quote-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.quote-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.quote-name .badge {
+  margin-left: 6px;
+}
+.quote-low {
+  background: color-mix(in oklch, var(--success) 14%, var(--surface));
+  color: var(--success);
+}
+.quote-money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.quote-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.quote-booked {
+  margin: 0 -10px;
+  padding: 12px 10px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--c-accent-soft) 45%, transparent);
+}
+.verdict {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.verdict-over {
+  color: var(--danger);
+}
+.verdict-over::before {
+  content: "▲ ";
+}
+.verdict-under,
+.verdict-on {
+  color: var(--success);
+}
+.verdict-under::before {
+  content: "▼ ";
+}
+.verdict-on::before {
+  content: "✓ ";
+}
+.quote-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius-md);
+}
+.quote-form .field-wide,
+.quote-form .row {
+  grid-column: span 2;
+}
+@media (max-width: 640px) {
+  .quote-form {
+    grid-template-columns: 1fr;
+  }
+  .quote-form .field-wide,
+  .quote-form .row {
+    grid-column: auto;
+  }
+}
+.booking {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--success) 7%, var(--surface));
+}
+.booking .small-heading {
+  margin: 0;
+}
+.booking p {
+  margin: 0;
+}
+.advance-input {
+  max-width: 160px;
+}
+.agreement {
+  display: grid;
+  gap: 8px;
+}
+.agreement textarea {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.agreement-print {
+  display: none;
+}
+.payments {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.payments div {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+.payments dt {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.payments dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.over-budget {
+  color: var(--danger);
+  font-weight: 600;
+}

@@ -1,0 +1,30 @@
+/* ---------- Wider plan on computers ----------
+   Once a plan is open, the page uses up to 1,120 px. Vendors, Budget and Guests
+   use the full width; the other sections stay at a comfortable reading width. */
+@media (min-width: 1024px) {
+  body:has(.plan-tabs) .container {
+    max-width: 1120px;
+  }
+  .section-panel:not(#section-vendors):not(#section-budget):not(#section-guests) > * {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+  .vb-cols {
+    grid-template-columns: 360px minmax(0, 1fr);
+    gap: 24px;
+  }
+  .vb-summary {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto;
+  }
+  .vb-summary .vb-next {
+    grid-column: auto;
+  }
+  .quote-item {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 4px 20px;
+  }
+  .quote-actions {
+    grid-column: auto;
+  }
+}

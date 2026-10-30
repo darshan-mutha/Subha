@@ -1,0 +1,71 @@
+/* ---------------- Print / PDF: calm black and white, everything shown ---------------- */
+@media print {
+  :root {
+    --alive: 0 !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .site-footer,
+  .skip-link,
+  .no-print,
+  .tablist,
+  .hero,
+  .lead,
+  .bloom,
+  .petal-shower,
+  .add-member,
+  select.owner,
+  .viewer,
+  details summary {
+    display: none !important;
+  }
+  .card,
+  .card-inner {
+    box-shadow: none;
+    border-color: #ccc;
+    break-inside: avoid;
+  }
+  .tabpanel[hidden] {
+    display: block !important;
+  }
+  .tabpanel {
+    margin-bottom: 18px;
+  }
+  details > * {
+    display: block !important;
+  }
+  .petal-mark .petal-gold,
+  .petal-mark .petal-teal {
+    fill: #000;
+  }
+  .agreement textarea {
+    display: none;
+  }
+  .agreement-print {
+    display: block;
+    white-space: pre-wrap;
+    font:
+      11pt/1.5 Georgia,
+      "Times New Roman",
+      serif;
+  }
+  /* "Print agreement": only that vendor's agreement is printed. */
+  body[data-print="agreement"] * {
+    visibility: hidden;
+  }
+  body[data-print="agreement"] .print-this,
+  body[data-print="agreement"] .print-this .agreement-print,
+  body[data-print="agreement"] .print-this .agreement-print * {
+    visibility: visible;
+  }
+  body[data-print="agreement"] .print-this {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+  }
+  body[data-print="agreement"] .print-this > :not(.agreement-print) {
+    display: none !important;
+  }
+}
