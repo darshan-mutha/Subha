@@ -1,5 +1,9 @@
 # Shubā — plan any celebration in minutes
 
+**Chosen vertical:** Hack2skill PromptWars Virtual — Challenge 5: **Celebration & Event Planner**. A GenAI planning assistant that builds and keeps updating the budget, timeline, vendor checklist and personalised ideas for weddings, birthdays and community events.
+
+**Live app:** https://shuba-three.vercel.app
+
 **Who it's for:** Indian families planning a celebration themselves (a wedding, a child's birthday, a griha pravesh) with a fixed budget, a guest list that keeps changing, and relatives who all want to help. **The hardest part for them** is keeping budget, dates, guests and vendors in step when something changes. Shubā keeps the whole plan connected, so one change updates everything.
 
 Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremonies, festivals, school, corporate and community events. **Start by speaking** in English, Hindi, Kannada, Tamil, Telugu, Marathi or Bengali (or type one line, or use the form), check the details Shubā understood, and get a complete, editable plan:
@@ -23,8 +27,6 @@ Shubā is a GenAI planning assistant for weddings, birthdays, religious ceremoni
 - **Change the plan mid-way in plain words** – "We added 50 guests, the budget is 10% lower and the date moved 2 weeks earlier" updates guests, budget and date together, re-plans the timeline and vendor deadlines, cuts the least important areas first, and shows a **What changed** card with **Undo**
 - **My events** – plan several celebrations at once, no sign-in needed. Every event is kept on your device in one list (soonest first, with a countdown); switch between them, start a new one without losing the others, or remove one. Shared events keep their team link, and plans opened from someone else's link are added to the list so helpers can find them again
 - **Download as PDF / print**
-
-Built for Hack2skill PromptWars Virtual — Challenge 5: Celebration & Event Planner.
 
 ## Look: your celebration comes alive
 
@@ -142,9 +144,21 @@ npm run check   # Prettier, ESLint, TypeScript strict, tests with coverage
 
 - **ESLint** (Next.js core-web-vitals + TypeScript rules) and **Prettier** formatting, enforced in CI.
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) runs formatting, lint, type-check, tests with coverage and a production build on every push.
-- **Coverage**: about 96% of lines (thresholds enforced: 90% lines/statements, 85% functions, 80% branches).
+- **Coverage**: about 95% of lines (thresholds enforced: 90% lines/statements, 85% functions, 80% branches).
 
-204 automated tests (Vitest + Testing Library) cover validation, budget maths, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
+500 automated tests in 57 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
+
+## Assumptions
+
+- **Users and place:** Indian families planning their own celebration. Money is in rupees (₹), dates and auspicious timings use Indian conventions, and cities are geocoded worldwide but tuned for India.
+- **Prices are estimates.** Every amount Shubā suggests is labelled an estimate from typical ranges; real prices come from the quotes the host adds. No vendor names are made up.
+- **Rituals vary by family.** Functions and rituals are shown as "usually done", fully editable, with a reminder to check with family elders. Traditions are never guessed from a name or city.
+- **The AI writes, code decides.** Claude writes the plan text, ideas, messages and invitations. Money totals, dates, task shifts, seating, guest counts, Rahu Kalam and weather are worked out in code, so they are always consistent.
+- **No sign-in.** Events are kept on the device. Sharing with family uses a private link (Neon Postgres); guests reply through a separate guest link and never see the plan.
+- **Guest names stay private.** Guest lists are read in code; names and phone numbers are never sent to the AI.
+- **Internet needed** for AI planning, weather and sharing. Voice start uses the browser's speech recognition (best in Chrome and Edge); typing and the form always work.
+- **Weather:** real forecast only within 16 days of the event; otherwise the usual weather for those dates over the past 10 years (Open-Meteo). Never invented.
+- **Fair use:** AI calls are rate-limited per visitor and for the whole app to keep costs safe.
 
 ## Run locally
 
@@ -157,6 +171,8 @@ npm run dev
 
 ## Changelog
 
+- **30 Oct 2026** – Calmer Vendors screen: vendors grouped into "To book" and "Booked", one vendor at a time in three steps (Ask → Compare → Book), with a short summary of booked count and money. On computers the plan now uses the full width.
+- **29 Oct 2026** – Familiar chat-style start box: type, or tap the small mic; the spoken sentence appears when you stop, with no flickering half-heard words.
 - **29 Oct 2026** – Plan header shows the weekday with the date, and the weather: the real forecast (day by day for multi-day events) when the event is within 16 days, otherwise the usual weather worked out from the same dates over the past 10 years, with one practical tip. From the free Open-Meteo service, looked up on the server; no AI, nothing invented. Mockup approved first.
 - **29 Oct 2026** – Voice start now picks up traditions (up to two families), the number of days, the functions named (matched to their usual names, e.g. "pheras" → Wedding (pheras), and spread over the days as the form would) and modern additions. If no functions are named, the form's usual functions for the traditions are filled in. Never guessed from a city or surname; all re-checked with the form's rules.
 - **29 Oct 2026** – Guest list linked to seating and functions: seat everyone on the list before they reply (marked "no reply yet"; families who said no are left out) or only those coming, and seat one function at a time (only the families invited to it). Each function shows invited, coming and no reply from the list, warns when clearly more are invited than planned, offers "Plan for N" through the change flow, and "Seat this function". Home shows the invited count per function. All worked out in code. Mockup approved first.
