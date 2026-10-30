@@ -53,29 +53,29 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
                                               └──────────────────────────────────────────┘
 ```
 
-| Path                                                                     | Purpose                                                                                            |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `src/lib/schemas.ts`                                                     | Input, plan and refine schemas shared by browser and server                                        |
-| `src/lib/prompt.ts`                                                      | System instruction, prompts and the JSON schema sent to Claude                                     |
-| `src/lib/extract.ts`                                                     | Voice / one-line description → validated form values                                               |
-| `src/components/VoiceStart.tsx`                                          | Browser speech-to-text (7 Indian languages) with typing fallback                                   |
-| `src/lib/team.ts`                                                        | Team members, stable task ids, shared-plan schemas, WhatsApp messages                              |
-| `src/lib/assign.ts`                                                      | AI task split with even-load fallback                                                              |
-| `src/lib/store.ts`                                                       | Shared plan storage (Neon Postgres; in-memory for tests), optimistic versioning                    |
-| `src/components/TeamPanel.tsx`, `SharedPlanView.tsx`                     | Plan together, team link page with live progress                                                   |
-| `src/lib/ai.ts`                                                          | Claude client, schema conversion, JSON extraction, validation and retry                            |
-| `src/lib/planner.ts`                                                     | Orchestrates AI call, timings, budget normalisation and warnings                                   |
-| `src/lib/muhurat.ts`                                                     | Sunrise/sunset (NOAA algorithm) and Rahu Kalam / Yamagandam / Gulika Kalam                         |
-| `src/lib/locations.ts`                                                   | Built-in Indian city list with Open-Meteo geocoding fallback                                       |
-| `src/lib/budget.ts`                                                      | Rupee formatting, budget normalisation and rule-based warnings                                     |
-| `src/lib/rsvp.ts`, `rsvpStore.ts`, `GuestReply.tsx`, `GuestsSection.tsx` | Guest replies: rules, counts, separate guest link, hashed reply secrets, guest page and Guests tab |
-| `src/lib/myEvents.ts`, `MyEvents.tsx`                                    | My events: several events per device, shared links remembered, safe migration                      |
-| `src/lib/savings.ts`, `SavingsChoices.tsx`                               | Over-budget choices: overspend per line, raise-budget in code, AI choices                          |
-| `src/lib/budgetGuide.ts`, `BudgetHelper.tsx`                             | "Not sure? Help me decide": three estimated budget levels and per-guest spend                      |
-| `src/lib/traditions.ts`, `TraditionPicker.tsx`                           | Traditions, usual functions per tradition, days, modern additions                                  |
-| `src/lib/ideas.ts`, `IdeasPanel.tsx`                                     | Ideas: heart, theme directions, keep/skip, "Add to my plan" in code                                |
-| `src/lib/http.ts`                                                        | Shared API handling: cross-site block, rate limits, body limit, validation                         |
-| `src/components/*`                                                       | Form, accessible tabs and plan sections                                                            |
+| Path                                                                     | Purpose                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/schemas.ts`                                                     | Input, plan and refine schemas shared by browser and server                                                                                                                                                       |
+| `src/lib/prompt.ts`                                                      | System instruction, prompts and the JSON schema sent to Claude                                                                                                                                                    |
+| `src/lib/extract.ts`                                                     | Voice / one-line description → validated form values                                                                                                                                                              |
+| `src/components/VoiceStart.tsx`                                          | Browser speech-to-text (7 Indian languages) with typing fallback                                                                                                                                                  |
+| `src/lib/team.ts`                                                        | Team members, stable task ids, shared-plan schemas, WhatsApp messages                                                                                                                                             |
+| `src/lib/assign.ts`                                                      | AI task split with even-load fallback                                                                                                                                                                             |
+| `src/lib/store.ts`                                                       | Shared plan storage (Neon Postgres; in-memory for tests), optimistic versioning                                                                                                                                   |
+| `src/components/TeamPanel.tsx`, `SharedPlanView.tsx`                     | Plan together, team link page with live progress                                                                                                                                                                  |
+| `src/lib/ai.ts`                                                          | Claude client, schema conversion, JSON extraction, validation and retry                                                                                                                                           |
+| `src/lib/planner.ts`                                                     | Orchestrates AI call, timings, budget normalisation and warnings                                                                                                                                                  |
+| `src/lib/muhurat.ts`                                                     | Sunrise/sunset (NOAA algorithm) and Rahu Kalam / Yamagandam / Gulika Kalam                                                                                                                                        |
+| `src/lib/locations.ts`                                                   | Built-in Indian city list with Open-Meteo geocoding fallback                                                                                                                                                      |
+| `src/lib/budget.ts`                                                      | Rupee formatting, budget normalisation and rule-based warnings                                                                                                                                                    |
+| `src/lib/rsvp.ts`, `rsvpStore.ts`, `GuestReply.tsx`, `GuestsSection.tsx` | Guest replies: rules, counts, separate guest link, hashed reply secrets, guest page and Guests tab                                                                                                                |
+| `src/lib/myEvents.ts`, `MyEvents.tsx`                                    | My events: several events per device, shared links remembered, safe migration                                                                                                                                     |
+| `src/lib/savings.ts`, `SavingsChoices.tsx`                               | Over-budget choices: overspend per line, raise-budget in code, AI choices                                                                                                                                         |
+| `src/lib/budgetGuide.ts`, `BudgetHelper.tsx`                             | "Not sure? Help me decide": three estimated budget levels and per-guest spend                                                                                                                                     |
+| `src/lib/traditions.ts`, `TraditionPicker.tsx`                           | Traditions, usual functions per tradition, days, modern additions                                                                                                                                                 |
+| `src/lib/ideas.ts`, `IdeasPanel.tsx`                                     | Ideas: heart, theme directions, keep/skip, "Add to my plan" in code                                                                                                                                               |
+| `src/lib/http.ts`                                                        | Shared API handling: cross-site block, rate limits, body limit, validation                                                                                                                                        |
+| `src/components/*`                                                       | Form, accessible tabs and plan sections; each screen split into small parts and hooks in its own folder (`plan/`, `vendors/`, `guests/`, `ideas/`, `invite/`, `voice/`, `planner/`, `event-form/`, `traditions/`) |
 
 ## Where GenAI is used
 
@@ -129,6 +129,7 @@ Automated scan with **axe-core (WCAG 2.2 A/AA + best practices): 0 violations** 
 - WAI-ARIA tabs with arrow-key, Home and End navigation.
 - Live region announces progress and results; focus moves to the plan heading when ready.
 - WCAG AA colour contrast, 44 px touch targets, visible focus ring, reduced-motion support, mobile-first layout.
+- High contrast (Windows contrast themes): progress bars, selected choices and focus stay visible with system colours.
 
 ## Efficiency
 
@@ -144,9 +145,9 @@ npm run check   # Prettier, ESLint, TypeScript strict, tests with coverage
 
 - **ESLint** (Next.js core-web-vitals + TypeScript rules) and **Prettier** formatting, enforced in CI.
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) runs formatting, lint, type-check, tests with coverage and a production build on every push.
-- **Coverage**: about 95% of lines (thresholds enforced: 90% lines/statements, 85% functions, 80% branches).
+- **Coverage**: about 96% of lines and 88% of branches (thresholds enforced: 90% lines/statements, 85% functions, 80% branches).
 
-500 automated tests in 57 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
+612 automated tests in 65 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
 
 ## Assumptions
 
@@ -171,6 +172,7 @@ npm run dev
 
 ## Changelog
 
+- **30 Oct 2026** – Code tidy-up with no change to what users see (every screen checked pixel by pixel): long screens split into small parts and hooks, one-file styles split by area, 112 more tests for edge cases and error paths (branch coverage 84% → 88%), and high-contrast support for Windows contrast themes.
 - **30 Oct 2026** – Calmer Vendors screen: vendors grouped into "To book" and "Booked", one vendor at a time in three steps (Ask → Compare → Book), with a short summary of booked count and money. On computers the plan now uses the full width.
 - **29 Oct 2026** – Familiar chat-style start box: type, or tap the small mic; the spoken sentence appears when you stop, with no flickering half-heard words.
 - **29 Oct 2026** – Plan header shows the weekday with the date, and the weather: the real forecast (day by day for multi-day events) when the event is within 16 days, otherwise the usual weather worked out from the same dates over the past 10 years, with one practical tip. From the free Open-Meteo service, looked up on the server; no AI, nothing invented. Mockup approved first.

@@ -1,166 +1,22 @@
 "use client";
 
-import { useId, useRef, useState, type FormEvent } from "react";
-import { BudgetHelper } from "@/components/BudgetHelper";
-import { TraditionPicker, suggestedFunctions, type TraditionValues } from "@/components/TraditionPicker";
-import { formatINR } from "@/lib/budget";
-import { formatShortINR, perGuest, type BudgetOption } from "@/lib/budgetGuide";
+import { useId, type FormEvent } from "react";
+import { TraditionPicker } from "@/components/TraditionPicker";
 import {
-  EVENT_TYPES,
-  EVENT_TYPE_LABELS,
-  FOCUS_AREAS,
-  FOCUS_LABELS,
-  FOOD_LABELS,
-  FOOD_PREFS,
-  GUEST_NEEDS,
-  GUEST_NEED_LABELS,
-  LIMITS,
-  MAX_FOCUS,
   TRADITIONAL_EVENT_TYPES,
   fieldErrors,
   makeEventInputSchema,
   type EventInput,
   type EventType,
-  type FocusArea,
-  type FoodPref,
-  type GuestNeed,
 } from "@/lib/schemas";
+import { BasicFields } from "./event-form/BasicFields";
+import { BudgetField } from "./event-form/BudgetField";
+import { NotesAndMuhurat, StyleField } from "./event-form/DetailFields";
+import { PersonalSection } from "./event-form/PersonalSection";
+import { EMPTY_FORM, EXAMPLES, toInput, type FormValues } from "./event-form/formValues";
+import { useEventFormState } from "./event-form/useEventFormState";
 
-export interface FormValues {
-  eventType: EventType | "";
-  eventName: string;
-  date: string;
-  city: string;
-  guests: string;
-  budget: string;
-  style: string;
-  notes: string;
-  includeMuhurat: boolean;
-  focus: FocusArea[];
-  food: FoodPref;
-  guestNeeds: GuestNeed[];
-  traditions: TraditionValues["traditions"];
-  traditionOther: string;
-  days: number;
-  functions: TraditionValues["functions"];
-  additions: TraditionValues["additions"];
-}
-
-export const EMPTY_FORM: FormValues = {
-  eventType: "",
-  eventName: "",
-  date: "",
-  city: "",
-  guests: "",
-  budget: "",
-  style: "",
-  notes: "",
-  includeMuhurat: false,
-  focus: [],
-  food: "",
-  guestNeeds: [],
-  traditions: [],
-  traditionOther: "",
-  days: 1,
-  functions: [],
-  additions: [],
-};
-
-function daysFromNow(days: number): string {
-  const d = new Date(Date.now() + days * 86_400_000);
-  return d.toISOString().slice(0, 10);
-}
-
-export const EXAMPLES: { label: string; values: FormValues }[] = [
-  {
-    label: "Wedding in Jaipur",
-    values: {
-      eventType: "wedding",
-      eventName: "Ananya & Rohan's wedding",
-      date: daysFromNow(120),
-      city: "Jaipur",
-      guests: "250",
-      budget: "1500000",
-      style: "Royal Rajasthani",
-      notes: "Mostly vegetarian guests, some need Jain food",
-      includeMuhurat: true,
-      focus: ["food", "rituals", "photos"],
-      food: "veg",
-      guestNeeds: ["elderly", "wheelchair"],
-      traditions: ["marwari", "punjabi"],
-      traditionOther: "",
-      days: 3,
-      functions: suggestedFunctions(["marwari", "punjabi"], "wedding", 3, ["choreography", "welcome"]),
-      additions: ["choreography", "welcome"],
-    },
-  },
-  {
-    label: "Kid's birthday",
-    values: {
-      eventType: "birthday",
-      eventName: "Aarav turns 5",
-      date: daysFromNow(30),
-      city: "Bengaluru",
-      guests: "40",
-      budget: "50000",
-      style: "Jungle safari",
-      notes: "Afternoon party at home, 20 kids and 20 adults",
-      includeMuhurat: false,
-      focus: ["entertainment", "food"],
-      food: "veg",
-      guestNeeds: ["young-kids", "allergies"],
-      traditions: [],
-      traditionOther: "",
-      days: 1,
-      functions: [],
-      additions: [],
-    },
-  },
-  {
-    label: "Community Diwali",
-    values: {
-      eventType: "community-event",
-      eventName: "Apartment Diwali Mela",
-      date: daysFromNow(45),
-      city: "Pune",
-      guests: "300",
-      budget: "200000",
-      style: "Eco-friendly, no firecrackers",
-      notes: "Stalls by residents, cultural programme for kids",
-      includeMuhurat: false,
-      focus: ["entertainment", "decor"],
-      food: "",
-      guestNeeds: ["elderly", "young-kids"],
-      traditions: [],
-      traditionOther: "",
-      days: 1,
-      functions: [],
-      additions: [],
-    },
-  },
-];
-
-export function toInput(values: FormValues): unknown {
-  return {
-    ...values,
-    guests: values.guests === "" ? undefined : values.guests,
-    budget: values.budget === "" ? undefined : values.budget,
-  };
-}
-
-export function fromInput(input: EventInput): FormValues {
-  return {
-    ...EMPTY_FORM,
-    ...input,
-    traditions: input.traditions ?? [],
-    traditionOther: input.traditionOther ?? "",
-    days: input.days ?? 1,
-    functions: input.functions ?? [],
-    additions: input.additions ?? [],
-    guests: String(input.guests),
-    budget: String(input.budget),
-  };
-}
+export { EMPTY_FORM, EXAMPLES, fromInput, toInput, type FormValues } from "./event-form/formValues";
 
 interface Props {
   initial?: FormValues;
@@ -171,96 +27,35 @@ interface Props {
   onSubmit: (input: EventInput) => void;
 }
 
+/** The event details form: checks every field before handing a valid event to `onSubmit`. */
 export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serverErrors = {}, onSubmit }: Props) {
-  const [values, setValues] = useState<FormValues>(() => ({ ...EMPTY_FORM, ...initial }));
-  const [errors, setErrors] = useState<Record<string, string>>(initialErrors);
-  const [muhuratTouched, setMuhuratTouched] = useState(initial !== EMPTY_FORM);
-  const [helperOpen, setHelperOpen] = useState(false);
-  const [budgetNote, setBudgetNote] = useState("");
+  const form = useEventFormState(initial, initialErrors);
+  const { values, errors, update } = form;
   const id = useId();
-  const budgetRef = useRef<HTMLInputElement>(null);
-  const helpToggleRef = useRef<HTMLButtonElement>(null);
-  const each = perGuest(Number(values.budget), Number(values.guests));
-
-  function pickBudget(option: BudgetOption) {
-    update("budget", String(option.suggested));
-    setBudgetNote(`${option.label} budget of ${formatShortINR(option.suggested)} added. You can change it any time.`);
-    setHelperOpen(false);
-    budgetRef.current?.focus();
-  }
   const allErrors = { ...serverErrors, ...errors };
-
-  function update<K extends keyof FormValues>(key: K, value: FormValues[K]) {
-    setValues((v) => {
-      const next = { ...v, [key]: value };
-      if (key === "eventType" && !muhuratTouched) {
-        next.includeMuhurat = TRADITIONAL_EVENT_TYPES.has(value as EventType);
-      }
-      return next;
-    });
-    setErrors((e) => {
-      if (!e[key]) return e;
-      const next = { ...e };
-      delete next[key];
-      return next;
-    });
-  }
-
-  function toggle<K extends "focus" | "guestNeeds">(key: K, value: FormValues[K][number], on: boolean) {
-    setValues((v) => {
-      const list = v[key] as string[];
-      const next = on ? [...list.filter((x) => x !== value), value] : list.filter((x) => x !== value);
-      return { ...v, [key]: next };
-    });
-  }
-
-  const personalCount = values.focus.length + values.guestNeeds.length + (values.food ? 1 : 0);
+  const ctx = { id, errors: allErrors };
+  const errorCount = Object.keys(allErrors).length;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsed = makeEventInputSchema().safeParse(toInput(values));
     if (!parsed.success) {
       const found = fieldErrors(parsed.error);
-      setErrors(found);
+      form.setErrors(found);
       const first = Object.keys(found)[0];
       document.getElementById(`${id}-${first}`)?.focus();
       return;
     }
-    setErrors({});
+    form.setErrors({});
     onSubmit(parsed.data);
   }
-
-  const field = (name: keyof FormValues) => ({
-    id: `${id}-${name}`,
-    name,
-    "aria-invalid": allErrors[name] ? true : undefined,
-    "aria-describedby": allErrors[name] ? `${id}-${name}-error` : undefined,
-  });
-
-  const errorText = (name: keyof FormValues) =>
-    allErrors[name] ? (
-      <p className="field-error" id={`${id}-${name}-error`}>
-        {allErrors[name]}
-      </p>
-    ) : null;
-
-  const errorCount = Object.keys(allErrors).length;
 
   return (
     <form className="card event-form" onSubmit={handleSubmit} noValidate aria-busy={busy}>
       <div className="examples" role="group" aria-label="Try an example">
         <span className="examples-label">Try an example:</span>
         {EXAMPLES.map((ex) => (
-          <button
-            key={ex.label}
-            type="button"
-            className="chip"
-            onClick={() => {
-              setValues(ex.values);
-              setErrors({});
-              setMuhuratTouched(false);
-            }}
-          >
+          <button key={ex.label} type="button" className="chip" onClick={() => form.loadExample(ex.values)}>
             {ex.label}
           </button>
         ))}
@@ -273,271 +68,26 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
       )}
 
       <div className="grid">
-        <div className="field">
-          <label htmlFor={`${id}-eventType`}>
-            Event type <span aria-hidden="true">*</span>
-          </label>
-          <select
-            {...field("eventType")}
-            required
-            value={values.eventType}
-            onChange={(e) => update("eventType", e.target.value as EventType)}
-          >
-            <option value="">Choose an event</option>
-            {EVENT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {EVENT_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-          {errorText("eventType")}
-        </div>
-
-        <div className="field">
-          <label htmlFor={`${id}-eventName`}>Event name</label>
-          <input
-            {...field("eventName")}
-            type="text"
-            maxLength={80}
-            placeholder="e.g. Aarav turns 5"
-            value={values.eventName}
-            onChange={(e) => update("eventName", e.target.value)}
-          />
-          {errorText("eventName")}
-        </div>
-
-        <div className="field">
-          <label htmlFor={`${id}-date`}>
-            Date <span aria-hidden="true">*</span>
-          </label>
-          <input
-            {...field("date")}
-            type="date"
-            required
-            value={values.date}
-            onChange={(e) => update("date", e.target.value)}
-          />
-          {errorText("date")}
-        </div>
-
-        <div className="field">
-          <label htmlFor={`${id}-city`}>
-            City <span aria-hidden="true">*</span>
-          </label>
-          <input
-            {...field("city")}
-            type="text"
-            required
-            autoComplete="address-level2"
-            maxLength={60}
-            placeholder="e.g. Bengaluru"
-            value={values.city}
-            onChange={(e) => update("city", e.target.value)}
-          />
-          {errorText("city")}
-        </div>
-
-        <div className="field">
-          <label htmlFor={`${id}-guests`}>
-            Number of guests <span aria-hidden="true">*</span>
-          </label>
-          <input
-            {...field("guests")}
-            type="number"
-            inputMode="numeric"
-            required
-            min={LIMITS.minGuests}
-            max={LIMITS.maxGuests}
-            placeholder="e.g. 150"
-            value={values.guests}
-            onChange={(e) => update("guests", e.target.value)}
-          />
-          {errorText("guests")}
-        </div>
-
-        <div className="field">
-          <label htmlFor={`${id}-budget`}>
-            Total budget (₹) <span aria-hidden="true">*</span>
-          </label>
-          <input
-            {...field("budget")}
-            ref={budgetRef}
-            type="number"
-            inputMode="numeric"
-            required
-            min={LIMITS.minBudget}
-            step={1000}
-            placeholder="e.g. 500000"
-            value={values.budget}
-            onChange={(e) => {
-              setBudgetNote("");
-              update("budget", e.target.value);
-            }}
-          />
-          {errorText("budget")}
-          {each !== null && !allErrors.budget && <p className="hint per-guest">About {formatINR(each)} per guest</p>}
-          <p className="sr-only" role="status">
-            {budgetNote}
-          </p>
-          <button
-            type="button"
-            ref={helpToggleRef}
-            className="btn btn-link btn-small budget-help-toggle"
-            aria-expanded={helperOpen}
-            aria-controls={`${id}-budget-helper`}
-            onClick={() => setHelperOpen((o) => !o)}
-          >
-            Not sure? Help me decide
-          </button>
-        </div>
-
-        {helperOpen && (
-          <div className="span-2">
-            <BudgetHelper
-              id={`${id}-budget-helper`}
-              eventType={values.eventType}
-              guests={values.guests}
-              city={values.city}
-              current={values.budget}
-              onPick={pickBudget}
-              onClose={() => {
-                setHelperOpen(false);
-                helpToggleRef.current?.focus();
-              }}
-            />
-          </div>
-        )}
-
-        <div className="field span-2">
-          <label htmlFor={`${id}-style`}>Style or theme</label>
-          <input
-            {...field("style")}
-            type="text"
-            maxLength={60}
-            placeholder="e.g. Traditional South Indian, minimal, Bollywood"
-            value={values.style}
-            onChange={(e) => update("style", e.target.value)}
-          />
-          {errorText("style")}
-        </div>
+        <BasicFields ctx={ctx} values={values} update={update} />
+        <BudgetField ctx={ctx} values={values} update={update} />
+        <StyleField ctx={ctx} values={values} update={update} />
 
         {(values.eventType === "wedding" || TRADITIONAL_EVENT_TYPES.has(values.eventType as EventType)) && (
           <TraditionPicker
             id={`${id}-tr`}
             values={{ ...values, eventType: values.eventType }}
             errors={allErrors}
-            onChange={(next) => setValues((v) => ({ ...v, ...next }))}
+            onChange={(next) => form.setValues((v) => ({ ...v, ...next }))}
           />
         )}
 
-        <details className="field span-2 personal" open={personalCount > 0}>
-          <summary>
-            Make it yours <span className="muted small">(optional)</span>
-            {personalCount > 0 && <span className="badge">{personalCount} chosen</span>}
-          </summary>
-
-          <fieldset className="choice-group">
-            <legend>What matters most? Pick up to {MAX_FOCUS}</legend>
-            <p className="muted small" id={`${id}-focus-hint`}>
-              Shubā gives these more of the budget and protects them if money gets tight.
-            </p>
-            <div className="choices">
-              {FOCUS_AREAS.map((area) => {
-                const checked = values.focus.includes(area);
-                const full = !checked && values.focus.length >= MAX_FOCUS;
-                const order = values.focus.indexOf(area) + 1;
-                return (
-                  <label key={area} className={`choice${checked ? " is-on" : ""}${full ? " is-off" : ""}`}>
-                    <input
-                      type="checkbox"
-                      name="focus"
-                      value={area}
-                      checked={checked}
-                      disabled={full}
-                      aria-describedby={`${id}-focus-hint`}
-                      onChange={(e) => toggle("focus", area, e.target.checked)}
-                    />
-                    {checked && (
-                      <span className="choice-order" aria-hidden="true">
-                        {order}
-                      </span>
-                    )}
-                    {FOCUS_LABELS[area]}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          <div className="field">
-            <label htmlFor={`${id}-food`}>Food</label>
-            <select
-              id={`${id}-food`}
-              name="food"
-              value={values.food}
-              onChange={(e) => update("food", e.target.value as FoodPref)}
-            >
-              {FOOD_PREFS.map((f) => (
-                <option key={f || "none"} value={f}>
-                  {FOOD_LABELS[f]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <fieldset className="choice-group">
-            <legend>Guest needs</legend>
-            <p className="muted small" id={`${id}-needs-hint`}>
-              Shubā adds these to the venue and caterer messages, the budget and the checklist.
-            </p>
-            <div className="choices">
-              {GUEST_NEEDS.map((need) => {
-                const checked = values.guestNeeds.includes(need);
-                return (
-                  <label key={need} className={`choice${checked ? " is-on" : ""}`}>
-                    <input
-                      type="checkbox"
-                      name="guestNeeds"
-                      value={need}
-                      checked={checked}
-                      aria-describedby={`${id}-needs-hint`}
-                      onChange={(e) => toggle("guestNeeds", need, e.target.checked)}
-                    />
-                    {GUEST_NEED_LABELS[need]}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        </details>
-
-        <div className="field span-2">
-          <label htmlFor={`${id}-notes`}>Must-haves, things to avoid, anything else?</label>
-          <textarea
-            {...field("notes")}
-            rows={3}
-            maxLength={LIMITS.maxNotes}
-            placeholder="e.g. Live dosa counter is a must, no loud DJ, venue already booked…"
-            value={values.notes}
-            onChange={(e) => update("notes", e.target.value)}
-          />
-          {errorText("notes")}
-        </div>
-
-        <div className="field span-2 checkbox">
-          <input
-            {...field("includeMuhurat")}
-            type="checkbox"
-            checked={values.includeMuhurat}
-            onChange={(e) => {
-              setMuhuratTouched(true);
-              update("includeMuhurat", e.target.checked);
-            }}
-          />
-          <label htmlFor={`${id}-includeMuhurat`}>
-            Show auspicious timings (Rahu Kalam, Yamagandam, Gulika Kalam) for the event day
-          </label>
-        </div>
+        <PersonalSection id={id} values={values} update={update} toggle={form.toggle} />
+        <NotesAndMuhurat
+          ctx={ctx}
+          values={values}
+          update={update}
+          onMuhuratTouched={() => form.setMuhuratTouched(true)}
+        />
       </div>
 
       <p className="hint">
