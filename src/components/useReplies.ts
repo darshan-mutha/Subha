@@ -6,6 +6,9 @@ import type { Reply } from "@/lib/rsvp";
 
 const POLL_MS = 30_000;
 
+/** What useReplies returns; the Guests views share one of these. */
+export type Replies = ReturnType<typeof useReplies>;
+
 /**
  * Guest replies for a shared plan, with the guest link. They load, and refresh
  * every 30 seconds while the page is visible, only while `active` (the section is open).

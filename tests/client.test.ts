@@ -80,7 +80,8 @@ describe("saved data in this browser", () => {
   it("loads and clears the plan saved by the one-plan version", () => {
     const ws = { input: baseInput, plan: samplePlan, timings: null, team: [], assignments: {}, done: {} };
     localStorage.setItem("shuba:last-plan:v2", JSON.stringify(ws));
-    expect(loadPlan()).toEqual(ws);
+    // Read with the parts added by later versions filled in.
+    expect(loadPlan()).toMatchObject({ ...ws, deals: {}, shifts: {}, guestList: [], invite: null });
     clearPlan();
     expect(loadPlan()).toBeNull();
   });

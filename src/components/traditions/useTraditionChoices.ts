@@ -13,10 +13,9 @@ import {
   type ModernAddition,
 } from "@/lib/traditions";
 import type { TraditionValues } from "../TraditionPicker";
+import { NAME_TEXT } from "@/lib/validation";
 
 type Change = Partial<Omit<TraditionValues, "eventType">>;
-
-const NAME_OK = /^[\p{L}\p{M}\p{N}\s.,'&()\-/]+$/u;
 
 /** State and handlers for the tradition picker: re-suggesting functions, ticking, moving and adding them. */
 export function useTraditionChoices(values: TraditionValues, onChange: (next: Change) => void) {
@@ -82,7 +81,7 @@ export function useTraditionChoices(values: TraditionValues, onChange: (next: Ch
   function addCustom() {
     const name = custom.trim();
     if (name.length < 2) return setCustomError("Please type the function's name");
-    if (name.length > 40 || !NAME_OK.test(name))
+    if (name.length > 40 || !NAME_TEXT.test(name))
       return setCustomError("Please use letters and numbers only (up to 40)");
     if (names.some((n) => n.toLowerCase() === name.toLowerCase()))
       return setCustomError("That function is already in the list");

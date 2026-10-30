@@ -4,6 +4,7 @@ import { useState } from "react";
 import { sortEvents, type EventEntry } from "@/lib/myEvents";
 import { daysBetween, shortDateWithYear, todayIST } from "@/lib/dates";
 import { EVENT_TYPE_LABELS } from "@/lib/schemas";
+import type { HeadingRef } from "./planner/StartScreens";
 
 /** "In 12 days", "Tomorrow", "Today", "Done" (in the past). */
 export function countdown(date: string, today: string): string {
@@ -16,6 +17,7 @@ export function countdown(date: string, today: string): string {
 }
 
 interface Props {
+  headingRef?: HeadingRef;
   events: EventEntry[];
   /** Key of the event open right now, if any. */
   current?: string;
@@ -25,7 +27,7 @@ interface Props {
 }
 
 /** The list of celebrations kept on this device. */
-export function MyEvents({ events, current = "", onOpen, onRemove, onNew }: Props) {
+export function MyEvents({ headingRef, events, current = "", onOpen, onRemove, onNew }: Props) {
   const [confirming, setConfirming] = useState("");
   const today = todayIST();
   const sorted = sortEvents(events, today);
@@ -33,7 +35,7 @@ export function MyEvents({ events, current = "", onOpen, onRemove, onNew }: Prop
   return (
     <section className="card my-events" aria-labelledby="my-events-heading">
       <div className="my-events-head">
-        <h2 id="my-events-heading" className="section-title" tabIndex={-1}>
+        <h2 id="my-events-heading" ref={headingRef} className="section-title" tabIndex={-1}>
           My events
         </h2>
         <button type="button" className="btn btn-primary" onClick={onNew}>

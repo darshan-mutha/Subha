@@ -13,7 +13,7 @@ import { BasicFields } from "./event-form/BasicFields";
 import { BudgetField } from "./event-form/BudgetField";
 import { NotesAndMuhurat, StyleField } from "./event-form/DetailFields";
 import { PersonalSection } from "./event-form/PersonalSection";
-import { EMPTY_FORM, EXAMPLES, toInput, type FormValues } from "./event-form/formValues";
+import { EMPTY_FORM, EXAMPLES, exampleValues, toInput, type FormValues } from "./event-form/formValues";
 import { useEventFormState } from "./event-form/useEventFormState";
 
 export { EMPTY_FORM, EXAMPLES, fromInput, toInput, type FormValues } from "./event-form/formValues";
@@ -57,7 +57,7 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
       <div className="examples" role="group" aria-label="Try an example">
         <span className="examples-label">Try an example:</span>
         {EXAMPLES.map((ex) => (
-          <button key={ex.label} type="button" className="chip" onClick={() => form.loadExample(ex.values)}>
+          <button key={ex.label} type="button" className="chip" onClick={() => form.loadExample(exampleValues(ex))}>
             {ex.label}
           </button>
         ))}

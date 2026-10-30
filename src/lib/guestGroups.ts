@@ -4,6 +4,7 @@ import { traditionLines } from "./prompt";
 import { scaleToTotal } from "./scale";
 import { GUEST_GROUPS } from "./rsvp";
 import { EVENT_TYPE_LABELS, StoredEventInputSchema, type EventInput } from "./schemas";
+import { validList } from "./validation";
 
 /**
  * "Help me build it": the groups of people to think of for this event and
@@ -36,16 +37,7 @@ export const GuestGroupSchema = z.object({
 export type GuestGroupIdea = z.infer<typeof GuestGroupSchema>;
 
 export const GuestGroupsSchema = z.object({
-  groups: z
-    .array(z.unknown())
-    .transform((list) =>
-      list
-        .map((g) => GuestGroupSchema.safeParse(g))
-        .filter((r) => r.success)
-        .map((r) => r.data)
-        .slice(0, MAX_GROUPS),
-    )
-    .refine((list) => list.length >= 2, "Too few groups"),
+  groups: validList(GuestGroupSchema, MAX_GROUPS).refine((list) => list.length >= 2, "Too few groups"),
   /** People hosts often forget. */
   reminders: z.array(text(140)).max(5).catch([]).default([]),
 });

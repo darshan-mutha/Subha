@@ -19,13 +19,14 @@ import type { EventInput } from "@/lib/schemas";
 import { AddGuests } from "./AddGuests";
 import { GuestRows, type MessageBase } from "./guests/GuestRow";
 import { ListActions, ListCounts, ListFilters, ListNudges } from "./guests/GuestListParts";
-import { useReplies } from "./useReplies";
+import type { Replies } from "./useReplies";
 
 interface Props {
   entries: Entries;
-  /** Shared plan id: replies from the guest link are matched to the list. */
+  /** Shared plan id, or null while the plan is only on this device. */
   planId: string | null;
-  active: boolean;
+  /** Replies from the guest link, matched to the list. */
+  replies: Replies;
   input: EventInput;
   title: string;
   invite: Invite | null;
@@ -42,8 +43,8 @@ interface Props {
 
 /** Guest list state: replies matched to the list, filter, what is being added, edited or removed. */
 function useGuestListModel(props: Props) {
-  const { entries, planId, active, input, title, invite, today, onChange } = props;
-  const { replies, state, error: loadError, refresh } = useReplies(planId, active);
+  const { entries, input, title, invite, today, onChange } = props;
+  const { replies, state, error: loadError, refresh } = props.replies;
   const [filter, setFilter] = useState<ListFilter>("all");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState("");

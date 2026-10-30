@@ -4,6 +4,7 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import { GuestEntrySchema, newEntryId, type GuestEntry } from "@/lib/guestList";
 import { GUEST_GROUP_LABELS, groupChoices, type GuestGroup } from "@/lib/rsvp";
 import { fieldErrors, type EventType } from "@/lib/schemas";
+import { fieldErrorWiring } from "./fieldErrors";
 
 interface Props {
   /** The entry to edit, or none to add a new one. */
@@ -12,21 +13,6 @@ interface Props {
   eventType: EventType;
   onSave: (entry: GuestEntry) => void;
   onCancel: () => void;
-}
-
-/** The error wiring for one field: its message (if any) and the input's aria attributes. */
-function fieldErrorWiring(id: string, errors: Record<string, string>) {
-  const err = (field: string) =>
-    errors[field] ? (
-      <p className="field-error" id={`${id}-${field}-err`}>
-        {errors[field]}
-      </p>
-    ) : null;
-  const invalid = (field: string) => ({
-    "aria-invalid": errors[field] ? true : undefined,
-    "aria-describedby": errors[field] ? `${id}-${field}-err` : undefined,
-  });
-  return { err, invalid };
 }
 
 /** "Invited to": tick the functions this family is invited to. */

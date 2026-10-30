@@ -3,7 +3,8 @@
 import { useId, useState, type FormEvent } from "react";
 import { formatINR } from "@/lib/budget";
 import { ApiError, requestSavings } from "@/lib/client";
-import { SAVING_KIND_LABELS, totalOver, type OverLine, type SavingOption, type SavingsRequest } from "@/lib/savings";
+import { totalOver } from "@/lib/savings/options";
+import { SAVING_KIND_LABELS, type OverLine, type SavingOption, type SavingsRequest } from "@/lib/savings/schema";
 import { LIMITS, type EventInput, type Plan } from "@/lib/schemas";
 
 interface Props {

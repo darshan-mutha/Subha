@@ -4,16 +4,9 @@ import { IDEA_JSON, SIGNATURE_JSON } from "../prompt";
 import { IdeaSchema, SignatureSchema, type Idea } from "../schemas";
 import { IDEAS_SYSTEM_INSTRUCTION, buildIdeasPrompt, type IdeasRequest } from "./prompt";
 import { DirectionSchema, type Direction } from "./schema";
+import { validItems } from "../validation";
 
 /* Server only: asks Claude for theme directions and ideas. */
-
-/** The items that pass the schema; the rest are dropped. */
-function validOnly<T>(list: unknown[], schema: z.ZodType<T>): T[] {
-  return list.flatMap((item) => {
-    const result = schema.safeParse(item);
-    return result.success ? [result.data] : [];
-  });
-}
 
 const DIRECTIONS_JSON = {
   type: "object",
@@ -59,7 +52,7 @@ const IDEAS_JSON = {
 const DirectionsReply = z.object({
   directions: z
     .array(z.unknown())
-    .transform((list) => validOnly(list, DirectionSchema).slice(0, 3))
+    .transform((list) => validItems(list, DirectionSchema).slice(0, 3))
     .refine((list) => list.length > 0, "No directions"),
 });
 
@@ -67,7 +60,7 @@ const IdeasReply = z.object({
   signature: SignatureSchema.nullable().catch(null).default(null),
   items: z
     .array(z.unknown())
-    .transform((list) => validOnly(list, IdeaSchema))
+    .transform((list) => validItems(list, IdeaSchema))
     .refine((list) => list.length > 0, "No ideas"),
 });
 

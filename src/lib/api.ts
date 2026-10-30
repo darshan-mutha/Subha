@@ -4,7 +4,7 @@ import type { ExtractResult } from "./extract";
 import type { IdeasRequest, IdeasResult } from "./ideas";
 import type { InviteDetails, InviteWording } from "./invite";
 import type { PlanResult } from "./planner";
-import type { SavingOption, SavingsRequest } from "./savings";
+import type { SavingOption, SavingsRequest } from "./savings/schema";
 import type { GuestEvent, Reply } from "./rsvp";
 import type { GuestGroupIdea } from "./guestGroups";
 import type { EventInput, Plan } from "./schemas";

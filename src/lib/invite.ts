@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "./ai";
 import { EVENT_TYPE_LABELS, safeText, StoredEventInputSchema, type EventInput } from "./schemas";
+import { fullDateIn } from "./dates";
 
 /**
  * Invitation card. Claude writes only the words (heading, invitation, closing)
@@ -88,14 +89,7 @@ export function languageOf(code: InviteLanguage) {
 
 /** "Saturday, 12 December 2026", in the invite's language. */
 export function inviteDate(iso: string, language: InviteLanguage): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat(languageOf(language).locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(y, m - 1, d)));
+  return fullDateIn(iso, languageOf(language).locale);
 }
 
 /** Venue and city, without repeating the city if the venue already names it. */

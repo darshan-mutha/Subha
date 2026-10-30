@@ -7,13 +7,13 @@ import { repliesCsv, rsvpMessage, suggestedGuests, summarize } from "@/lib/rsvp"
 import type { EventInput } from "@/lib/schemas";
 import type { Seating } from "@/lib/seating";
 import { AllReplies, ComingCounts, FoodCount, GuestLinkCard, GuestNeeds } from "./guests/GuestsSectionParts";
-import { useReplies } from "./useReplies";
+import type { Replies } from "./useReplies";
 
 interface Props {
   /** The shared plan's id, or null while the plan is only on this device. */
   planId: string | null;
-  /** Replies load and refresh only while the Guests tab is open. */
-  active: boolean;
+  /** Replies from the guest link, loaded once for the whole Guests section. */
+  replies: Replies;
   input: EventInput;
   title: string;
   invite: Invite | null;
@@ -72,8 +72,7 @@ function RepliesLoading({ error }: { error: string }) {
 }
 
 /** Replies and the guest link, plus `run` for the link actions (turn on/off, remove a reply). */
-function useGuestLink(planId: string | null, active: boolean) {
-  const replies = useReplies(planId, active);
+function useGuestLink(planId: string | null, replies: Replies) {
   const { setState, setError } = replies;
   const [working, setWorking] = useState(false);
 
@@ -94,9 +93,9 @@ function useGuestLink(planId: string | null, active: boolean) {
 }
 
 /** Guests tab: the reply link, live counts, food and needs, and every reply. */
-export function GuestsSection({ planId, active, input, title, invite, busy, onShare, onUseGuests }: Props) {
+export function GuestsSection({ planId, input, title, invite, busy, onShare, onUseGuests, ...props }: Props) {
   const id = useId();
-  const { state, replies, error, refresh, working, run } = useGuestLink(planId, active);
+  const { state, replies, error, refresh, working, run } = useGuestLink(planId, props.replies);
   const summary = useMemo(() => summarize(replies), [replies]);
 
   if (!planId) return <NeedsSharing busy={busy} onShare={onShare} />;

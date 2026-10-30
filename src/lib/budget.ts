@@ -76,16 +76,15 @@ export function rebalance(lines: Plan["budget"], index: number, amount: number, 
   const fixed = Math.min(Math.max(0, Math.round(amount / 100) * 100), total);
   const others = lines.map((l, i) => ({ l, i })).filter(({ i }) => i !== index);
   if (others.length === 0) return lines.map((l) => ({ ...l, amount: total }));
-  const left = total - fixed;
+  // When every other line is empty, share the rest equally.
   const othersSum = others.reduce((acc, { l }) => acc + l.amount, 0);
-  const weight = (a: number) => (othersSum > 0 ? a / othersSum : 1 / others.length);
-  const next = lines.map((l, i) =>
-    i === index ? { ...l, amount: fixed } : { ...l, amount: Math.round((weight(l.amount) * left) / 100) * 100 },
+  const shares = scaleToTotal(
+    others.map(({ l }) => (othersSum > 0 ? l.amount : 1)),
+    total - fixed,
+    { step: 100 },
   );
-  // Put any rounding remainder in the largest other line so the total is exact.
-  const diff = total - next.reduce((acc, l) => acc + l.amount, 0);
-  let largest = others[0].i;
-  for (const { i } of others) if (next[i].amount > next[largest].amount) largest = i;
-  next[largest] = { ...next[largest], amount: Math.max(0, next[largest].amount + diff) };
+  const next = [...lines];
+  next[index] = { ...lines[index], amount: fixed };
+  others.forEach(({ l, i }, k) => (next[i] = { ...l, amount: shares[k] }));
   return next;
 }

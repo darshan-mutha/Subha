@@ -201,6 +201,20 @@ describe("Guests tab", () => {
     await waitFor(() => expect(panel.queryByText("Joseph")).not.toBeInTheDocument());
   });
 
+  it("loads replies once for the whole section, however often the parts are switched", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => json({ link: { token: TOKEN, open: true }, replies }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<Harness planId={PLAN} onShare={vi.fn()} />);
+    const panel = within(currentSection());
+    expect(await panel.findByText("28 people")).toBeInTheDocument();
+    await user.click(panel.getByRole("button", { name: "Guest list" }));
+    await user.click(panel.getByRole("button", { name: "Seating" }));
+    await user.click(panel.getByRole("button", { name: "Replies" }));
+    expect(await panel.findByText("28 people")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("suggests seating from replies and saves a move", async () => {
     const user = userEvent.setup();
     const seatReplies = [

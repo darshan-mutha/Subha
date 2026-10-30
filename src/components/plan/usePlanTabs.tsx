@@ -139,7 +139,8 @@ export function usePlanTabs(ctx: Ctx): TabItem[] {
   const { today } = derived;
   // "Seat this function" reopens Guests on its Seating part.
   const [guestsOpen, setGuestsOpen] = useState<{ part: "list" | "replies" | "seating"; n: number } | null>(null);
-  const { replies: fnReplies } = useReplies(planId, tab === "functions");
+  // One load of the guest replies, shared by the Guests views and Functions.
+  const replies = useReplies(planId, tab === "guests" || tab === "functions");
 
   const tabs: TabItem[] = [
     ...coreTabs(ctx),
@@ -150,7 +151,7 @@ export function usePlanTabs(ctx: Ctx): TabItem[] {
         <GuestsHub
           key={guestsOpen?.n ?? 0}
           planId={planId}
-          active={tab === "guests"}
+          replies={replies}
           input={input}
           title={eventTitle(data)}
           invite={data.invite ?? null}
@@ -182,7 +183,7 @@ export function usePlanTabs(ctx: Ctx): TabItem[] {
           plan={plan}
           firstDay={input.date}
           entries={data.guestList ?? []}
-          replies={fnReplies}
+          replies={replies.replies}
           busy={busy}
           onPlanFor={(fn, guests) =>
             void actions.applyChange(

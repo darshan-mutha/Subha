@@ -8,6 +8,7 @@ import { InviteSchema, type Invite } from "./invite";
 import type { DayTimings } from "./muhurat";
 import type { Shifts } from "./schedule";
 import { makeEventInputSchema, PlanSchema, type EventInput, type Plan } from "./schemas";
+import { localId } from "./ids";
 
 /* ------------------------------------------------------------------ */
 /* Team members and the tasks they own.                               */
@@ -90,7 +91,7 @@ export function pruneState(plan: Plan, team: Member[], assignments: Assignments,
 }
 
 export function newMemberId(): string {
-  return `m${Math.random().toString(36).slice(2, 10)}`;
+  return localId("m");
 }
 
 /* ------------------------------------------------------------------ */

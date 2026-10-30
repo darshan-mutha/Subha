@@ -1,15 +1,12 @@
 "use client";
 
-import { createRef } from "react";
+import type { RefObject } from "react";
 import type { EventInput } from "@/lib/schemas";
 import { EventForm, type FormValues } from "../EventForm";
 import { VoiceStart, type VoicePayload } from "../VoiceStart";
 
-/**
- * The heading of whichever start screen is showing (voice or details form);
- * only one is on the page at a time. Focused after a voice note is understood.
- */
-export const startHeadingRef = createRef<HTMLHeadingElement>();
+/** The screen's heading, so the page can move focus to it after a screen change. */
+export type HeadingRef = RefObject<HTMLHeadingElement | null>;
 
 /** The polite live region that announces progress to screen readers. */
 export function LiveStatus({ text }: { text: string }) {
@@ -30,6 +27,7 @@ export function ErrorAlert({ error }: { error: string }) {
 }
 
 interface VoiceProps {
+  headingRef: HeadingRef;
   busy: boolean;
   error: string;
   eventCount: number;
@@ -39,11 +37,11 @@ interface VoiceProps {
 }
 
 /** The first screen: speak or type a line about the celebration. */
-export function VoiceScreen({ busy, error, eventCount, onSubmit, onUseForm, onMyEvents }: VoiceProps) {
+export function VoiceScreen({ headingRef, busy, error, eventCount, onSubmit, onUseForm, onMyEvents }: VoiceProps) {
   return (
     <>
       <section aria-labelledby="start-heading">
-        <h2 id="start-heading" ref={startHeadingRef} className="section-title" tabIndex={-1}>
+        <h2 id="start-heading" ref={headingRef} className="section-title" tabIndex={-1}>
           Tell us about your celebration
         </h2>
         <VoiceStart busy={busy} error={error} onSubmit={onSubmit} onUseForm={onUseForm} />
@@ -58,6 +56,7 @@ export function VoiceScreen({ busy, error, eventCount, onSubmit, onUseForm, onMy
 }
 
 interface FormProps {
+  headingRef: HeadingRef;
   hasPlan: boolean;
   heard: string;
   missing: Record<string, string>;
@@ -73,11 +72,11 @@ interface FormProps {
 
 /** The details form screen, with what a voice note heard when there was one. */
 export function DetailsScreen(props: FormProps) {
-  const { hasPlan, heard, missing, error, busy } = props;
+  const { headingRef, hasPlan, heard, missing, error, busy } = props;
   const fromVoice = Boolean(heard);
   return (
     <section aria-labelledby="start-heading">
-      <h2 id="start-heading" ref={startHeadingRef} className="section-title" tabIndex={-1}>
+      <h2 id="start-heading" ref={headingRef} className="section-title" tabIndex={-1}>
         {hasPlan ? "Edit your event" : fromVoice ? "Check your details" : "Tell us about your celebration"}
       </h2>
       {fromVoice && (

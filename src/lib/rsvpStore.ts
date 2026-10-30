@@ -15,7 +15,7 @@ export interface GuestLink {
 }
 
 export interface RsvpStore {
-  /** Returns the plan's guest link, creating it the first time. */
+  /** Turns the plan's guest link on, creating it the first time. The token never changes. */
   openLink(planId: string): Promise<GuestLink>;
   getLinkForPlan(planId: string): Promise<GuestLink | null>;
   getLink(token: string): Promise<GuestLink | null>;
@@ -52,7 +52,10 @@ export function createMemoryRsvpStore(): RsvpStore {
   return {
     async openLink(planId) {
       const existing = byPlan(planId);
-      if (existing) return { ...existing };
+      if (existing) {
+        existing.open = true;
+        return { ...existing };
+      }
       const link = { token: token(), planId, open: true };
       links.set(link.token, link);
       return { ...link };
@@ -163,11 +166,13 @@ export function createNeonRsvpStore(url: string): RsvpStore {
     toLink(await sql`SELECT token, plan_id, open FROM shuba_guest_links WHERE plan_id = ${planId}`);
   return {
     async openLink(planId) {
-      const rows = await sql`
-        INSERT INTO shuba_guest_links (token, plan_id) VALUES (${token()}, ${planId})
-        ON CONFLICT (plan_id) DO NOTHING
-        RETURNING token, plan_id, open`;
-      const link = toLink(rows) ?? (await getLinkForPlan(planId));
+      // Create or reopen in one statement; an existing link keeps its token.
+      const link = toLink(
+        await sql`
+          INSERT INTO shuba_guest_links (token, plan_id) VALUES (${token()}, ${planId})
+          ON CONFLICT (plan_id) DO UPDATE SET open = true
+          RETURNING token, plan_id, open`,
+      );
       if (!link) throw new Error("The guest link was not saved.");
       return link;
     },

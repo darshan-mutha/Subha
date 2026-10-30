@@ -44,19 +44,22 @@ export const EMPTY_FORM: FormValues = {
   additions: [],
 };
 
-/** The date `days` days from today in India, so examples pass the form's IST date check. */
-function daysFromNow(days: number): string {
-  return addDays(todayIST(), days);
+/** A ready-made example; its date is set when it is tapped (see exampleValues). */
+export interface Example {
+  label: string;
+  /** How far ahead the example event is, so it always passes the form's date check. */
+  daysAhead: number;
+  values: Omit<FormValues, "date">;
 }
 
 /** Ready-made examples the host can load with one tap. */
-export const EXAMPLES: { label: string; values: FormValues }[] = [
+export const EXAMPLES: Example[] = [
   {
     label: "Wedding in Jaipur",
+    daysAhead: 120,
     values: {
       eventType: "wedding",
       eventName: "Ananya & Rohan's wedding",
-      date: daysFromNow(120),
       city: "Jaipur",
       guests: "250",
       budget: "1500000",
@@ -75,10 +78,10 @@ export const EXAMPLES: { label: string; values: FormValues }[] = [
   },
   {
     label: "Kid's birthday",
+    daysAhead: 30,
     values: {
       eventType: "birthday",
       eventName: "Aarav turns 5",
-      date: daysFromNow(30),
       city: "Bengaluru",
       guests: "40",
       budget: "50000",
@@ -97,10 +100,10 @@ export const EXAMPLES: { label: string; values: FormValues }[] = [
   },
   {
     label: "Community Diwali",
+    daysAhead: 45,
     values: {
       eventType: "community-event",
       eventName: "Apartment Diwali Mela",
-      date: daysFromNow(45),
       city: "Pune",
       guests: "300",
       budget: "200000",
@@ -141,4 +144,9 @@ export function fromInput(input: EventInput): FormValues {
     guests: String(input.guests),
     budget: String(input.budget),
   };
+}
+
+/** The example's form values, dated from today in India so it is valid whenever it is tapped. */
+export function exampleValues(example: Example): FormValues {
+  return { ...example.values, date: addDays(todayIST(), example.daysAhead) };
 }

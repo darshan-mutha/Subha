@@ -1,6 +1,20 @@
 import { z } from "zod";
+import { DealsSchema } from "./deals";
+import { GuestListSchema } from "./guestList";
+import { IdeaStateSchema } from "./ideas/schema";
+import { InviteSchema } from "./invite";
+import { PlanSchema, withInputDefaults, type EventInput } from "./schemas";
+import { DEFAULT_SEATING, SeatingSchema } from "./seating";
 import { readJson, readText, removeKey, writeJson, writeText } from "./storage";
-import type { Done, SharedPlanContent } from "./team";
+import {
+  AssignmentsSchema,
+  DoneSchema,
+  ShiftsSchema,
+  TeamSchema,
+  TimingsSchema,
+  type Done,
+  type SharedPlanContent,
+} from "./team";
 
 /**
  * The browser side of Shubā: the API calls (see ./api) and the small things
@@ -13,16 +27,28 @@ export interface LocalWorkspace extends SharedPlanContent {
   done: Done;
 }
 
-const StoredShape = z.looseObject({
-  input: z.looseObject({ eventType: z.string(), date: z.string() }),
-  plan: z.looseObject({}),
-});
-
 /**
- * A plan saved in this browser. Only its outline is checked here; the plan is
- * validated and upgraded when it is opened (see savedWorkspace).
+ * A plan saved in this browser, read with the upgrades older versions of Shubā
+ * need: parts added later get their defaults, and a damaged part is dropped
+ * rather than losing the whole event. The details are kept as typed, since
+ * the form checks them again when they are edited.
  */
-export const StoredWorkspaceSchema = z.custom<LocalWorkspace>((value) => StoredShape.safeParse(value).success);
+export const StoredWorkspaceSchema: z.ZodType<LocalWorkspace, unknown> = z
+  .object({
+    input: z.looseObject({ eventType: z.string(), date: z.string() }),
+    plan: PlanSchema,
+    done: DoneSchema.catch({}).default({}),
+    timings: TimingsSchema.catch(null).default(null),
+    team: TeamSchema.catch([]).default([]),
+    assignments: AssignmentsSchema.catch({}).default({}),
+    deals: DealsSchema.catch({}).default({}),
+    invite: InviteSchema.nullable().catch(null).default(null),
+    shifts: ShiftsSchema.catch({}).default({}),
+    seating: SeatingSchema.catch(DEFAULT_SEATING).default(DEFAULT_SEATING),
+    guestList: GuestListSchema.default([]),
+    ideaState: IdeaStateSchema.optional().catch(undefined),
+  })
+  .transform((saved) => ({ ...saved, input: withInputDefaults(saved.input as EventInput) }));
 
 /** Where the one-plan version of Shubā kept its plan; moved into My events once. */
 const LEGACY_PLAN_KEY = "shuba:last-plan:v2";

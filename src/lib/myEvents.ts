@@ -3,6 +3,8 @@ import { clearPlan, loadPlan, StoredWorkspaceSchema, type LocalWorkspace } from 
 import { EVENT_TYPE_LABELS, EVENT_TYPES, type EventInput } from "./schemas";
 import { readJson, removeKey, writeJson } from "./storage";
 import { SHARE_ID } from "./team";
+import { localId } from "./ids";
+import { validList } from "./validation";
 
 /**
  * "My events": several celebrations on one device, without a login.
@@ -32,18 +34,10 @@ export const EventEntrySchema = z.object({
 });
 export type EventEntry = z.infer<typeof EventEntrySchema>;
 
-const IndexSchema = z
-  .array(z.unknown())
-  .catch([])
-  .transform((list) =>
-    list
-      .map((item) => EventEntrySchema.safeParse(item))
-      .filter((r) => r.success)
-      .map((r) => r.data),
-  );
+const IndexSchema = validList(EventEntrySchema);
 
 export function newEventKey(): string {
-  return `e${Math.random().toString(36).slice(2, 12).padEnd(6, "0")}`;
+  return localId("e");
 }
 
 export function titleOf(input: Pick<EventInput, "eventName" | "eventType">): string {

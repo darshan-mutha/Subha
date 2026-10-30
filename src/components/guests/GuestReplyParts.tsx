@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent, ReactNode, RefObject } from "react";
+import type { FormEvent, RefObject } from "react";
 import {
   COMING,
   GUEST_FOOD_LABELS,
@@ -13,31 +13,14 @@ import {
 } from "@/lib/rsvp";
 import { fullDate } from "@/lib/dates";
 import { PetalMark } from "../Brand";
+import { fieldErrorWiring } from "../fieldErrors";
 import type { ReplyForm } from "./useGuestReply";
 
 const COMING_CHOICES: Record<Coming, string> = { yes: "Yes, we're coming", maybe: "Maybe", no: "Sorry, can't come" };
 
 type SetField = <K extends keyof ReplyForm>(key: K, value: ReplyForm[K]) => void;
 
-interface FieldHelpers {
-  fieldProps: (name: string) => { "aria-invalid": true | undefined; "aria-describedby": string | undefined };
-  fieldError: (name: string) => ReactNode;
-}
-
-function fieldHelpers(id: string, errors: Record<string, string>): FieldHelpers {
-  return {
-    fieldProps: (name) => ({
-      "aria-invalid": errors[name] ? true : undefined,
-      "aria-describedby": errors[name] ? `${id}-${name}-err` : undefined,
-    }),
-    fieldError: (name) =>
-      errors[name] ? (
-        <p className="field-error" id={`${id}-${name}-err`}>
-          {errors[name]}
-        </p>
-      ) : null,
-  };
-}
+type FieldHelpers = ReturnType<typeof fieldErrorWiring>;
 
 /** The invitation card at the top of the guest's reply page. */
 export function InviteCard({ event }: { event: GuestEvent }) {
@@ -119,9 +102,9 @@ function GoingFields({
             max={MAX_PARTY}
             value={form.adults}
             onChange={(e) => set("adults", e.target.value)}
-            {...f.fieldProps("adults")}
+            {...f.invalid("adults")}
           />
-          {f.fieldError("adults")}
+          {f.err("adults")}
         </div>
         <div className="field">
           <label htmlFor={`${id}-kids`}>Children</label>
@@ -133,9 +116,9 @@ function GoingFields({
             max={MAX_PARTY}
             value={form.kids}
             onChange={(e) => set("kids", e.target.value)}
-            {...f.fieldProps("kids")}
+            {...f.invalid("kids")}
           />
-          {f.fieldError("kids")}
+          {f.err("kids")}
         </div>
       </div>
 
@@ -212,9 +195,9 @@ function MoreFields({
           maxLength={200}
           value={form.note}
           onChange={(e) => set("note", e.target.value)}
-          {...f.fieldProps("note")}
+          {...f.invalid("note")}
         />
-        {f.fieldError("note")}
+        {f.err("note")}
       </div>
 
       <div className="field">
@@ -226,10 +209,10 @@ function MoreFields({
           maxLength={20}
           value={form.phone}
           onChange={(e) => set("phone", e.target.value)}
-          {...f.fieldProps("phone")}
+          {...f.invalid("phone")}
         />
         <p className="hint">Only the hosts see it, so they can reach you about the event.</p>
-        {f.fieldError("phone")}
+        {f.err("phone")}
       </div>
     </>
   );
@@ -262,7 +245,7 @@ export function ReplyFormCard({
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
 }) {
-  const f = fieldHelpers(id, errors);
+  const f = fieldErrorWiring(id, errors);
   return (
     <section className="card" aria-labelledby={`${id}-form`}>
       <h2 id={`${id}-form`} className="section-title">
@@ -283,12 +266,12 @@ export function ReplyFormCard({
             maxLength={60}
             value={form.name}
             onChange={(e) => set("name", e.target.value)}
-            {...f.fieldProps("name")}
+            {...f.invalid("name")}
           />
-          {f.fieldError("name")}
+          {f.err("name")}
         </div>
 
-        <fieldset className="field choice-group" {...f.fieldProps("coming")}>
+        <fieldset className="field choice-group" {...f.invalid("coming")}>
           <legend>Can you come?</legend>
           <div className="choices">
             {COMING.map((c) => (
@@ -304,7 +287,7 @@ export function ReplyFormCard({
               </label>
             ))}
           </div>
-          {f.fieldError("coming")}
+          {f.err("coming")}
         </fieldset>
 
         {form.coming !== "no" && <GoingFields id={id} form={form} set={set} foods={event.foods} f={f} />}

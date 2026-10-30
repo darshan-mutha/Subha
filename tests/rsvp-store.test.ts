@@ -36,10 +36,10 @@ beforeEach(() => {
 describe("Neon guest reply store", () => {
   it("creates tables once, makes one link per plan and reads it back", async () => {
     const store = createNeonRsvpStore("postgres://test");
-    rows.push([], [], [], [], [{ token: "T".repeat(22), plan_id: "plan", open: true }]);
+    rows.push([], [], [], [{ token: "T".repeat(22), plan_id: "plan", open: true }]);
     const link = await store.openLink("plan");
     expect(link).toEqual({ token: "T".repeat(22), planId: "plan", open: true });
-    expect(queries[SETUP].text).toContain("ON CONFLICT (plan_id) DO NOTHING");
+    expect(queries[SETUP].text).toContain("ON CONFLICT (plan_id) DO UPDATE SET open = true");
     rows.push([{ token: "T".repeat(22), plan_id: "plan", open: false }]);
     expect((await store.setOpen("plan", false))?.open).toBe(false);
     rows.push([]);

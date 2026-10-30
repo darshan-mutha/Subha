@@ -77,6 +77,11 @@ export function fullDate(iso: string): string {
   return formatIso(FULL, iso);
 }
 
+/** The full date in another language ("शनिवार, 12 दिसंबर 2026"), by locale. */
+export function fullDateIn(iso: string, locale: string): string {
+  return formatIso(new Intl.DateTimeFormat(locale, { dateStyle: "full", timeZone: "UTC" }), iso);
+}
+
 /** "Sat": the short weekday name. */
 export function shortWeekday(iso: string): string {
   return formatIso(WEEKDAY_SHORT, iso);

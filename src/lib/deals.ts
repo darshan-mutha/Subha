@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { formatINR } from "./budget";
 import type { Plan } from "./schemas";
+import { localId } from "./ids";
+import { NAME_TEXT, SAFE_TEXT } from "./validation";
 
 /* ------------------------------------------------------------------ */
 /* Vendor quotes, booking and payments. Worked out in code, not by AI, */
@@ -11,8 +13,6 @@ export const MAX_QUOTES = 5;
 export const MAX_AGREEMENT = 4000;
 const MAX_AMOUNT = 1_000_000_000;
 
-const NAME_TEXT = /^[\p{L}\p{M}\p{N}\s.,'&()\-/]+$/u;
-const NOTE_TEXT = /^[\p{L}\p{M}\p{N}\s.,'&()\-/!?:;₹%+#@"]*$/u;
 /** Agreement text is free-form, but never markup or code. */
 const AGREEMENT_TEXT = /^[^<>{}`\\]*$/u;
 
@@ -40,7 +40,7 @@ export const QuoteSchema = z.object({
     .string()
     .trim()
     .max(300, "Please keep this under 300 characters")
-    .regex(NOTE_TEXT, "This contains characters that are not allowed")
+    .regex(SAFE_TEXT, "This contains characters that are not allowed")
     .default(""),
 });
 
@@ -74,7 +74,7 @@ export type Deals = z.infer<typeof DealsSchema>;
 export const emptyDeal = (): Deal => ({ quotes: [], booked: "", advance: 0, budgetCategory: "", agreement: "" });
 
 export function newQuoteId(): string {
-  return `q${Math.random().toString(36).slice(2, 10)}`;
+  return localId("q");
 }
 
 /** Removes deals for vendors that are no longer in the plan. */

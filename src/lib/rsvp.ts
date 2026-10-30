@@ -12,6 +12,7 @@ import {
   type FoodPref,
   type GuestNeed,
 } from "./schemas";
+import { knownValues, NAME_TEXT } from "./validation";
 
 /**
  * Guest replies (RSVPs). One link for all guests: each family opens it, says
@@ -81,12 +82,10 @@ export const GUEST_REPLY_NEED_LABELS: Partial<Record<GuestNeed, string>> = {
   allergies: "Food allergy (say which in the note)",
 };
 
-const NAME_TEXT = /^[\p{L}\p{M}\p{N}\s.,'&()\-/]+$/u;
-
 const needsList = z
   .array(z.string())
   .default([])
-  .transform((list) => [...new Set(list)].filter((v): v is GuestNeed => (GUEST_REPLY_NEEDS as string[]).includes(v)));
+  .transform((list) => knownValues(list, GUEST_REPLY_NEEDS));
 
 const count = (label: string) =>
   z.coerce

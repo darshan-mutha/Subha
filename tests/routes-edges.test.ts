@@ -28,7 +28,7 @@ function failingPlanStore(error: unknown): PlanStore {
   const fail = async () => {
     throw error;
   };
-  return { create: fail, get: fail, update: fail, setDone: fail };
+  return { create: fail, get: fail, exists: fail, update: fail, setDone: fail };
 }
 
 /** A guest-reply store whose link lookups fail with the given error. */

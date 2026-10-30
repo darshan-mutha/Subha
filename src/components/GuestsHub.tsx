@@ -5,7 +5,7 @@ import type { GuestList as Entries } from "@/lib/guestList";
 import { GuestList } from "./GuestList";
 import { GuestsSection } from "./GuestsSection";
 import { SeatingSection } from "./SeatingSection";
-import { useReplies } from "./useReplies";
+import type { Replies } from "./useReplies";
 import { DEFAULT_SEATING } from "@/lib/seating";
 
 type Part = "list" | "replies" | "seating";
@@ -18,6 +18,8 @@ const PARTS: { id: Part; label: string }[] = [
 type SectionProps = ComponentProps<typeof GuestsSection>;
 
 interface Props extends Omit<SectionProps, "part"> {
+  /** Guest replies, loaded once for the whole section (see usePlanTabs). */
+  replies: Replies;
   entries: Entries;
   functions: string[];
   today: string;
@@ -29,8 +31,7 @@ interface Props extends Omit<SectionProps, "part"> {
 /** The Guests section: the host's guest list, the replies from the guest link, and seating. */
 export function GuestsHub({ entries, functions, today, onList, initialPart = "list", ...section }: Props) {
   const [part, setPart] = useState<Part>(initialPart);
-  // Seating loads the replies itself, so it works from the guest list even before a guest link exists.
-  const { replies, error } = useReplies(section.planId, section.active && part === "seating");
+  const { replies, error } = section.replies;
   return (
     <>
       <h2 className="section-title">Guests</h2>
@@ -45,7 +46,7 @@ export function GuestsHub({ entries, functions, today, onList, initialPart = "li
         <GuestList
           entries={entries}
           planId={section.planId}
-          active={section.active}
+          replies={section.replies}
           input={section.input}
           title={section.title}
           invite={section.invite}

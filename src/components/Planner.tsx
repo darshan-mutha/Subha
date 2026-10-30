@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createShared } from "@/lib/client";
 import { markShared, setCurrentEvent } from "@/lib/myEvents";
 import type { SharedPlanContent } from "@/lib/team";
@@ -34,8 +34,11 @@ export function Planner() {
     if (workspace) return "plan";
     return events.length > 0 ? "events" : "voice";
   });
-  const { create, understand } = usePlanRequests({ saved, draft, status, setMode });
-  const actions = useEventActions({ saved, draft, status, setMode, setViewer });
+  // Only one screen is on the page at a time, so one ref follows its heading.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const focusHeading = () => requestAnimationFrame(() => headingRef.current?.focus());
+  const { create, understand } = usePlanRequests({ saved, draft, status, setMode, focusHeading });
+  const actions = useEventActions({ saved, draft, status, setMode, setViewer, focusHeading });
 
   // Clear "?view=…" once read, so a reload opens the event the host is on.
   useEffect(() => {
@@ -79,6 +82,7 @@ export function Planner() {
         {live}
         <ErrorAlert error={status.error} />
         <MyEvents
+          headingRef={headingRef}
           events={events}
           current={eventKey}
           onOpen={actions.openEvent}
@@ -94,6 +98,7 @@ export function Planner() {
       <>
         {live}
         <VoiceScreen
+          headingRef={headingRef}
           busy={status.busy}
           error={status.error}
           eventCount={events.length}
@@ -109,6 +114,7 @@ export function Planner() {
     <>
       {live}
       <DetailsScreen
+        headingRef={headingRef}
         hasPlan={Boolean(workspace)}
         heard={draft.heard}
         missing={draft.missing}

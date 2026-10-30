@@ -145,9 +145,9 @@ npm run check   # Prettier, ESLint, TypeScript strict, tests with coverage
 
 - **ESLint** (Next.js core-web-vitals + TypeScript rules) and **Prettier** formatting, enforced in CI.
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) runs formatting, lint, type-check, tests with coverage and a production build on every push.
-- **Coverage**: about 98% of lines and 90% of branches (thresholds enforced: 90% lines/statements, 85% functions, 80% branches).
+- **Coverage**: about 98% of lines and 90% of branches (thresholds enforced: 90% lines/statements, 85% functions, 85% branches).
 
-690 automated tests in 80 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
+702 automated tests in 81 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
 
 ## Assumptions
 
@@ -172,6 +172,7 @@ npm run dev
 
 ## Changelog
 
+- **30 Oct 2026** – Third tidy-up, again with every screen compared pixel by pixel and no visible change: the four longest files split by job (the vendors screen into summary, list and detail parts; the guest list, savings and schemas modules into folders, with the AI call kept server-side); one home for text rules, "keep the valid items" lists and known-choice lists; one id maker for things kept on the device; one field-error wiring for forms; the budget rebalance uses the shared scaling maths; the page owns the heading focus instead of a module-level ref; guest replies load once for the whole Guests section instead of once per part; the guest-link route checks the plan exists without loading it and opens or reopens the link in one query; saved plans are validated and upgraded by one honest schema; example presets are dated when tapped. 702 tests, branch threshold raised to 85%.
 - **30 Oct 2026** – Second tidy-up after two independent code reviews, again with no change to what users see (every screen compared pixel by pixel): one shared home for dates, money, CSV and scaling maths; one error type and one error handler for all API routes; database updates and the reply limit each done in a single query (checked on a real Postgres); safe, validated browser storage in one place; the Ideas code split by job so the AI client stays on the server; fewer type casts. Tests for the two untested routes and weak screens (690 tests, branches 90%), quiet test output. Accessibility: error messages linked in the quote form and functions list, the section menu closes when keyboard focus leaves it, the listening timer no longer re-announces every second, team progress is labelled, budget bars visible in high contrast.
 - **30 Oct 2026** – Code tidy-up with no change to what users see (every screen checked pixel by pixel): long screens split into small parts and hooks, one-file styles split by area, 112 more tests for edge cases and error paths (branch coverage 84% → 88%), and high-contrast support for Windows contrast themes.
 - **30 Oct 2026** – Calmer Vendors screen: vendors grouped into "To book" and "Booked", one vendor at a time in three steps (Ask → Compare → Book), with a short summary of booked count and money. On computers the plan now uses the full width.

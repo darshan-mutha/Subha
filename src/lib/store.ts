@@ -11,6 +11,8 @@ import { planItems, pruneState, type Done, type SharedPlan, type SharedPlanConte
 export interface PlanStore {
   create(content: SharedPlanContent, done?: Done): Promise<SharedPlan>;
   get(id: string): Promise<SharedPlan | null>;
+  /** Whether a plan with this id is stored, without loading it. */
+  exists(id: string): Promise<boolean>;
   /** Replaces the plan content. Fails with 409 if someone else saved first. */
   update(id: string, content: SharedPlanContent, expectedVersion: number): Promise<SharedPlan>;
   /** Ticks or unticks one item. Safe when several people tick at once. */
@@ -40,6 +42,9 @@ export function createMemoryStore(): PlanStore {
     async get(id) {
       const row = rows.get(id);
       return row ? structuredClone(row) : null;
+    },
+    async exists(id) {
+      return rows.has(id);
     },
     async update(id, content, expectedVersion) {
       const row = rows.get(id);
@@ -140,6 +145,9 @@ export function createNeonStore(url: string): PlanStore {
     },
     async get(id) {
       return firstPlan(await sql`SELECT id, content, done, version, updated_at FROM shuba_plans WHERE id = ${id}`);
+    },
+    async exists(id) {
+      return Boolean((await sql`SELECT 1 FROM shuba_plans WHERE id = ${id}`)[0]);
     },
     async update(id, content, expectedVersion) {
       const updated = await updateIfCurrent(sql, id, content, expectedVersion);

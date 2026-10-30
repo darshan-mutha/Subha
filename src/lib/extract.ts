@@ -29,6 +29,7 @@ import {
   type ModernAddition,
   type Tradition,
 } from "./traditions";
+import { SAFE_TEXT } from "./validation";
 
 /**
  * Voice-first start: the host speaks (or types) about the event in any
@@ -36,8 +37,6 @@ import {
  * re-validated with the same rules as the form, so a misheard or invalid value
  * is simply left blank for the host to fill in.
  */
-
-const SAFE_TEXT = /^[\p{L}\p{M}\p{N}\s.,'&()\-/!?:;₹%+#@"]*$/u;
 
 const TextSchema = z
   .string()

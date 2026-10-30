@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SignatureSchema, clip, safeText } from "../schemas";
+import { knownOnly } from "../validation";
 
 /**
  * The Ideas section.
@@ -38,15 +39,7 @@ export const LEANING_LABELS: Record<Leaning, string> = {
   modern: "Modern twist",
 };
 
-/** Keeps known values only, without duplicates, up to `max`; anything else becomes an empty list. */
-export const knownOnly = <T extends string>(values: readonly T[], max: number) =>
-  z
-    .array(z.string())
-    .catch([])
-    .default([])
-    .transform((list) =>
-      [...new Set(list)].filter((v): v is T => (values as readonly string[]).includes(v)).slice(0, max),
-    );
+export { knownOnly };
 
 export const HeartSchema = z.object({
   /** Who it is really for, e.g. "Dadi's 80th" or "our daughter's first birthday". */

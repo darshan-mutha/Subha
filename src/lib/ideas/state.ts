@@ -1,6 +1,7 @@
 import { hash } from "../hash";
 import { MOMENTS, type Idea, type Moment } from "../schemas";
 import type { IdeaState } from "./schema";
+import { UNSAFE_CHARS } from "../validation";
 
 /* Helpers for the Ideas section in the browser: ids, grouping and merging. */
 
@@ -13,7 +14,7 @@ export function tidyText(text: string, max: number): string {
     .replace(/[‘’`´]/g, "'")
     .replace(/[“”]/g, '"')
     .replace(/[–—]/g, "-")
-    .replace(/[^\p{L}\p{M}\p{N}\s.,'&()\-/!?:;₹%+#@"]/gu, " ")
+    .replace(UNSAFE_CHARS, " ")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, max);
