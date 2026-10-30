@@ -18,6 +18,15 @@ export function formatINR(amount: number): string {
   }).format(Math.round(amount));
 }
 
+/** Short amounts for tight spaces: ₹45,000 · ₹7.2 L · ₹1.25 Cr. Exact amounts stay with formatINR. */
+export function formatShortINR(amount: number): string {
+  const n = Math.round(amount);
+  const trim = (v: number, digits: number) => String(Math.round(v * 10 ** digits) / 10 ** digits);
+  if (Math.abs(n) >= 10_000_000) return `₹${trim(n / 10_000_000, 2)} Cr`;
+  if (Math.abs(n) >= 100_000) return `₹${trim(n / 100_000, 1)} L`;
+  return formatINR(n);
+}
+
 /**
  * The AI's budget lines rarely add up exactly. Scale them so they sum to the
  * user's total, rounding to the nearest ₹100 and putting any remainder in the

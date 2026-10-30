@@ -19,9 +19,6 @@ import type { PaymentSummary } from "@/lib/deals";
 import { dateOfDay, dayLabel } from "@/lib/traditions";
 import { functionCount, overInvited, type GuestList } from "@/lib/guestList";
 import type { Reply } from "@/lib/rsvp";
-import { VendorDeal, type DealState } from "./VendorDeal";
-import { VendorSummaryPanel } from "./VendorSummaryPanel";
-import { matchesFilter, stageTag, vendorSummary, FILTER_LABELS, type VendorFilter } from "@/lib/vendorSummary";
 
 /** Shared task state: ticks and owners, controlled by the workspace. */
 export interface TaskState {
@@ -482,94 +479,6 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
       <span role="status" className="small muted">
         {status}
       </span>
-    </>
-  );
-}
-
-export function VendorsSection({
-  items,
-  plan,
-  state,
-  deals,
-}: {
-  items: ScheduledItem[];
-  plan: Plan;
-  state: TaskState;
-  /** Quotes and bookings. Left out where the plan is read-only. */
-  deals?: DealState;
-}) {
-  const [filter, setFilter] = useState<VendorFilter>("all");
-  const summary = vendorSummary(items, plan, deals?.deals ?? {}, state.done);
-  const rowById = new Map(summary.rows.map((r) => [r.id, r]));
-  const rows = plan.vendors
-    .map((v, i) => ({ v, item: items[i] }))
-    .filter(({ item }) => item && visible(item, state))
-    .filter(({ item }) => {
-      const row = rowById.get(item.id);
-      return !row || matchesFilter(row, filter);
-    });
-  return (
-    <>
-      <h2 className="section-title">Vendors</h2>
-      <VendorSummaryPanel summary={summary} today={state.today} filter={filter} onFilter={setFilter} />
-      <p className="small muted vs-showing" role="status">
-        {filter === "all"
-          ? `Showing all ${rows.length} vendors`
-          : `Showing ${rows.length} ${FILTER_LABELS[filter].toLowerCase()}`}
-      </p>
-      {rows.length === 0 && (
-        <p className="muted">
-          {filter === "all" ? "No vendors for this person yet." : "No vendors here right now."}{" "}
-          {filter !== "all" && (
-            <button type="button" className="btn btn-link btn-small" onClick={() => setFilter("all")}>
-              Show all vendors
-            </button>
-          )}
-        </p>
-      )}
-      <ul className="vendors">
-        {rows.map(({ v, item }) => (
-          <li key={item.id} className="vendor card-inner">
-            <ul className="checklist vendor-head">
-              <TaskRow item={item} state={state} />
-            </ul>
-            <p className="vendor-tags">
-              <span className={`badge ${v.priority === "must-have" ? "badge-must" : ""}`}>{v.priority}</span>
-              {rowById.get(item.id) && (
-                <span className={`vs-tag is-${stageTag(rowById.get(item.id)!).tone}`}>
-                  {stageTag(rowById.get(item.id)!).text}
-                </span>
-              )}
-            </p>
-            {v.questions.length > 0 && (
-              <>
-                <h3 className="small-heading">Questions to ask</h3>
-                <ul className="list">
-                  {v.questions.map((q) => (
-                    <li key={q}>{q}</li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {deals && <VendorDeal vendor={{ id: item.id, type: v.type }} brief={v.brief} state={deals} />}
-            <details>
-              <summary>Ready-to-send message for the {v.type.toLowerCase()}</summary>
-              <p className="brief">{v.brief}</p>
-              <div className="row no-print">
-                <CopyButton text={v.brief} label="message" />
-                <a
-                  className="btn btn-small"
-                  href={`https://wa.me/?text=${encodeURIComponent(v.brief)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Send on WhatsApp<span className="sr-only"> (opens in a new tab)</span>
-                </a>
-              </div>
-            </details>
-          </li>
-        ))}
-      </ul>
     </>
   );
 }

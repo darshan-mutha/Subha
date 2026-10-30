@@ -27,7 +27,6 @@ import {
   FunctionsSummary,
   TimelineSection,
   TimingsSection,
-  VendorsSection,
   type TaskState,
 } from "./PlanSections";
 import type { TabItem } from "./Tabs";
@@ -40,6 +39,7 @@ import { PetalMark, Toran } from "./Brand";
 import { Bloom } from "./Celebrate";
 import { CopyButton } from "./PlanSections";
 import { SavingsChoices } from "./SavingsChoices";
+import { VendorsSection } from "./VendorsBoard";
 import { SectionNav, type NavAction } from "./SectionNav";
 import { IdeasPanel } from "./IdeasPanel";
 import { addIdeaToPlan, carryChosen, EMPTY_IDEA_STATE, type IdeaState } from "@/lib/ideas";

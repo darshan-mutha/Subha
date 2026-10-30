@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PlanWorkspace } from "@/components/PlanWorkspace";
@@ -161,7 +161,7 @@ describe("PlanWorkspace", () => {
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     setup();
     await openSection("Vendors");
-    fireEvent.click(screen.getAllByText(/Ready-to-send message/)[0]);
+    await userEvent.click(screen.getByRole("button", { name: /^Caterer/ }));
     await userEvent.click(screen.getAllByRole("button", { name: "Copy message" })[0]);
     expect(writeText).toHaveBeenCalledWith(samplePlan.vendors[0].brief);
     expect(await screen.findByText("Copied")).toBeInTheDocument();

@@ -1150,17 +1150,6 @@ select.owner {
 }
 
 /* ---------------- Vendors and ideas ---------------- */
-.vendors {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-}
-.vendor-head {
-  margin: 0;
-}
 details {
   margin-top: 10px;
 }
@@ -1354,20 +1343,55 @@ summary {
   min-height: 38px;
   padding: 4px 12px;
 }
-.quotes-table .badge {
-  margin-left: 8px;
-  background: var(--c-accent-soft);
-  color: var(--c-on-accent-soft);
+.quote-list {
+  list-style: none;
+  margin: 10px 0 12px;
+  padding: 0;
 }
-.quotes-table tbody th .muted {
-  display: block;
+.quote-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 12px 0;
+  border-top: 1px solid color-mix(in oklch, var(--c-border) 60%, transparent);
 }
-.quote-booked {
-  background: color-mix(in oklab, var(--c-accent-soft) 45%, transparent);
+.quote-item:first-child {
+  border-top: 0;
+}
+.quote-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.quote-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.quote-name .badge {
+  margin-left: 6px;
+}
+.quote-low {
+  background: color-mix(in oklch, var(--success) 14%, var(--surface));
+  color: var(--success);
+}
+.quote-money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .quote-actions {
-  white-space: nowrap;
-  text-align: right;
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.quote-booked {
+  margin: 0 -10px;
+  padding: 12px 10px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--c-accent-soft) 45%, transparent);
 }
 .verdict {
   font-size: 0.875rem;
@@ -1413,7 +1437,12 @@ summary {
 .booking {
   display: grid;
   gap: 8px;
-  border-left: 6px solid var(--c-primary);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--success) 7%, var(--surface));
+}
+.booking .small-heading {
+  margin: 0;
 }
 .booking p {
   margin: 0;
@@ -2736,59 +2765,308 @@ main:has(.plan, .my-events) > .lead {
   }
 }
 
-/* ---------- Vendors summary ---------- */
-.vendor-summary {
-  margin: 12px 0 8px;
+/* ---------- Vendors: summary, grouped list, one vendor at a time ---------- */
+.vb {
+  margin-top: 12px;
 }
-.vs-tiles {
+.vb-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 8px;
 }
-@media (max-width: 640px) {
-  .vs-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.vb-big {
+  margin: 0 0 8px;
+  font-family: var(--font-display), var(--font-display-fallback);
+  font-size: 1.35rem;
+  font-weight: 600;
 }
-.vs-tile {
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--surface);
-  border: 1.5px solid var(--c-border);
+.vb-money {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.vb-money > div {
+  background: var(--c-bg);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
-  cursor: pointer;
+  padding: 8px 10px;
   min-width: 0;
 }
-.vs-tile[aria-pressed="true"] {
-  border-color: var(--c-primary);
-  box-shadow: inset 0 0 0 1px var(--c-primary);
+.vb-money dt {
+  font-size: 0.78rem;
+  color: var(--muted);
 }
-.vs-n {
-  font-size: 1.7rem;
+.vb-money dd {
+  margin: 0;
   font-weight: 700;
-  line-height: 1.1;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
-.vs-l {
-  font-weight: 600;
+.vb-next {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
+  border-radius: var(--radius-md);
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
   font-size: 0.92rem;
 }
-.vs-s {
-  font-size: 0.8rem;
+.vb-next strong {
+  color: var(--text);
+}
+.vb-next.is-late {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.vb-next.is-done {
+  padding: 10px 14px;
+  background: color-mix(in oklch, var(--success) 14%, var(--surface));
+  color: var(--text);
+}
+.vb-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 18px 4px 8px;
+  font-size: 1.05rem;
+}
+.vb-group-n {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.vb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid color-mix(in oklch, var(--c-border) 70%, transparent);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.vb-list > li + li {
+  border-top: 1px solid color-mix(in oklch, var(--c-border) 60%, transparent);
+}
+.vb-row {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background-color 150ms var(--ease);
+}
+.vb-row:hover {
+  background: color-mix(in oklch, var(--c-primary) 5%, var(--surface));
+}
+.vb-row:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: -3px;
+  border-radius: var(--radius-lg);
+}
+.vb-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--c-bg);
+  font-size: 1.1rem;
+}
+.vb-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.vb-title {
+  font-weight: 600;
+}
+.vb-sub {
+  font-size: 0.85rem;
   color: var(--muted);
   overflow-wrap: anywhere;
 }
-.vs-tile.is-good .vs-n {
+.vb-must {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.6;
+  vertical-align: 1px;
+  border-radius: var(--radius-full);
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
+}
+.vb-status {
+  flex: none;
+  align-self: center;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+}
+.vb-status.is-late {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.vb-status.is-quotes {
+  background: var(--c-accent-soft);
+  color: var(--c-on-accent-soft);
+}
+.vb-status.is-new {
+  background: color-mix(in oklch, var(--c-border) 45%, var(--surface));
+  color: var(--muted);
+}
+.vb-status.is-ok {
+  background: color-mix(in oklch, var(--success) 14%, var(--surface));
   color: var(--success);
 }
-.vs-tile.is-warn .vs-n {
-  color: var(--danger);
+.vb-chev {
+  flex: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+}
+.vb-detail {
+  margin-top: 8px;
+}
+.vb-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.vb-detail-head h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.vb-detail-head .vb-must {
+  margin-left: 0;
+}
+.vb-meta {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+.vb-task {
+  margin: 10px 0 0;
+}
+.vb-steps {
+  display: flex;
+  gap: 4px;
+  margin: 14px 0;
+}
+.vb-step {
+  flex: 1 1 0;
+  min-height: 44px;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 8px 4px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--c-border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.vb-step.is-done {
+  border-color: color-mix(in oklch, var(--success) 35%, var(--surface));
+  background: color-mix(in oklch, var(--success) 10%, var(--surface));
+  color: var(--success);
+}
+.vb-step[aria-pressed="true"] {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: var(--on-primary);
+}
+.vb-folds {
+  margin-top: 14px;
+  border-top: 1px solid color-mix(in oklch, var(--c-border) 60%, transparent);
+}
+.vb-ask .small-heading:first-child {
+  margin-top: 0;
+}
+.booking-empty {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.vb-back {
+  display: none;
+  margin: -4px 0 8px -8px;
+}
+
+/* Phones: the vendor opens in place of the list. */
+@media (max-width: 699px) {
+  .vb .vb-detail {
+    display: none;
+  }
+  .vb.is-open .vb-detail {
+    display: block;
+  }
+  .vb.is-open .vb-summary,
+  .vb.is-open .vb-lists {
+    display: none;
+  }
+  .vb-back {
+    display: inline-flex;
+  }
+}
+
+/* Wider screens: list on the left, the vendor on the right. */
+@media (min-width: 700px) {
+  .vb-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 290px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .vb-detail {
+    margin-top: 48px;
+    position: sticky;
+    top: 16px;
+  }
+  .vb-row.is-selected {
+    background: color-mix(in oklch, var(--c-primary) 9%, var(--surface));
+    box-shadow: inset 3px 0 0 var(--c-primary);
+  }
+  .vb-row .vb-chev {
+    display: none;
+  }
+  .vb-summary {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    align-items: center;
+  }
+  .vb-summary .vb-next {
+    grid-column: 1 / -1;
+  }
+}
+
+@media print {
+  .vb .vb-detail,
+  .vb.is-open .vb-summary,
+  .vb.is-open .vb-lists {
+    display: block;
+  }
+  .vb-steps,
+  .vb-back {
+    display: none;
+  }
 }
 .vs-bar {
   display: flex;
@@ -2807,87 +3085,6 @@ main:has(.plan, .my-events) > .lead {
 .vs-bar-quotes {
   background: var(--gold);
 }
-.vs-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 6px 0 14px;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-.vs-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 5px;
-  vertical-align: -1px;
-}
-.vs-dot-empty {
-  background: color-mix(in oklch, var(--c-border) 70%, var(--surface));
-  border: 1px solid var(--c-border);
-}
-.vs-money {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--c-border);
-}
-@media (max-width: 640px) {
-  .vs-money {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.vs-money dt {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-.vs-money dd {
-  margin: 0;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.vs-next {
-  margin: 14px 0 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  background: var(--c-accent-soft);
-  color: var(--c-on-accent-soft);
-  font-size: 0.92rem;
-}
-.vs-next.is-late {
-  background: var(--danger-soft);
-  color: var(--text);
-}
-.vs-next.is-late strong {
-  color: var(--danger);
-}
-.vs-next.is-done {
-  background: color-mix(in oklch, var(--success) 14%, var(--surface));
-  color: var(--text);
-}
-.vs-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 16px 0 4px;
-}
-.vs-filters .chip[aria-pressed="true"] {
-  background: var(--c-primary);
-  border-color: var(--c-primary);
-  color: var(--on-primary);
-}
-.vs-showing {
-  margin: 4px 0 8px;
-}
-.vendor-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 6px 0;
-}
 .vs-tag {
   font-size: 0.78rem;
   font-weight: 600;
@@ -2903,11 +3100,6 @@ main:has(.plan, .my-events) > .lead {
 .vs-tag.is-bad {
   background: var(--danger-soft);
   color: var(--danger);
-}
-@media print {
-  .vs-tiles .vs-tile {
-    border: 1px solid #999;
-  }
 }
 
 /* ---------- Guests: parts, guest list ---------- */

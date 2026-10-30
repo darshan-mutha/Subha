@@ -56,7 +56,23 @@ function printAgreement(id: string) {
 
 const BLANK = { vendorName: "", phone: "", amount: "", includes: "" };
 
-export function VendorDeal({ vendor, brief, state }: { vendor: VendorRef; brief: string; state: DealState }) {
+/** Which part to show: "compare" (quotes) or "book" (booking, payments, agreement). */
+export type DealPart = "compare" | "book";
+
+export function VendorDeal({
+  vendor,
+  brief,
+  state,
+  part,
+  onStep,
+}: {
+  vendor: VendorRef;
+  brief: string;
+  state: DealState;
+  part: DealPart;
+  /** Moves the vendor screen to another step, e.g. to the booking after "Book". */
+  onStep?: (part: DealPart) => void;
+}) {
   const uid = useId();
   const deal = state.deals[vendor.id] ?? emptyDeal();
   const quotes = sortedQuotes(deal);
@@ -114,7 +130,10 @@ export function VendorDeal({ vendor, brief, state }: { vendor: VendorRef; brief:
       { ...deal, booked: quoteId, advance: Math.min(deal.advance, quote.amount), agreement: "" },
       `${quote.vendorName} booked`,
     );
-    if (ok) state.onBooked(vendor.id, true);
+    if (ok) {
+      state.onBooked(vendor.id, true);
+      onStep?.("book");
+    }
   }
 
   async function cancelBooking() {
@@ -174,75 +193,59 @@ export function VendorDeal({ vendor, brief, state }: { vendor: VendorRef; brief:
 
   return (
     <div className="deal">
-      <h3 className="small-heading">Quotes</h3>
-      {money ? (
-        <p className="small muted">
-          Budget for this: <strong>{formatINR(money.available)}</strong> from “{money.line}”
-          {money.usedByOthers > 0 && ` (${formatINR(money.usedByOthers)} already booked with other vendors)`}
-        </p>
-      ) : (
-        <p className="small muted">No matching budget line. Choose one below to compare quotes.</p>
-      )}
-      <div className="row small">
-        <label htmlFor={`${uid}-line`}>Paid from</label>
-        <select
-          id={`${uid}-line`}
-          value={deal.budgetCategory || money?.line || ""}
-          onChange={(e) => void save({ ...deal, budgetCategory: e.target.value }, "Budget line changed")}
-        >
-          <option value="">Choose a budget line</option>
-          {state.budget.map((l) => (
-            <option key={l.category} value={l.category}>
-              {l.category}
-            </option>
-          ))}
-        </select>
-      </div>
+      {part === "compare" && (
+        <>
+          <h3 className="small-heading">Quotes</h3>
+          {money ? (
+            <p className="small muted">
+              Budget for this: <strong>{formatINR(money.available)}</strong> from “{money.line}”
+              {money.usedByOthers > 0 && ` (${formatINR(money.usedByOthers)} already booked with other vendors)`}
+            </p>
+          ) : (
+            <p className="small muted">No matching budget line. Choose one below to compare quotes.</p>
+          )}
+          <div className="row small">
+            <label htmlFor={`${uid}-line`}>Paid from</label>
+            <select
+              id={`${uid}-line`}
+              value={deal.budgetCategory || money?.line || ""}
+              onChange={(e) => void save({ ...deal, budgetCategory: e.target.value }, "Budget line changed")}
+            >
+              <option value="">Choose a budget line</option>
+              {state.budget.map((l) => (
+                <option key={l.category} value={l.category}>
+                  {l.category}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {quotes.length === 0 ? (
-        <p className="muted small">No quotes yet. Add the quotes you receive here to compare them side by side.</p>
-      ) : (
-        <div className="table-wrap">
-          <table className="budget-table quotes-table">
-            <caption className="sr-only">Quotes for {vendor.type}, cheapest first</caption>
-            <thead>
-              <tr>
-                <th scope="col">Vendor</th>
-                <th scope="col" className="num">
-                  Quote
-                </th>
-                <th scope="col">Against budget</th>
-                <th scope="col">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+          {quotes.length === 0 ? (
+            <p className="muted small">No quotes yet. Add the quotes you receive here to compare them side by side.</p>
+          ) : (
+            <ul className="quote-list" aria-label={`Quotes for ${vendor.type}, cheapest first`}>
               {quotes.map((q) => {
                 const verdict = money ? judgeQuote(q.amount, money.available) : null;
                 const isBooked = deal.booked === q.id;
                 return (
-                  <tr key={q.id} className={isBooked ? "quote-booked" : undefined}>
-                    <th scope="row">
-                      <span className="cat">{q.vendorName}</span>
-                      {q.id === cheapest && quotes.length > 1 && <span className="badge">Lowest</span>}
+                  <li key={q.id} className={`quote-item${isBooked ? " quote-booked" : ""}`}>
+                    <div className="quote-main">
+                      <span className="quote-name">
+                        {q.vendorName}
+                        {q.id === cheapest && quotes.length > 1 && <span className="badge quote-low">Lowest</span>}
+                        {isBooked && <span className="badge badge-must">Booked</span>}
+                      </span>
                       {q.includes && <span className="muted small">{q.includes}</span>}
-                    </th>
-                    <td className="num">{formatINR(q.amount)}</td>
-                    <td>
-                      {verdict ? (
-                        <span className={`verdict verdict-${verdict.kind}`}>{verdict.text}</span>
-                      ) : (
-                        <span className="muted small">–</span>
-                      )}
-                    </td>
-                    <td className="quote-actions no-print">
-                      {isBooked ? (
-                        <span className="badge badge-must">Booked</span>
-                      ) : (
+                    </div>
+                    <div className="quote-money">
+                      <strong>{formatINR(q.amount)}</strong>
+                      {verdict && <span className={`verdict verdict-${verdict.kind}`}>{verdict.text}</span>}
+                    </div>
+                    <div className="quote-actions no-print">
+                      {!isBooked && (
                         <button
                           type="button"
-                          className="btn btn-small"
+                          className="btn btn-small btn-primary"
                           onClick={() => void book(q.id)}
                           aria-label={`Book ${q.vendorName} for ${formatINR(q.amount)}`}
                         >
@@ -257,94 +260,108 @@ export function VendorDeal({ vendor, brief, state }: { vendor: VendorRef; brief:
                       >
                         Remove
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </li>
                 );
               })}
-            </tbody>
-          </table>
+            </ul>
+          )}
+
+          {deal.quotes.length < MAX_QUOTES &&
+            (adding ? (
+              <form className="quote-form no-print" onSubmit={addQuote} noValidate>
+                <div className="field">
+                  <label htmlFor={`${uid}-name`}>Vendor name</label>
+                  <input
+                    id={`${uid}-name`}
+                    type="text"
+                    value={form.vendorName}
+                    maxLength={60}
+                    aria-invalid={Boolean(errors.vendorName)}
+                    aria-describedby={errors.vendorName ? `${uid}-name-err` : undefined}
+                    onChange={(e) => setForm({ ...form, vendorName: e.target.value })}
+                  />
+                  {errors.vendorName && (
+                    <span id={`${uid}-name-err`} className="field-error">
+                      {errors.vendorName}
+                    </span>
+                  )}
+                </div>
+                <div className="field">
+                  <label htmlFor={`${uid}-amount`}>Quoted price (₹)</label>
+                  <input
+                    id={`${uid}-amount`}
+                    type="text"
+                    inputMode="numeric"
+                    value={form.amount}
+                    aria-invalid={Boolean(errors.amount)}
+                    aria-describedby={errors.amount ? `${uid}-amount-err` : undefined}
+                    onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/[^\d]/g, "") })}
+                  />
+                  {errors.amount && (
+                    <span id={`${uid}-amount-err`} className="field-error">
+                      {errors.amount}
+                    </span>
+                  )}
+                </div>
+                <div className="field">
+                  <label htmlFor={`${uid}-phone`}>Phone (optional)</label>
+                  <input
+                    id={`${uid}-phone`}
+                    type="tel"
+                    value={form.phone}
+                    maxLength={20}
+                    aria-invalid={Boolean(errors.phone)}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  />
+                  {errors.phone && <span className="field-error">{errors.phone}</span>}
+                </div>
+                <div className="field field-wide">
+                  <label htmlFor={`${uid}-includes`}>What&apos;s included (optional)</label>
+                  <input
+                    id={`${uid}-includes`}
+                    type="text"
+                    value={form.includes}
+                    maxLength={300}
+                    placeholder="e.g. Veg buffet, 2 sweets, serving staff"
+                    aria-invalid={Boolean(errors.includes)}
+                    onChange={(e) => setForm({ ...form, includes: e.target.value })}
+                  />
+                  {errors.includes && <span className="field-error">{errors.includes}</span>}
+                </div>
+                <div className="row">
+                  <button type="submit" className="btn btn-primary btn-small">
+                    Add quote
+                  </button>
+                  <button type="button" className="btn btn-link btn-small" onClick={() => setAdding(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button type="button" className="btn btn-small no-print" onClick={() => setAdding(true)}>
+                + Add a quote
+              </button>
+            ))}
+        </>
+      )}
+
+      {part === "book" && !booked && (
+        <div className="booking-empty">
+          <p className="muted small">
+            Not booked yet. Compare the quotes and tap <strong>Book</strong> on the one you choose. The advance, balance
+            and booking confirmation then show here.
+          </p>
+          {onStep && (
+            <button type="button" className="btn btn-small" onClick={() => onStep("compare")}>
+              Compare quotes
+            </button>
+          )}
         </div>
       )}
 
-      {deal.quotes.length < MAX_QUOTES &&
-        (adding ? (
-          <form className="quote-form no-print" onSubmit={addQuote} noValidate>
-            <div className="field">
-              <label htmlFor={`${uid}-name`}>Vendor name</label>
-              <input
-                id={`${uid}-name`}
-                type="text"
-                value={form.vendorName}
-                maxLength={60}
-                aria-invalid={Boolean(errors.vendorName)}
-                aria-describedby={errors.vendorName ? `${uid}-name-err` : undefined}
-                onChange={(e) => setForm({ ...form, vendorName: e.target.value })}
-              />
-              {errors.vendorName && (
-                <span id={`${uid}-name-err`} className="field-error">
-                  {errors.vendorName}
-                </span>
-              )}
-            </div>
-            <div className="field">
-              <label htmlFor={`${uid}-amount`}>Quoted price (₹)</label>
-              <input
-                id={`${uid}-amount`}
-                type="text"
-                inputMode="numeric"
-                value={form.amount}
-                aria-invalid={Boolean(errors.amount)}
-                aria-describedby={errors.amount ? `${uid}-amount-err` : undefined}
-                onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/[^\d]/g, "") })}
-              />
-              {errors.amount && (
-                <span id={`${uid}-amount-err`} className="field-error">
-                  {errors.amount}
-                </span>
-              )}
-            </div>
-            <div className="field">
-              <label htmlFor={`${uid}-phone`}>Phone (optional)</label>
-              <input
-                id={`${uid}-phone`}
-                type="tel"
-                value={form.phone}
-                maxLength={20}
-                aria-invalid={Boolean(errors.phone)}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
-              {errors.phone && <span className="field-error">{errors.phone}</span>}
-            </div>
-            <div className="field field-wide">
-              <label htmlFor={`${uid}-includes`}>What&apos;s included (optional)</label>
-              <input
-                id={`${uid}-includes`}
-                type="text"
-                value={form.includes}
-                maxLength={300}
-                placeholder="e.g. Veg buffet, 2 sweets, serving staff"
-                aria-invalid={Boolean(errors.includes)}
-                onChange={(e) => setForm({ ...form, includes: e.target.value })}
-              />
-              {errors.includes && <span className="field-error">{errors.includes}</span>}
-            </div>
-            <div className="row">
-              <button type="submit" className="btn btn-primary btn-small">
-                Add quote
-              </button>
-              <button type="button" className="btn btn-link btn-small" onClick={() => setAdding(false)}>
-                Cancel
-              </button>
-            </div>
-          </form>
-        ) : (
-          <button type="button" className="btn btn-small no-print" onClick={() => setAdding(true)}>
-            + Add a quote
-          </button>
-        ))}
-
-      {booked && (
-        <div className="booking card-inner">
+      {part === "book" && booked && (
+        <div className="booking">
           <h3 className="small-heading">Booking</h3>
           <p>
             Booked <strong>{booked.vendorName}</strong> for <strong>{formatINR(booked.amount)}</strong>
