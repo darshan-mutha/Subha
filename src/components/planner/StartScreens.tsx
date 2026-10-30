@@ -1,8 +1,15 @@
 "use client";
 
+import { createRef } from "react";
 import type { EventInput } from "@/lib/schemas";
 import { EventForm, type FormValues } from "../EventForm";
 import { VoiceStart, type VoicePayload } from "../VoiceStart";
+
+/**
+ * The heading of whichever start screen is showing (voice or details form);
+ * only one is on the page at a time. Focused after a voice note is understood.
+ */
+export const startHeadingRef = createRef<HTMLHeadingElement>();
 
 /** The polite live region that announces progress to screen readers. */
 export function LiveStatus({ text }: { text: string }) {
@@ -36,7 +43,7 @@ export function VoiceScreen({ busy, error, eventCount, onSubmit, onUseForm, onMy
   return (
     <>
       <section aria-labelledby="start-heading">
-        <h2 id="start-heading" className="section-title" tabIndex={-1}>
+        <h2 id="start-heading" ref={startHeadingRef} className="section-title" tabIndex={-1}>
           Tell us about your celebration
         </h2>
         <VoiceStart busy={busy} error={error} onSubmit={onSubmit} onUseForm={onUseForm} />
@@ -70,7 +77,7 @@ export function DetailsScreen(props: FormProps) {
   const fromVoice = Boolean(heard);
   return (
     <section aria-labelledby="start-heading">
-      <h2 id="start-heading" className="section-title" tabIndex={-1}>
+      <h2 id="start-heading" ref={startHeadingRef} className="section-title" tabIndex={-1}>
         {hasPlan ? "Edit your event" : fromVoice ? "Check your details" : "Tell us about your celebration"}
       </h2>
       {fromVoice && (

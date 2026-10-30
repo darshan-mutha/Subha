@@ -3,7 +3,9 @@
 import { useRef, useState, type FormEvent } from "react";
 import { ApiError, requestAssign, requestRefine } from "@/lib/client";
 import type { Deal } from "@/lib/deals";
-import { addIdeaToPlan, carryChosen, type IdeaState } from "@/lib/ideas";
+import { addIdeaToPlan } from "@/lib/ideas/addToPlan";
+import type { IdeaState } from "@/lib/ideas/schema";
+import { carryChosen } from "@/lib/ideas/state";
 import { applyRaise, type SavingOption, type SavingsRequest } from "@/lib/savings";
 import { delayItem, delayLines, type ScheduledItem } from "@/lib/schedule";
 import type { Idea, Plan } from "@/lib/schemas";
@@ -30,7 +32,7 @@ type Ctx = Pick<PlanWorkspaceProps, "data" | "onChange" | "onToggle" | "viewer" 
 /** Every change the host can make on the plan screen, each with What changed and Undo where it applies. */
 export function usePlanActions({ data, onChange, onToggle, viewer, onViewerChange, derived, ideaState, run }: Ctx) {
   const { input, plan, timings } = data;
-  const { shifts, items, today, deals } = derived;
+  const { shifts, deals } = derived;
   const { act, setError } = run;
   const [instruction, setInstruction] = useState("");
   const [lastChange, setLastChange] = useState<LastChange | null>(null);
@@ -100,6 +102,39 @@ export function usePlanActions({ data, onChange, onToggle, viewer, onViewerChang
     if (ok) setLastChange(null);
   }
 
+  const { delay, addIdea } = useLocalChanges({ data, derived, ideaState, act, onChange, showChange });
+
+  const wiring = teamWiring({ data, onChange, onToggle, viewer, onViewerChange, derived, act, setError });
+  const taskState: TaskState = { ...wiring.taskState, onDelay: (item, days) => void delay(item, days) };
+
+  return {
+    ...wiring,
+    taskState,
+    instruction,
+    setInstruction,
+    lastChange,
+    setLastChange,
+    changeRef,
+    applyChange,
+    refine,
+    chooseSaving,
+    undo,
+    addIdea,
+  };
+}
+
+type LocalCtx = Pick<PlanWorkspaceProps, "data" | "onChange"> & {
+  derived: PlanDerived;
+  ideaState: IdeaState;
+  act: Act;
+  showChange: (change: LastChange) => void;
+};
+
+/** Changes worked out in code (no AI): a task running late, and an idea added to the plan. Both offer Undo. */
+function useLocalChanges({ data, derived, ideaState, act, onChange, showChange }: LocalCtx) {
+  const { input, plan } = data;
+  const { shifts, items, today } = derived;
+
   /** A task is running late: move it and the tasks after it, then show what moved with an Undo. */
   async function delay(item: ScheduledItem, days: number) {
     const result = delayItem(items, shifts, item.id, days, today, input.date);
@@ -138,23 +173,7 @@ export function usePlanActions({ data, onChange, onToggle, viewer, onViewerChang
     }
   }
 
-  const wiring = teamWiring({ data, onChange, onToggle, viewer, onViewerChange, derived, act, setError });
-  const taskState: TaskState = { ...wiring.taskState, onDelay: (item, days) => void delay(item, days) };
-
-  return {
-    ...wiring,
-    taskState,
-    instruction,
-    setInstruction,
-    lastChange,
-    setLastChange,
-    changeRef,
-    applyChange,
-    refine,
-    chooseSaving,
-    undo,
-    addIdea,
-  };
+  return { delay, addIdea };
 }
 
 type WiringCtx = Pick<PlanWorkspaceProps, "data" | "onChange" | "onToggle" | "viewer" | "onViewerChange"> & {

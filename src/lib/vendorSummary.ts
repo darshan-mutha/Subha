@@ -1,4 +1,5 @@
-import { formatINR, formatShortINR } from "./budget";
+import { daysBetween, shortDate } from "./dates";
+import { formatINR, formatShortINR } from "./money";
 import { bookedQuote, lineFor, paymentSummary, sortedQuotes, type Deals, type PaymentSummary } from "./deals";
 import type { ScheduledItem } from "./schedule";
 import type { Plan } from "./schemas";
@@ -119,18 +120,6 @@ export function matchesFilter(row: VendorRow, filter: VendorFilter): boolean {
 
 export function filterCount(summary: VendorSummary, filter: VendorFilter): number {
   return summary.rows.filter((r) => matchesFilter(r, filter)).length;
-}
-
-const shortDate = (iso: string) => {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
-};
-
-/** Days between two ISO dates (to − from). */
-function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }
 
 /** The short tag on each vendor card, e.g. "Overdue · 3 quotes", "Booked · ₹2,90,000". */

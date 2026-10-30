@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
-import { neon } from "@neondatabase/serverless";
-import { PlannerError } from "./ai";
+import { connect, databaseUrl, type Rows, type Sql } from "./db";
+import { HttpError, PLAN_NOT_FOUND } from "./errors";
 import { PlanSchema, withInputDefaults } from "./schemas";
-import { pruneState, type Done, type SharedPlan, type SharedPlanContent } from "./team";
+import { planItems, pruneState, type Done, type SharedPlan, type SharedPlanContent } from "./team";
 
 /**
  * Storage for shared plans. The app talks to this interface only, so the
@@ -17,13 +17,14 @@ export interface PlanStore {
   setDone(id: string, itemId: string, done: boolean): Promise<SharedPlan | null>;
 }
 
+/** A new random, unguessable id for a shared plan link. */
 export function newShareId(): string {
   return randomBytes(16).toString("base64url");
 }
 
 const conflict = () =>
-  new PlannerError("Someone else just updated this plan. We've loaded the latest version; please try again.", 409);
-const notFound = () => new PlannerError("This plan could not be found. The link may be wrong.", 404);
+  new HttpError("Someone else just updated this plan. We've loaded the latest version; please try again.", 409);
+const notFound = () => new HttpError(PLAN_NOT_FOUND, 404);
 
 /* ------------------------------------------------------------------ */
 
@@ -89,66 +90,72 @@ function toPlan(row: Row): SharedPlan {
   };
 }
 
+const createPlansTable = async (sql: Sql) => {
+  await sql`
+    CREATE TABLE IF NOT EXISTS shuba_plans (
+      id          text PRIMARY KEY,
+      content     jsonb NOT NULL,
+      done        jsonb NOT NULL DEFAULT '{}'::jsonb,
+      version     integer NOT NULL DEFAULT 1,
+      created_at  timestamptz NOT NULL DEFAULT now(),
+      updated_at  timestamptz NOT NULL DEFAULT now()
+    )`;
+};
+
+const firstPlan = (rows: Rows): SharedPlan | null => (rows[0] ? toPlan(rows[0] as Row) : null);
+
+/**
+ * Saves new content only if the plan is still at `expectedVersion`, keeping
+ * ticks for items that are still in the plan. Returns null if nothing changed.
+ */
+async function updateIfCurrent(sql: Sql, id: string, content: SharedPlanContent, expectedVersion: number) {
+  const itemIds = planItems(content.plan).map((item) => item.id);
+  return firstPlan(
+    await sql`
+      UPDATE shuba_plans
+         SET content = ${JSON.stringify(content)}::jsonb,
+             done = COALESCE(
+               (SELECT jsonb_object_agg(key, value) FROM jsonb_each(shuba_plans.done) WHERE key = ANY(${itemIds}::text[])),
+               '{}'::jsonb),
+             version = version + 1,
+             updated_at = now()
+       WHERE id = ${id} AND version = ${expectedVersion}
+      RETURNING id, content, done, version, updated_at`,
+  );
+}
+
 /** Neon serverless Postgres. The table is created automatically on first use. */
-export function createNeonStore(databaseUrl: string): PlanStore {
-  const sql = neon(databaseUrl);
-  let ready: Promise<unknown> | null = null;
-  const ensureTable = () =>
-    (ready ??= sql`
-      CREATE TABLE IF NOT EXISTS shuba_plans (
-        id          text PRIMARY KEY,
-        content     jsonb NOT NULL,
-        done        jsonb NOT NULL DEFAULT '{}'::jsonb,
-        version     integer NOT NULL DEFAULT 1,
-        created_at  timestamptz NOT NULL DEFAULT now(),
-        updated_at  timestamptz NOT NULL DEFAULT now()
-      )`.catch((error) => {
-      ready = null;
-      throw error;
-    }));
-
-  const one = (rows: unknown[]) => (rows[0] ? toPlan(rows[0] as Row) : null);
-
+export function createNeonStore(url: string): PlanStore {
+  const sql = connect(url, createPlansTable);
   return {
     async create(content, done = {}) {
-      await ensureTable();
-      const rows = await sql`
-        INSERT INTO shuba_plans (id, content, done)
-        VALUES (${newShareId()}, ${JSON.stringify(content)}::jsonb, ${JSON.stringify(done)}::jsonb)
-        RETURNING id, content, done, version, updated_at`;
-      return one(rows)!;
+      const created = firstPlan(
+        await sql`
+          INSERT INTO shuba_plans (id, content, done)
+          VALUES (${newShareId()}, ${JSON.stringify(content)}::jsonb, ${JSON.stringify(done)}::jsonb)
+          RETURNING id, content, done, version, updated_at`,
+      );
+      if (!created) throw new Error("The new plan was not returned by the database.");
+      return created;
     },
     async get(id) {
-      await ensureTable();
-      return one(await sql`SELECT id, content, done, version, updated_at FROM shuba_plans WHERE id = ${id}`);
+      return firstPlan(await sql`SELECT id, content, done, version, updated_at FROM shuba_plans WHERE id = ${id}`);
     },
     async update(id, content, expectedVersion) {
-      await ensureTable();
-      const current = await this.get(id);
-      if (!current) throw notFound();
-      if (current.version !== expectedVersion) throw conflict();
-      const { done } = pruneState(content.plan, content.team, content.assignments, current.done);
-      const rows = await sql`
-        UPDATE shuba_plans
-           SET content = ${JSON.stringify(content)}::jsonb,
-               done = ${JSON.stringify(done)}::jsonb,
-               version = version + 1,
-               updated_at = now()
-         WHERE id = ${id} AND version = ${expectedVersion}
-        RETURNING id, content, done, version, updated_at`;
-      const updated = one(rows);
-      if (!updated) throw conflict();
-      return updated;
+      const updated = await updateIfCurrent(sql, id, content, expectedVersion);
+      if (updated) return updated;
+      // Nothing was saved: either the plan is gone or someone else saved first.
+      const exists = await sql`SELECT 1 FROM shuba_plans WHERE id = ${id}`;
+      throw exists[0] ? conflict() : notFound();
     },
     async setDone(id, itemId, done) {
-      await ensureTable();
-      return one(
+      return firstPlan(
         await sql`
-        UPDATE shuba_plans
-           SET done = done || jsonb_build_object(${itemId}::text, ${done}::boolean),
-               updated_at = now()
-         WHERE id = ${id}
-        RETURNING id, content, done, version, updated_at`,
+          UPDATE shuba_plans
+             SET done = done || jsonb_build_object(${itemId}::text, ${done}::boolean),
+                 updated_at = now()
+           WHERE id = ${id}
+          RETURNING id, content, done, version, updated_at`,
       );
     },
   };
@@ -161,8 +168,8 @@ let store: PlanStore | null = null;
 /** Returns the configured store, or throws a friendly 503 if sharing is not set up. */
 export function getStore(): PlanStore {
   if (store) return store;
-  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-  if (!url) throw new PlannerError("Sharing is not set up yet. You can still download or print your plan.", 503);
+  const url = databaseUrl();
+  if (!url) throw new HttpError("Sharing is not set up yet. You can still download or print your plan.", 503);
   store = createNeonStore(url);
   return store;
 }

@@ -222,11 +222,12 @@
 .event-info p {
   margin: 2px 0 0;
 }
-.event-tags {
+/* Outranks ".event-info p" without !important. */
+.event-info .event-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 6px !important;
+  margin-top: 6px;
 }
 .chip-label.is-past {
   background: var(--c-border);

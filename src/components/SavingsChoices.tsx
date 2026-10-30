@@ -17,13 +17,8 @@ interface Props {
   onChoose: (option: SavingOption, request: SavingsRequest) => Promise<boolean>;
 }
 
-/**
- * Budget tab panel: "Over budget? See your choices." Offers several different
- * ways to save (or to raise the budget), each with an estimated saving and what
- * it affects, and lets the host pick one.
- */
-export function SavingsChoices({ input, plan, over, busy, onChoose }: Props) {
-  const id = useId();
+/** The amount check, the request to Shubā and the chosen option, for one savings panel. */
+function useSavings({ input, plan, over, onChoose }: Omit<Props, "busy">) {
   const overBy = totalOver(over);
   const [amount, setAmount] = useState("");
   const [options, setOptions] = useState<SavingOption[] | null>(null);
@@ -31,7 +26,6 @@ export function SavingsChoices({ input, plan, over, busy, onChoose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [request, setRequest] = useState<SavingsRequest | null>(null);
-  const working = loading || busy;
 
   async function find(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,8 +70,13 @@ export function SavingsChoices({ input, plan, over, busy, onChoose }: Props) {
     }
   }
 
+  return { overBy, amount, setAmount, options, source, loading, error, find, choose };
+}
+
+/** The heading and the line explaining why the host might want to save. */
+function SavingsIntro({ id, overBy, over }: { id: string; overBy: number; over: OverLine[] }) {
   return (
-    <section className={`savings card-inner${overBy > 0 ? " is-over" : ""}`} aria-labelledby={`${id}-title`}>
+    <>
       <h3 id={`${id}-title`} tabIndex={-1} data-savings-heading>
         {overBy > 0 ? "Over budget? See your choices" : "Need to spend less?"}
       </h3>
@@ -94,6 +93,78 @@ export function SavingsChoices({ input, plan, over, busy, onChoose }: Props) {
           Tell Shubā how much you need to save, and it shows you a few different ways to do it. You choose.
         </p>
       )}
+    </>
+  );
+}
+
+/** The ways to save Shubā found, each with its saving, what it affects and a Choose button. */
+function SavingsOptions({
+  options,
+  source,
+  working,
+  onChoose,
+}: {
+  options: SavingOption[];
+  source: "ai" | "standard";
+  working: boolean;
+  onChoose: (option: SavingOption) => void;
+}) {
+  return (
+    <>
+      <p className="small muted" role="status">
+        {options.length} choices. Savings are estimates.
+        {source === "standard" && " Shubā's AI is busy, so these are standard suggestions."} Choosing one updates your
+        plan, and you can undo it.
+      </p>
+      <ul className="savings-options" role="list">
+        {options.map((option) => (
+          <li key={`${option.kind}-${option.title}`} className={`savings-option kind-${option.kind}`}>
+            <p className="chip-label">{SAVING_KIND_LABELS[option.kind]}</p>
+            <h4>{option.title}</h4>
+            <p className="small">{option.detail}</p>
+            <p className="savings-amount">
+              {option.kind === "raise-budget"
+                ? `Adds ${formatINR(option.saving)}`
+                : `Saves about ${formatINR(option.saving)}`}
+            </p>
+            <p className="small muted">
+              <span className="sr-only">What it affects: </span>
+              {option.affects}
+            </p>
+            <button
+              type="button"
+              className="btn btn-small"
+              disabled={working}
+              onClick={() => onChoose(option)}
+              aria-label={`Choose: ${option.title}`}
+            >
+              Choose this
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/**
+ * Budget tab panel: "Over budget? See your choices." Offers several different
+ * ways to save (or to raise the budget), each with an estimated saving and what
+ * it affects, and lets the host pick one.
+ */
+export function SavingsChoices({ input, plan, over, busy, onChoose }: Props) {
+  const id = useId();
+  const { overBy, amount, setAmount, options, source, loading, error, find, choose } = useSavings({
+    input,
+    plan,
+    over,
+    onChoose,
+  });
+  const working = loading || busy;
+
+  return (
+    <section className={`savings card-inner${overBy > 0 ? " is-over" : ""}`} aria-labelledby={`${id}-title`}>
+      <SavingsIntro id={id} overBy={overBy} over={over} />
 
       <form className="savings-form no-print" onSubmit={find} noValidate>
         {overBy === 0 && (
@@ -127,40 +198,7 @@ export function SavingsChoices({ input, plan, over, busy, onChoose }: Props) {
       )}
 
       {options && (
-        <>
-          <p className="small muted" role="status">
-            {options.length} choices. Savings are estimates.
-            {source === "standard" && " Shubā's AI is busy, so these are standard suggestions."} Choosing one updates
-            your plan, and you can undo it.
-          </p>
-          <ul className="savings-options" role="list">
-            {options.map((option) => (
-              <li key={`${option.kind}-${option.title}`} className={`savings-option kind-${option.kind}`}>
-                <p className="chip-label">{SAVING_KIND_LABELS[option.kind]}</p>
-                <h4>{option.title}</h4>
-                <p className="small">{option.detail}</p>
-                <p className="savings-amount">
-                  {option.kind === "raise-budget"
-                    ? `Adds ${formatINR(option.saving)}`
-                    : `Saves about ${formatINR(option.saving)}`}
-                </p>
-                <p className="small muted">
-                  <span className="sr-only">What it affects: </span>
-                  {option.affects}
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-small"
-                  disabled={working}
-                  onClick={() => void choose(option)}
-                  aria-label={`Choose: ${option.title}`}
-                >
-                  Choose this
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
+        <SavingsOptions options={options} source={source} working={working} onChoose={(o) => void choose(o)} />
       )}
     </section>
   );

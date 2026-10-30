@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError, requestGuestGroups } from "@/lib/client";
 import type { GuestGroupIdea } from "@/lib/guestGroups";
 import { newEntryId, parseGuestText, type DraftEntry, type GuestEntry } from "@/lib/guestList";
@@ -28,7 +28,6 @@ function contactsApi(): ContactsManager | null {
 }
 
 interface Options {
-  id: string;
   input: EventInput;
   functions: string[];
   sides: GuestGroup[];
@@ -36,7 +35,7 @@ interface Options {
 }
 
 /** State and actions for the Add guests panel: mode, AI groups, pasted text, drafts and side. */
-export function useAddGuests({ id, input, functions, sides, onAdd }: Options) {
+export function useAddGuests({ input, functions, sides, onAdd }: Options) {
   const [mode, setMode] = useState<AddMode>("choose");
   const [groups, setGroups] = useState<GroupIdeas | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,6 +46,7 @@ export function useAddGuests({ id, input, functions, sides, onAdd }: Options) {
   const [drafts, setDrafts] = useState<DraftEntry[] | null>(null);
   const [skipped, setSkipped] = useState<string[]>([]);
   const contacts = contactsApi();
+  const pasteRef = useRef<HTMLTextAreaElement>(null);
 
   async function help() {
     setMode("help");
@@ -69,7 +69,7 @@ export function useAddGuests({ id, input, functions, sides, onAdd }: Options) {
     setDrafts(null);
     setSkipped([]);
     setMode("paste");
-    requestAnimationFrame(() => document.getElementById(`${id}-paste`)?.focus());
+    requestAnimationFrame(() => pasteRef.current?.focus());
   }
 
   function read() {
@@ -125,6 +125,7 @@ export function useAddGuests({ id, input, functions, sides, onAdd }: Options) {
     error,
     text,
     setText,
+    pasteRef,
     side,
     setSide,
     forGroup,

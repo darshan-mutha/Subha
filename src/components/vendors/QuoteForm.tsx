@@ -1,7 +1,33 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { FormEvent, InputHTMLAttributes } from "react";
 import type { QuoteDraft } from "./types";
+
+/** One labelled quote input whose error (when shown) is linked to it with aria-describedby. */
+function QuoteField({
+  id,
+  label,
+  error,
+  wide = false,
+  ...input
+}: {
+  id: string;
+  label: string;
+  error: string | undefined;
+  wide?: boolean;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "aria-invalid" | "aria-describedby">) {
+  return (
+    <div className={wide ? "field field-wide" : "field"}>
+      <label htmlFor={id}>{label}</label>
+      <input id={id} {...input} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-err` : undefined} />
+      {error && (
+        <span id={`${id}-err`} className="field-error">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
 
 /** The add-a-quote form: vendor name, price, phone and what's included. */
 export function QuoteForm({
@@ -21,65 +47,44 @@ export function QuoteForm({
 }) {
   return (
     <form className="quote-form no-print" onSubmit={onSubmit} noValidate>
-      <div className="field">
-        <label htmlFor={`${uid}-name`}>Vendor name</label>
-        <input
-          id={`${uid}-name`}
-          type="text"
-          value={form.vendorName}
-          maxLength={60}
-          aria-invalid={Boolean(errors.vendorName)}
-          aria-describedby={errors.vendorName ? `${uid}-name-err` : undefined}
-          onChange={(e) => onChange({ ...form, vendorName: e.target.value })}
-        />
-        {errors.vendorName && (
-          <span id={`${uid}-name-err`} className="field-error">
-            {errors.vendorName}
-          </span>
-        )}
-      </div>
-      <div className="field">
-        <label htmlFor={`${uid}-amount`}>Quoted price (₹)</label>
-        <input
-          id={`${uid}-amount`}
-          type="text"
-          inputMode="numeric"
-          value={form.amount}
-          aria-invalid={Boolean(errors.amount)}
-          aria-describedby={errors.amount ? `${uid}-amount-err` : undefined}
-          onChange={(e) => onChange({ ...form, amount: e.target.value.replace(/[^\d]/g, "") })}
-        />
-        {errors.amount && (
-          <span id={`${uid}-amount-err`} className="field-error">
-            {errors.amount}
-          </span>
-        )}
-      </div>
-      <div className="field">
-        <label htmlFor={`${uid}-phone`}>Phone (optional)</label>
-        <input
-          id={`${uid}-phone`}
-          type="tel"
-          value={form.phone}
-          maxLength={20}
-          aria-invalid={Boolean(errors.phone)}
-          onChange={(e) => onChange({ ...form, phone: e.target.value })}
-        />
-        {errors.phone && <span className="field-error">{errors.phone}</span>}
-      </div>
-      <div className="field field-wide">
-        <label htmlFor={`${uid}-includes`}>What&apos;s included (optional)</label>
-        <input
-          id={`${uid}-includes`}
-          type="text"
-          value={form.includes}
-          maxLength={300}
-          placeholder="e.g. Veg buffet, 2 sweets, serving staff"
-          aria-invalid={Boolean(errors.includes)}
-          onChange={(e) => onChange({ ...form, includes: e.target.value })}
-        />
-        {errors.includes && <span className="field-error">{errors.includes}</span>}
-      </div>
+      <QuoteField
+        id={`${uid}-name`}
+        label="Vendor name"
+        error={errors.vendorName}
+        type="text"
+        value={form.vendorName}
+        maxLength={60}
+        onChange={(e) => onChange({ ...form, vendorName: e.target.value })}
+      />
+      <QuoteField
+        id={`${uid}-amount`}
+        label="Quoted price (₹)"
+        error={errors.amount}
+        type="text"
+        inputMode="numeric"
+        value={form.amount}
+        onChange={(e) => onChange({ ...form, amount: e.target.value.replace(/[^\d]/g, "") })}
+      />
+      <QuoteField
+        id={`${uid}-phone`}
+        label="Phone (optional)"
+        error={errors.phone}
+        type="tel"
+        value={form.phone}
+        maxLength={20}
+        onChange={(e) => onChange({ ...form, phone: e.target.value })}
+      />
+      <QuoteField
+        id={`${uid}-includes`}
+        label="What's included (optional)"
+        error={errors.includes}
+        wide
+        type="text"
+        value={form.includes}
+        maxLength={300}
+        placeholder="e.g. Veg buffet, 2 sweets, serving staff"
+        onChange={(e) => onChange({ ...form, includes: e.target.value })}
+      />
       <div className="row">
         <button type="submit" className="btn btn-primary btn-small">
           Add quote

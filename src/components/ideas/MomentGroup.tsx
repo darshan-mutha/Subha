@@ -1,6 +1,7 @@
 "use client";
 
-import { ideaId, type IdeaState } from "@/lib/ideas";
+import type { IdeaState } from "@/lib/ideas/schema";
+import { ideaId } from "@/lib/ideas/state";
 import { MOMENT_LABELS, type Idea, type Moment } from "@/lib/schemas";
 import { IdeaCard, type IdeaHandlers } from "./IdeaCard";
 

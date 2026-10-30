@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { clearPlan, loadPlan, type LocalWorkspace } from "./client";
+import { clearPlan, loadPlan, StoredWorkspaceSchema, type LocalWorkspace } from "./client";
 import { EVENT_TYPE_LABELS, EVENT_TYPES, type EventInput } from "./schemas";
+import { readJson, removeKey, writeJson } from "./storage";
 import { SHARE_ID } from "./team";
 
 /**
@@ -49,32 +50,6 @@ export function titleOf(input: Pick<EventInput, "eventName" | "eventType">): str
   return input.eventName || EVENT_TYPE_LABELS[input.eventType];
 }
 
-function read<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-function write(key: string, value: unknown): boolean {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false; // storage may be full or unavailable (private mode); saving is optional
-  }
-}
-
-function remove(key: string) {
-  try {
-    localStorage.removeItem(key);
-  } catch {
-    /* ignore */
-  }
-}
-
 /** Upcoming events first (soonest at the top), then past ones (most recent first). */
 export function sortEvents(list: EventEntry[], today: string): EventEntry[] {
   const upcoming = list.filter((e) => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
@@ -83,7 +58,7 @@ export function sortEvents(list: EventEntry[], today: string): EventEntry[] {
 }
 
 function readIndex(): EventEntry[] {
-  return IndexSchema.parse(read<unknown>(INDEX_KEY) ?? []);
+  return readJson(INDEX_KEY, IndexSchema) ?? [];
 }
 
 function writeIndex(list: EventEntry[]) {
@@ -94,8 +69,8 @@ function writeIndex(list: EventEntry[]) {
     .sort((a, b) => b.entry.updatedAt - a.entry.updatedAt || b.i - a.i)
     .slice(0, MAX_EVENTS)
     .map(({ entry }) => entry);
-  for (const dropped of list.filter((e) => !kept.includes(e))) remove(eventKey(dropped.key));
-  write(INDEX_KEY, kept);
+  for (const dropped of list.filter((e) => !kept.includes(e))) removeKey(eventKey(dropped.key));
+  writeJson(INDEX_KEY, kept);
 }
 
 /**
@@ -118,7 +93,7 @@ export function listEvents(): EventEntry[] {
 }
 
 export function loadEvent(key: string): LocalWorkspace | null {
-  return KEY.test(key) ? read<LocalWorkspace>(eventKey(key)) : null;
+  return KEY.test(key) ? readJson(eventKey(key), StoredWorkspaceSchema) : null;
 }
 
 function entryFor(key: string, input: EventInput, extra: Partial<EventEntry> = {}): EventEntry {
@@ -136,7 +111,7 @@ function entryFor(key: string, input: EventInput, extra: Partial<EventEntry> = {
 /** Saves an event kept on this device and updates its line in the list. */
 export function saveEvent(key: string, data: LocalWorkspace): boolean {
   if (!KEY.test(key) || !data?.input) return false;
-  if (!write(eventKey(key), data)) return false;
+  if (!writeJson(eventKey(key), data)) return false;
   const list = readIndex().filter((e) => e.key !== key);
   writeIndex([...list, entryFor(key, data.input)]);
   return true;
@@ -146,7 +121,7 @@ export function saveEvent(key: string, data: LocalWorkspace): boolean {
 export function markShared(key: string, sharedId: string, input: EventInput): void {
   const list = readIndex().filter((e) => e.key !== key && e.sharedId !== sharedId);
   writeIndex([...list, entryFor(key, input, { sharedId })]);
-  remove(eventKey(key));
+  removeKey(eventKey(key));
 }
 
 /** A shared plan was opened here (by the host or a helper): add or refresh it in the list. */
@@ -170,17 +145,16 @@ export function rememberShared(sharedId: string, input: EventInput): void {
 /** Removes an event from this device. A shared plan stays on its link for the team. */
 export function removeEvent(key: string): void {
   writeIndex(readIndex().filter((e) => e.key !== key));
-  remove(eventKey(key));
+  removeKey(eventKey(key));
   if (currentEvent() === key) setCurrentEvent("");
 }
 
 /** The event that was open last on this device. */
 export function currentEvent(): string {
-  const key = read<string>(CURRENT_KEY) ?? "";
-  return typeof key === "string" && KEY.test(key) ? key : "";
+  return readJson(CURRENT_KEY, z.string().regex(KEY)) ?? "";
 }
 
 export function setCurrentEvent(key: string): void {
-  if (key) write(CURRENT_KEY, key);
-  else remove(CURRENT_KEY);
+  if (key) writeJson(CURRENT_KEY, key);
+  else removeKey(CURRENT_KEY);
 }

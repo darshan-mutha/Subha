@@ -1,5 +1,5 @@
-import { PlannerError } from "@/lib/ai";
-import { errorResponse, handleJson, jsonResponse } from "@/lib/http";
+import { HttpError } from "@/lib/errors";
+import { errorResponse, handleJson, jsonResponse, withErrors } from "@/lib/http";
 import { guestEvent, ReplyInputSchema, RSVP_TOKEN, SubmitReplySchema } from "@/lib/rsvp";
 import { getRsvpStore } from "@/lib/rsvpStore";
 import { getStore } from "@/lib/store";
@@ -22,15 +22,14 @@ async function lookup(context: Context) {
 
 /** What a guest sees: the invitation only, never the plan or budget. */
 export async function GET(_request: Request, context: Context) {
-  try {
-    const found = await lookup(context);
-    if (!found) return errorResponse(NOT_FOUND, 404);
-    return jsonResponse(guestEvent(found.plan.input, found.plan.invite, found.link.open));
-  } catch (error) {
-    if (error instanceof PlannerError) return errorResponse(error.message, error.status);
-    console.error("RSVP load failure:", error instanceof Error ? error.message : "unknown error");
-    return errorResponse("Could not load the invitation. Please try again.", 500);
-  }
+  return withErrors(
+    async () => {
+      const found = await lookup(context);
+      if (!found) return errorResponse(NOT_FOUND, 404);
+      return jsonResponse(guestEvent(found.plan.input, found.plan.invite, found.link.open));
+    },
+    { log: "RSVP load failure:", message: "Could not load the invitation. Please try again." },
+  );
 }
 
 /** A guest replies, or changes their reply. */
@@ -42,13 +41,11 @@ export async function POST(request: Request, context: Context) {
       const parsed = ReplyInputSchema.safeParse(reply);
       if (!parsed.success) {
         const fields = fieldErrors(parsed.error);
-        throw Object.assign(new PlannerError(Object.values(fields)[0] ?? "Please check your reply.", 400), {
-          fields,
-        });
+        throw new HttpError(Object.values(fields)[0] ?? "Please check your reply.", 400, fields);
       }
       const found = await lookup(context);
-      if (!found) throw new PlannerError(NOT_FOUND, 404);
-      if (!found.link.open) throw new PlannerError("The hosts are no longer taking replies.", 403);
+      if (!found) throw new HttpError(NOT_FOUND, 404);
+      if (!found.link.open) throw new HttpError("The hosts are no longer taking replies.", 403);
       const saved = await getRsvpStore().saveReply(found.link.planId, parsed.data, replyId, secret);
       return { replyId: saved.id, secret: saved.secret };
     },

@@ -1,5 +1,9 @@
 import type { EventInput, Plan } from "./schemas";
-import { todayIST } from "./schemas";
+import { daysBetween, todayIST } from "./dates";
+import { formatINR } from "./money";
+import { scaleToTotal } from "./scale";
+
+export { formatINR, formatShortINR } from "./money";
 
 /** Rough minimum spend per guest (INR) below which a plan is very hard to deliver. */
 const MIN_PER_GUEST: Partial<Record<EventInput["eventType"], number>> = {
@@ -9,24 +13,6 @@ const MIN_PER_GUEST: Partial<Record<EventInput["eventType"], number>> = {
 };
 const DEFAULT_MIN_PER_GUEST = 300;
 
-/** Formats a number as Indian Rupees, e.g. ₹12,50,000. */
-export function formatINR(amount: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(Math.round(amount));
-}
-
-/** Short amounts for tight spaces: ₹45,000 · ₹7.2 L · ₹1.25 Cr. Exact amounts stay with formatINR. */
-export function formatShortINR(amount: number): string {
-  const n = Math.round(amount);
-  const trim = (v: number, digits: number) => String(Math.round(v * 10 ** digits) / 10 ** digits);
-  if (Math.abs(n) >= 10_000_000) return `₹${trim(n / 10_000_000, 2)} Cr`;
-  if (Math.abs(n) >= 100_000) return `₹${trim(n / 100_000, 1)} L`;
-  return formatINR(n);
-}
-
 /**
  * The AI's budget lines rarely add up exactly. Scale them so they sum to the
  * user's total, rounding to the nearest ₹100 and putting any remainder in the
@@ -35,21 +21,12 @@ export function formatShortINR(amount: number): string {
 export function normalizeBudget(lines: Plan["budget"], total: number): Plan["budget"] {
   const positive = lines.filter((l) => l.amount > 0);
   const source = positive.length > 0 ? positive : lines.map((l) => ({ ...l, amount: 1 }));
-  const sum = source.reduce((acc, l) => acc + l.amount, 0);
-  const scaled = source.map((l) => ({ ...l, amount: Math.round(((l.amount / sum) * total) / 100) * 100 }));
-  const diff = total - scaled.reduce((acc, l) => acc + l.amount, 0);
-  let largest = 0;
-  scaled.forEach((l, i) => {
-    if (l.amount > scaled[largest].amount) largest = i;
-  });
-  scaled[largest] = { ...scaled[largest], amount: scaled[largest].amount + diff };
-  return scaled.sort((a, b) => b.amount - a.amount);
-}
-
-function daysBetween(fromIso: string, toIso: string): number {
-  const from = Date.parse(`${fromIso}T00:00:00Z`);
-  const to = Date.parse(`${toIso}T00:00:00Z`);
-  return Math.round((to - from) / 86_400_000);
+  const amounts = scaleToTotal(
+    source.map((l) => l.amount),
+    total,
+    { step: 100, floorAtZero: false },
+  );
+  return source.map((l, i) => ({ ...l, amount: amounts[i] })).sort((a, b) => b.amount - a.amount);
 }
 
 /** Checks Shubā can make without AI: budget realism and short notice. */

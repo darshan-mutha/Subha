@@ -1,7 +1,7 @@
 import type { LocalWorkspace } from "@/lib/client";
 import { loadEvent } from "@/lib/myEvents";
 import { PlanSchema, withInputDefaults } from "@/lib/schemas";
-import { IdeaStateSchema } from "@/lib/ideas";
+import { IdeaStateSchema } from "@/lib/ideas/schema";
 import { DEFAULT_SEATING, SeatingSchema } from "@/lib/seating";
 import { GuestListSchema } from "@/lib/guestList";
 import { InviteSchema } from "@/lib/invite";

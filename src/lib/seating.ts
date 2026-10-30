@@ -239,7 +239,7 @@ export function planSeating(
       tables[number - 1].push(...seats.map((s) => ({ ...s, moved: true })));
     }
     // Drop empty tables at the end. Empty tables in between keep their numbers, so moves stay put.
-    while (tables.length && tables.at(-1)!.length === 0) tables.pop();
+    while (tables.at(-1)?.length === 0) tables.pop();
   }
 
   const described = tables.map((seats, i) => describe(seats, i + 1, size));

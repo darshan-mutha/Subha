@@ -49,7 +49,7 @@ describe("Neon guest reply store", () => {
 
   it("stores only a hash of the guest's secret and checks it when changing a reply", async () => {
     const store = createNeonRsvpStore("postgres://test");
-    rows.push([], [], [], [{ n: 0 }], []);
+    rows.push([], [], [], [{ id: "r1" }]);
     const { id, secret } = await store.saveReply("plan", input);
     const insert = queries.find((q) => q.text.startsWith("INSERT INTO shuba_replies"))!;
     expect(insert.values).not.toContain(secret);
@@ -63,8 +63,13 @@ describe("Neon guest reply store", () => {
 
   it("stops at the reply limit, lists and removes", async () => {
     const store = createNeonRsvpStore("postgres://test");
-    rows.push([], [], [], [{ n: 3000 }]);
+    rows.push([], [], [], []);
     await expect(store.saveReply("plan", input)).rejects.toMatchObject({ status: 409 });
+    const insert = queries.at(-1);
+    expect(insert?.text).toMatch(
+      /^INSERT INTO shuba_replies .* SELECT .* WHERE \(SELECT count\(\*\) FROM shuba_replies WHERE plan_id = \?\) < \?/,
+    );
+    expect(insert?.values.at(-1)).toBe(3000);
     rows.push([{ id: "r1", data: input, created_at: "2026-10-26T00:00:00Z", updated_at: "2026-10-26T01:00:00Z" }]);
     expect(await store.listReplies("plan")).toEqual([
       { ...input, id: "r1", createdAt: "2026-10-26T00:00:00.000Z", updatedAt: "2026-10-26T01:00:00.000Z" },

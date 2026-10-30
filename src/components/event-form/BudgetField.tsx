@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { BudgetHelper } from "@/components/BudgetHelper";
 import { formatINR } from "@/lib/budget";
-import { formatShortINR, perGuest, type BudgetOption } from "@/lib/budgetGuide";
+import { perGuest, type BudgetOption } from "@/lib/budgetGuide";
+import { formatLakhCrore } from "@/lib/money";
 import { LIMITS } from "@/lib/schemas";
 import { FieldError, fieldAttrs, type FieldContext } from "./fieldHelpers";
 import type { FormValues } from "./formValues";
@@ -26,7 +27,7 @@ export function BudgetField({ ctx, values, update }: Props) {
 
   function pickBudget(option: BudgetOption) {
     update("budget", String(option.suggested));
-    setBudgetNote(`${option.label} budget of ${formatShortINR(option.suggested)} added. You can change it any time.`);
+    setBudgetNote(`${option.label} budget of ${formatLakhCrore(option.suggested)} added. You can change it any time.`);
     setHelperOpen(false);
     budgetRef.current?.focus();
   }

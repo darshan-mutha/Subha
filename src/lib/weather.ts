@@ -1,5 +1,8 @@
 import { z } from "zod";
+import { addDays, daysBetween, todayIST } from "./dates";
 import { findLocation } from "./locations";
+
+export { addDays, daysBetween };
 
 /**
  * Weather for the event, from the free Open-Meteo service (no key needed).
@@ -18,7 +21,10 @@ const RAINY_MM = 1;
 
 export const WeatherRequestSchema = z.object({
   city: z.string().trim().min(1).max(80),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`))),
   days: z.number().int().min(1).max(7).default(1),
 });
 export type WeatherRequest = z.infer<typeof WeatherRequestSchema>;
@@ -61,28 +67,6 @@ const NONE: WeatherSummary = {
   days: [],
   forecastFrom: null,
 };
-
-function parseIso(iso: string): number {
-  const [y, m, d] = iso.split("-").map(Number);
-  return Date.UTC(y, m - 1, d);
-}
-
-function toIso(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10);
-}
-
-export function addDays(iso: string, n: number): string {
-  return toIso(parseIso(iso) + n * 86_400_000);
-}
-
-export function daysBetween(from: string, to: string): number {
-  return Math.round((parseIso(to) - parseIso(from)) / 86_400_000);
-}
-
-/** Today's date in India. */
-export function todayIst(now = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(now);
-}
 
 export function rainLevel(share: number): RainLevel {
   if (share >= 0.5) return "likely";
@@ -159,7 +143,7 @@ export async function getWeather(
     timeoutMs = 6000,
   }: { fetcher?: typeof fetch; now?: Date; timeoutMs?: number } = {},
 ): Promise<WeatherSummary> {
-  const today = todayIst(now);
+  const today = todayIST(now);
   const days = req.days ?? 1;
   const last = addDays(req.date, days - 1);
   if (daysBetween(today, last) < 0) return NONE; // the event is over
@@ -254,7 +238,8 @@ export function summariseUsual(
   let rainy = 0;
   const years = new Set<number>();
   (daily.time ?? []).forEach((d, i) => {
-    if (!wanted.has(d)) return;
+    const year = wanted.get(d);
+    if (year === undefined) return;
     const max = daily.temperature_2m_max?.[i];
     const min = daily.temperature_2m_min?.[i];
     const rain = daily.precipitation_sum?.[i];
@@ -264,7 +249,7 @@ export function summariseUsual(
       measured++;
       if (rain >= RAINY_MM) rainy++;
     }
-    years.add(wanted.get(d) as number);
+    years.add(year);
   });
   if (maxes.length === 0 || mins.length === 0) return NONE;
   const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;

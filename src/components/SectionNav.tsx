@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 
 export interface NavAction {
   label: string;
@@ -58,20 +58,13 @@ const Icon = ({ children }: { children: ReactNode }) => (
   </svg>
 );
 
-/**
- * The plan's navigation: the four sections used most, and a menu (☰) for the
- * other sections and the page actions. On computers it sits above the plan
- * and stays in view while scrolling; on phones it is fixed to the bottom.
- */
-export function SectionNav({ sections, active, onPick, actions }: Props) {
-  const menuId = useId();
-  const [open, setOpen] = useState(false);
-  const moreRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const main = MAIN.filter((m) => sections.some((s) => s.id === m.id));
-  const rest = sections.filter((s) => !MAIN.some((m) => m.id === s.id));
-  const moreActive = rest.some((s) => s.id === active);
-
+/** Closes the open menu on Escape (returning focus to ☰) or a press outside it, and focuses its first item. */
+function useMenuDismiss(
+  open: boolean,
+  setOpen: (open: boolean) => void,
+  menuRef: RefObject<HTMLDivElement | null>,
+  moreRef: RefObject<HTMLButtonElement | null>,
+) {
   useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent | MouseEvent) => {
@@ -81,7 +74,8 @@ export function SectionNav({ sections, active, onPick, actions }: Props) {
         moreRef.current?.focus();
         return;
       }
-      const target = event.target as Node;
+      const target = event.target;
+      if (!(target instanceof Node)) return;
       if (!menuRef.current?.contains(target) && !moreRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("keydown", close);
@@ -91,7 +85,78 @@ export function SectionNav({ sections, active, onPick, actions }: Props) {
       document.removeEventListener("keydown", close);
       document.removeEventListener("mousedown", close);
     };
-  }, [open]);
+  }, [open, setOpen, menuRef, moreRef]);
+}
+
+/** True when focus is moving to an element outside `container` (not when it is simply lost). */
+export function focusLeaves(container: Element, next: EventTarget | null): boolean {
+  return next instanceof Node && !container.contains(next);
+}
+
+/** The ☰ menu: the sections not on the bar, then the page actions. */
+function NavMenu({
+  id,
+  menuRef,
+  rest,
+  active,
+  actions,
+  onPick,
+  onAction,
+}: {
+  id: string;
+  menuRef: RefObject<HTMLDivElement | null>;
+  rest: Props["sections"];
+  active: string;
+  actions: NavAction[];
+  onPick: (id: string) => void;
+  onAction: (action: NavAction) => void;
+}) {
+  return (
+    <div className="nav-menu" id={id} ref={menuRef}>
+      <p className="nav-menu-title">Sections</p>
+      <ul role="list">
+        {rest.map((s) => (
+          <li key={s.id}>
+            <button
+              type="button"
+              className="nav-menu-item"
+              aria-current={s.id === active ? "page" : undefined}
+              onClick={() => onPick(s.id)}
+            >
+              {s.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="nav-menu-title nav-menu-actions">This event</p>
+      <ul role="list">
+        {actions.map((a) => (
+          <li key={a.label}>
+            <button type="button" className="nav-menu-item" onClick={() => onAction(a)}>
+              {a.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * The plan's navigation: the four sections used most, and a menu (☰) for the
+ * other sections and the page actions. On computers it sits above the plan
+ * and stays in view while scrolling; on phones it is fixed to the bottom.
+ * The menu closes when keyboard focus moves out of the navigation.
+ */
+export function SectionNav({ sections, active, onPick, actions }: Props) {
+  const menuId = useId();
+  const [open, setOpen] = useState(false);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const main = MAIN.filter((m) => sections.some((s) => s.id === m.id));
+  const rest = sections.filter((s) => !MAIN.some((m) => m.id === s.id));
+  const moreActive = rest.some((s) => s.id === active);
+  useMenuDismiss(open, setOpen, menuRef, moreRef);
 
   const pick = (id: string) => {
     setOpen(false);
@@ -99,42 +164,26 @@ export function SectionNav({ sections, active, onPick, actions }: Props) {
   };
 
   return (
-    <nav className="section-nav no-print" aria-label="Plan sections">
+    <nav
+      className="section-nav no-print"
+      aria-label="Plan sections"
+      onBlur={(e) => {
+        if (open && focusLeaves(e.currentTarget, e.relatedTarget)) setOpen(false);
+      }}
+    >
       {open && (
-        <div className="nav-menu" id={menuId} ref={menuRef}>
-          <p className="nav-menu-title">Sections</p>
-          <ul role="list">
-            {rest.map((s) => (
-              <li key={s.id}>
-                <button
-                  type="button"
-                  className="nav-menu-item"
-                  aria-current={s.id === active ? "page" : undefined}
-                  onClick={() => pick(s.id)}
-                >
-                  {s.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="nav-menu-title nav-menu-actions">This event</p>
-          <ul role="list">
-            {actions.map((a) => (
-              <li key={a.label}>
-                <button
-                  type="button"
-                  className="nav-menu-item"
-                  onClick={() => {
-                    setOpen(false);
-                    a.onClick();
-                  }}
-                >
-                  {a.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <NavMenu
+          id={menuId}
+          menuRef={menuRef}
+          rest={rest}
+          active={active}
+          actions={actions}
+          onPick={pick}
+          onAction={(a) => {
+            setOpen(false);
+            a.onClick();
+          }}
+        />
       )}
       <ul role="list" className="section-nav-bar">
         {main.map((m) => (

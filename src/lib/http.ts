@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { z } from "zod";
-import { PlannerError } from "./ai";
+import { HttpError } from "./errors";
 import { clientKey, combineLimiters, createRateLimiter } from "./rateLimit";
 import { fieldErrors } from "./schemas";
 
@@ -47,10 +47,12 @@ export function isCrossSite(request: Request): boolean {
 
 const JSON_HEADERS = { "Cache-Control": "no-store" };
 
+/** A JSON reply that browsers and proxies never cache. */
 export function jsonResponse(data: unknown, status = 200) {
   return NextResponse.json(data, { status, headers: JSON_HEADERS });
 }
 
+/** A JSON error reply: `{ error, fields }` with the given status. */
 export function errorResponse(message: string, status: number, fields?: Record<string, string>) {
   return NextResponse.json({ error: message, fields }, { status, headers: JSON_HEADERS });
 }
@@ -92,7 +94,7 @@ export async function handleJson<S extends z.ZodTypeAny, R>(
   }
 
   const text = await request.text();
-  if (text.length > maxBytes) return errorResponse("Request is too large.", 413);
+  if (new TextEncoder().encode(text).byteLength > maxBytes) return errorResponse("Request is too large.", 413);
 
   let body: unknown;
   try {
@@ -106,18 +108,26 @@ export async function handleJson<S extends z.ZodTypeAny, R>(
     return errorResponse("Please check the highlighted fields.", 400, fieldErrors(parsed.error));
   }
 
+  return withErrors(async () => NextResponse.json(await run(parsed.data), { headers: JSON_HEADERS }), {
+    log: "Planner failure:",
+    message: "Something went wrong while planning. Please try again.",
+  });
+}
+
+/**
+ * Runs a route handler and turns failures into safe replies: an HttpError
+ * keeps its status, message and field errors; anything else is logged (message
+ * only) and answered with a friendly 500.
+ */
+export async function withErrors(
+  handle: () => Promise<NextResponse>,
+  { log, message }: { log: string; message: string },
+): Promise<NextResponse> {
   try {
-    const result = await run(parsed.data);
-    return NextResponse.json(result, { headers: JSON_HEADERS });
+    return await handle();
   } catch (error) {
-    if (error instanceof PlannerError) {
-      return errorResponse(
-        error.message,
-        error.status,
-        (error as PlannerError & { fields?: Record<string, string> }).fields,
-      );
-    }
-    console.error("Planner failure:", error instanceof Error ? error.message : "unknown error");
-    return errorResponse("Something went wrong while planning. Please try again.", 500);
+    if (error instanceof HttpError) return errorResponse(error.message, error.status, error.fields);
+    console.error(log, error instanceof Error ? error.message : "unknown error");
+    return errorResponse(message, 500);
   }
 }

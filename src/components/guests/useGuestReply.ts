@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { z } from "zod";
 import { ApiError, ApiStatusError, loadGuestEvent, sendReply } from "@/lib/client";
+import { readJson, writeJson } from "@/lib/storage";
 import { ReplyInputSchema, type Coming, type GuestEvent, type ReplyInput } from "@/lib/rsvp";
 import { fieldErrors, type GuestNeed } from "@/lib/schemas";
 
@@ -27,22 +29,14 @@ export interface ReplyForm {
 
 const storageKey = (token: string) => `shuba:rsvp:${token}`;
 
-function loadSaved(token: string): SavedReply | null {
-  try {
-    const raw = localStorage.getItem(storageKey(token));
-    const saved = raw ? (JSON.parse(raw) as SavedReply) : null;
-    return saved?.replyId && saved.secret && saved.reply ? saved : null;
-  } catch {
-    return null;
-  }
-}
+const SavedReplySchema = z.object({
+  replyId: z.string().min(1),
+  secret: z.string().min(1),
+  reply: ReplyInputSchema,
+});
 
-function keepSaved(token: string, saved: SavedReply) {
-  try {
-    localStorage.setItem(storageKey(token), JSON.stringify(saved));
-  } catch {
-    /* the reply is sent either way; this only lets the guest change it later */
-  }
+function loadSaved(token: string): SavedReply | null {
+  return readJson(storageKey(token), SavedReplySchema);
 }
 
 const EMPTY: ReplyForm = {
@@ -113,7 +107,7 @@ export function useGuestReply(token: string) {
         result = await sendReply(token, { reply });
       }
       const next = { replyId: result.replyId, secret: result.secret, reply };
-      keepSaved(token, next);
+      writeJson(storageKey(token), next); // only lets the guest change it later; the reply is sent either way
       setSaved(next);
       setEditing(false);
       requestAnimationFrame(() => thanksRef.current?.focus());

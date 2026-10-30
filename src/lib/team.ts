@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { hash } from "./hash";
-import { IdeaStateSchema, type IdeaState } from "./ideas";
+import { IdeaStateSchema, type IdeaState } from "./ideas/schema";
 import { DEFAULT_SEATING, SeatingSchema, type Seating } from "./seating";
 import { GuestListSchema, type GuestList } from "./guestList";
 import { DealsSchema, type Deals } from "./deals";
@@ -144,7 +144,7 @@ export const TimingsSchema = z
  * allowed here, because a shared plan stays useful up to and on the day.
  */
 export function makeSharedContentSchema(now: Date = new Date()) {
-  const input = makeEventInputSchema(new Date(now.getTime() - 400 * 86_400_000));
+  const input = makeEventInputSchema(now, { allowPast: true });
   return z.object({
     input,
     plan: PlanSchema,

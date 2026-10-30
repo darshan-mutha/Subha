@@ -1,5 +1,7 @@
 import type { EventType } from "./schemas";
 
+export { formatLakhCrore } from "./money";
+
 /**
  * "Not sure about budget?" helper. Works out three ready-made budget levels
  * (Simple / Comfortable / Grand) from event type, guests and city, with no AI
@@ -122,14 +124,6 @@ export function cityFactor(city: string): number {
 export function niceRound(amount: number): number {
   const step = amount < 100_000 ? 5_000 : amount < 1_000_000 ? 10_000 : 50_000;
   return Math.max(step, Math.round(amount / step) * step);
-}
-
-/** Short Indian form: ₹45,000 · ₹3.2 lakh · ₹1.25 crore. */
-export function formatShortINR(amount: number): string {
-  const trim = (n: number) => String(Number(n.toFixed(2)));
-  if (amount >= 10_000_000) return `₹${trim(amount / 10_000_000)} crore`;
-  if (amount >= 100_000) return `₹${trim(amount / 100_000)} lakh`;
-  return `₹${Math.round(amount).toLocaleString("en-IN")}`;
 }
 
 const VENUE: Record<Tier, string> = {

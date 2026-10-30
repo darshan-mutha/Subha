@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { describe, expect, it, vi } from "vitest";
 import { PlanWorkspace } from "@/components/PlanWorkspace";
+import { SectionNav, focusLeaves } from "@/components/SectionNav";
 import { baseInput, samplePlan } from "./fixtures";
 import { currentSection } from "./nav";
 
@@ -88,5 +89,49 @@ describe("Plan navigation", () => {
     await user.click(menu);
     await user.click(document.body);
     expect(nav.queryByRole("button", { name: "Edit details" })).not.toBeInTheDocument();
+  });
+
+  it("closes the menu when keyboard focus leaves the navigation", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <SectionNav
+          sections={[
+            { id: "home", label: "Home" },
+            { id: "team", label: "Team" },
+          ]}
+          active="home"
+          onPick={vi.fn()}
+          actions={[{ label: "Edit details", onClick: vi.fn() }]}
+        />
+        <button type="button">After</button>
+      </>,
+    );
+    const nav = within(screen.getByRole("navigation", { name: "Plan sections" }));
+    const menu = nav.getByRole("button", { name: "Menu" });
+    await user.click(menu);
+    expect(nav.getByRole("button", { name: "Team" })).toHaveFocus();
+    // Tabbing inside the nav keeps the menu open.
+    await user.tab();
+    expect(nav.getByRole("button", { name: "Edit details" })).toHaveFocus();
+    expect(menu).toHaveAttribute("aria-expanded", "true");
+    await user.tab();
+    await user.tab();
+    expect(menu).toHaveFocus();
+    expect(menu).toHaveAttribute("aria-expanded", "true");
+    // Tab past the last item: focus leaves the nav and the menu closes.
+    await user.tab();
+    expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+    expect(menu).toHaveAttribute("aria-expanded", "false");
+    expect(nav.queryByRole("button", { name: "Edit details" })).not.toBeInTheDocument();
+  });
+
+  it("focusLeaves only counts moves to an element outside the container", () => {
+    const box = document.createElement("div");
+    const inside = document.createElement("button");
+    box.append(inside);
+    expect(focusLeaves(box, inside)).toBe(false);
+    expect(focusLeaves(box, null)).toBe(false);
+    expect(focusLeaves(box, document.createElement("button"))).toBe(true);
   });
 });

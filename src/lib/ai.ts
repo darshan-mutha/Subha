@@ -1,15 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { z } from "zod";
+import { PlannerError } from "./errors";
 
-export class PlannerError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-    this.name = "PlannerError";
-  }
-}
+export { PlannerError };
 
 export interface GenerateRequest {
   system: string;

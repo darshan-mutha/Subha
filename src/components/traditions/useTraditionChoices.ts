@@ -5,12 +5,12 @@ import {
   ADDITION_FUNCTIONS,
   MAX_FUNCTIONS,
   MULTI_DAY_EVENT_TYPES,
+  TRADITIONS,
   additionDay,
   sameFunctions,
   suggestedFunctions,
   usualFunctions,
   type ModernAddition,
-  type Tradition,
 } from "@/lib/traditions";
 import type { TraditionValues } from "../TraditionPicker";
 
@@ -49,13 +49,13 @@ export function useTraditionChoices(values: TraditionValues, onChange: (next: Ch
   }
 
   function setTraditions(first: string, second: string) {
-    const list = [first, second].filter(Boolean) as Tradition[];
+    const list = [first, second].flatMap((v) => TRADITIONS.find((t) => t === v) ?? []);
     const unique = [...new Set(list)];
     refresh({ traditions: unique });
   }
 
   const suggested = multiDay ? usualFunctions(values.traditions, values.eventType) : [];
-  const additionNames = values.additions.map((a) => ADDITION_FUNCTIONS[a]?.name).filter(Boolean) as string[];
+  const additionNames = values.additions.flatMap((a) => ADDITION_FUNCTIONS[a]?.name || []);
   const names = [...new Set([...additionNames, ...suggested, ...values.functions.map((f) => f.name)])];
 
   function toggleFunction(name: string, on: boolean) {

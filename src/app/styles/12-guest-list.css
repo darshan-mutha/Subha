@@ -105,11 +105,12 @@
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-.gl-fns {
+/* .gl-main .x outranks ".gl-main p { margin: 0 }" without !important. */
+.gl-main .gl-fns {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 4px !important;
+  margin-top: 4px;
 }
 .gl-fns > span:not(.sr-only) {
   font-size: 0.72rem;
@@ -117,11 +118,11 @@
   padding: 1px 6px;
   background: var(--c-bg);
 }
-.gl-row-actions {
+.gl-main .gl-row-actions {
   display: flex;
   gap: 12px;
   font-size: 0.85rem;
-  margin-top: 4px !important;
+  margin-top: 4px;
 }
 .gl-side {
   display: flex;
@@ -236,9 +237,12 @@
   overflow-wrap: anywhere;
 }
 .gl-draft-n {
-  width: 64px !important;
   min-height: 36px;
   padding: 4px 8px;
+}
+/* Outranks input[type="number"] { width: 100% } without !important. */
+.gl-drafts .gl-draft-n {
+  width: 64px;
 }
 .gl-guess {
   color: var(--danger);
@@ -322,9 +326,9 @@
 .weather .small {
   margin-top: 2px;
 }
-.weather-tag {
+.weather .weather-tag {
   display: inline-block;
-  margin-top: 6px !important;
+  margin-top: 6px;
   font-size: 0.8rem;
   padding: 1px 10px;
   border-radius: var(--radius-full);

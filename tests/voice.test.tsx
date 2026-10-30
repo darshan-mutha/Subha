@@ -118,6 +118,8 @@ describe("VoiceStart speech to text", () => {
     await userEvent.click(screen.getByRole("button", { name: "Speak about your event" }));
     expect(last!.lang).toBe("hi-IN");
     expect(screen.getByRole("status")).toHaveTextContent(/Listening… 0:00/);
+    // The ticking clock is visible but hidden from screen readers, so the status is not re-read every second.
+    expect(screen.getByText("0:00")).toHaveAttribute("aria-hidden", "true");
     const heard = (words: string, isFinal: boolean) => Object.assign([{ transcript: words }], { isFinal });
     act(() => last!.onresult!({ resultIndex: 0, results: [heard("for 30 people,", true)] }));
     act(() => last!.onresult!({ resultIndex: 1, results: [heard("for 30 people,", true), heard("budget 4", false)] }));

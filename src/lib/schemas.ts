@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { todayIST } from "./dates";
 import { MAX_DAYS, MAX_FUNCTIONS, MODERN_ADDITIONS, TRADITIONS } from "./traditions";
 
 /** Event types Shubā supports. Kept as a closed list so prompts stay predictable. */
@@ -87,7 +88,7 @@ function choiceList<T extends string>(values: readonly T[], max: number) {
     .array(z.string())
     .default([])
     .transform((list) => [...new Set(list)].filter((v): v is T => (values as readonly string[]).includes(v)))
-    .pipe(z.array(z.enum(values as unknown as [T, ...T[]])).max(max, `Choose up to ${max}`));
+    .pipe(z.array(z.enum(values)).max(max, `Choose up to ${max}`));
 }
 
 export const LIMITS = {
@@ -112,15 +113,7 @@ export const safeText = (max: number, label: string) =>
     .max(max, `${label} must be ${max} characters or fewer`)
     .regex(SAFE_TEXT, `${label} contains characters that are not allowed`);
 
-/** Returns today's date (YYYY-MM-DD) in India. Event dates are compared in IST. */
-export function todayIST(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
-}
+export { todayIST };
 
 function isRealDate(value: string): boolean {
   if (!ISO_DATE.test(value)) return false;
@@ -134,18 +127,38 @@ function addYears(isoDate: string, years: number): string {
   return `${Number(y) + years}-${m}-${d}`;
 }
 
-export function makeEventInputSchema(now: Date = new Date()) {
+export interface EventInputSchemaOptions {
+  /**
+   * Accept dates already in the past. Used for saved and shared plans, which
+   * stay useful up to and on the day (and after it).
+   */
+  allowPast?: boolean;
+}
+
+/** The event date: a real date, not in the past (unless allowed) and within the years Shubā plans ahead. */
+function eventDateSchema(today: () => string, allowPast: boolean) {
+  const date = z.string().trim().refine(isRealDate, "Please enter a valid date");
+  const notPast = allowPast ? date : date.refine((v) => v >= today(), "The event date cannot be in the past");
+  return notPast.refine(
+    (v) => v <= addYears(today(), LIMITS.maxYearsAhead),
+    `Please choose a date within ${LIMITS.maxYearsAhead} years`,
+  );
+}
+
+/**
+ * The event form's rules. `now` fixes "today" for the not-in-the-past and
+ * years-ahead checks; pass `{ allowPast: true }` for plans already saved.
+ */
+export function makeEventInputSchema(now: Date = new Date(), options: EventInputSchemaOptions = {}) {
   const today = todayIST(now);
-  const latest = addYears(today, LIMITS.maxYearsAhead);
+  return eventInputSchema(() => today, options.allowPast ?? false);
+}
+
+function eventInputSchema(today: () => string, allowPast: boolean) {
   return z.object({
     eventType: z.enum(EVENT_TYPES, { message: "Please choose an event type" }),
     eventName: safeText(80, "Event name").optional().default(""),
-    date: z
-      .string()
-      .trim()
-      .refine(isRealDate, "Please enter a valid date")
-      .refine((v) => v >= today, "The event date cannot be in the past")
-      .refine((v) => v <= latest, `Please choose a date within ${LIMITS.maxYearsAhead} years`),
+    date: eventDateSchema(today, allowPast),
     city: z
       .string()
       .trim()
@@ -189,6 +202,13 @@ export function makeEventInputSchema(now: Date = new Date()) {
 }
 
 export type EventInput = z.infer<ReturnType<typeof makeEventInputSchema>>;
+
+/**
+ * Event details of a plan already saved or shared: the same rules as the form,
+ * except the date may be in the past. "Today" is read on each check, never
+ * frozen when the module loads.
+ */
+export const StoredEventInputSchema = eventInputSchema(() => todayIST(), true);
 
 /** Fills in fields added after a plan was saved (traditions, days, functions…). */
 export function withInputDefaults(input: EventInput): EventInput {

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { PlannerError } from "@/lib/ai";
-import { errorResponse, handleJson, jsonResponse } from "@/lib/http";
+import { HttpError, PLAN_NOT_FOUND } from "@/lib/errors";
+import { errorResponse, handleJson, jsonResponse, withErrors } from "@/lib/http";
 import { REPLY_ID } from "@/lib/rsvp";
 import { getRsvpStore } from "@/lib/rsvpStore";
 import { getStore } from "@/lib/store";
@@ -9,8 +9,6 @@ import { SHARE_ID } from "@/lib/team";
 export const runtime = "nodejs";
 
 type Context = { params: Promise<{ id: string }> };
-
-const NOT_FOUND = "This plan could not be found. The link may be wrong.";
 
 /** Guest link and replies, for anyone with the team link. */
 async function guestsOf(planId: string) {
@@ -25,16 +23,15 @@ async function planId(context: Context): Promise<string | null> {
   return (await getStore().get(id)) ? id : null;
 }
 
+/** The guest link and replies for a shared plan. */
 export async function GET(_request: Request, context: Context) {
-  try {
-    const id = await planId(context);
-    if (!id) return errorResponse(NOT_FOUND, 404);
-    return jsonResponse(await guestsOf(id));
-  } catch (error) {
-    if (error instanceof PlannerError) return errorResponse(error.message, error.status);
-    console.error("Guests load failure:", error instanceof Error ? error.message : "unknown error");
-    return errorResponse("Could not load guest replies. Please try again.", 500);
-  }
+  return withErrors(
+    async () => {
+      const id = await planId(context);
+      return id ? jsonResponse(await guestsOf(id)) : errorResponse(PLAN_NOT_FOUND, 404);
+    },
+    { log: "Guests load failure:", message: "Could not load guest replies. Please try again." },
+  );
 }
 
 const ActionSchema = z.discriminatedUnion("action", [
@@ -50,7 +47,7 @@ export async function POST(request: Request, context: Context) {
     ActionSchema,
     async (body) => {
       const id = await planId(context);
-      if (!id) throw new PlannerError(NOT_FOUND, 404);
+      if (!id) throw new HttpError(PLAN_NOT_FOUND, 404);
       const store = getRsvpStore();
       if (body.action === "open") {
         const link = await store.openLink(id);

@@ -1,3 +1,4 @@
+import { fullDate } from "@/lib/dates";
 import { EVENT_TYPE_LABELS } from "@/lib/schemas";
 import type { SharedPlanContent } from "@/lib/team";
 
@@ -12,9 +13,4 @@ export function aliveFromProgress(p: number): number {
 }
 
 /** e.g. "Wednesday, 27 October 2027". */
-export function formatDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { dateStyle: "full", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
-}
+export const formatDate = fullDate;

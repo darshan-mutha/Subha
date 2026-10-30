@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import type { Direction } from "@/lib/ideas";
+import type { Direction } from "@/lib/ideas/schema";
 import { Dots } from "./Dots";
 
 interface CardProps {

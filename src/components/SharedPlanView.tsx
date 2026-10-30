@@ -40,31 +40,13 @@ function contentOf(plan: SharedPlan): SharedPlanContent {
 }
 
 /**
- * A plan shared with the team: everyone with the link sees and updates the same plan.
- * Rendered in the browser only (see the page), as it reads the page URL and saved preferences.
+ * Loads a shared plan, refreshes it every 15 seconds while the page is visible,
+ * and saves changes and ticks. Changes show at once and are saved in order.
  */
-export function SharedPlanView({
-  id,
-  initialTab,
-  isNew = false,
-}: {
-  id: string;
-  /** Tab to open first, from the page address. */
-  initialTab?: string;
-  /** Just shared from this device: show a short note. */
-  isNew?: boolean;
-}) {
+function useSharedPlan(id: string, setNotice: (notice: string) => void) {
   const [shared, setShared] = useState<SharedPlan | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState(() => {
-    if (!isNew) return "";
-    return initialTab === "guests"
-      ? "Your plan is saved online. Turn on guest replies below to get the link for guests."
-      : "Your team link is ready. Send it to your helpers below.";
-  });
-  const [viewer, setViewer] = useState(() => loadViewer(id));
-  const shareUrl = `${window.location.origin}/p/${id}`;
-  const router = useRouter();
+  /** Saves still on their way to the server; a refresh then would undo them on screen. */
   const pending = useRef(0);
   const latest = useRef<SharedPlan | null>(null);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
@@ -73,23 +55,22 @@ export function SharedPlanView({
     latest.current = shared;
   }, [shared]);
 
-  // Keep this plan in My events on this device, so it can be found again without the link.
-  const sharedInput = shared?.input;
-  useEffect(() => {
-    if (sharedInput) rememberShared(id, sharedInput);
-  }, [id, sharedInput]);
-
-  const refresh = useCallback((): Promise<void> => {
-    if (pending.current > 0) return Promise.resolve(); // don't overwrite changes that are still saving
-    return loadShared(id).then(
-      (fresh) => {
-        if (pending.current === 0) setShared(fresh);
-        setError("");
-      },
-      (e: unknown) =>
-        setError(e instanceof ApiStatusError ? e.message : "Could not load the plan. Please check your connection."),
-    );
-  }, [id]);
+  /** Reloads the plan. `force` is for a save that just failed: that save no longer counts as pending. */
+  const refresh = useCallback(
+    ({ force = false }: { force?: boolean } = {}): Promise<void> => {
+      const othersSaving = () => pending.current - (force ? 1 : 0) > 0;
+      if (othersSaving()) return Promise.resolve(); // don't overwrite changes that are still saving
+      return loadShared(id).then(
+        (fresh) => {
+          if (!othersSaving()) setShared(fresh);
+          setError("");
+        },
+        (e: unknown) =>
+          setError(e instanceof ApiStatusError ? e.message : "Could not load the plan. Please check your connection."),
+      );
+    },
+    [id],
+  );
 
   useEffect(() => {
     if (window.location.search) window.history.replaceState(null, "", `/p/${id}`);
@@ -122,9 +103,7 @@ export function SharedPlanView({
           setShared(saved);
           setNotice("All changes saved");
         } catch (e) {
-          pending.current--;
-          await refresh();
-          pending.current++;
+          await refresh({ force: true });
           throw e;
         }
       }),
@@ -136,32 +115,74 @@ export function SharedPlanView({
   function toggle(itemId: string, done: boolean) {
     setShared((s) => (s ? { ...s, done: { ...s.done, [itemId]: done } } : s));
     void track(() => saveProgress(id, itemId, done))
-      .then(({ done: latest }) => setShared((s) => (s ? { ...s, done: latest } : s)))
+      .then(({ done: savedDone }) => setShared((s) => (s ? { ...s, done: savedDone } : s)))
       .catch(() => {
         setShared((s) => (s ? { ...s, done: { ...s.done, [itemId]: !done } } : s));
         setNotice("Could not save that tick. Please check your connection and try again.");
       });
   }
 
-  if (error && !shared) {
-    return (
-      <div className="card">
-        <h1 className="section-title">Plan not available</h1>
-        <p role="alert">{error}</p>
-        <Link className="btn btn-primary" href="/">
-          Plan a new event
-        </Link>
-      </div>
-    );
-  }
+  return { shared, error, change, toggle };
+}
 
-  if (!shared) {
-    return (
-      <p className="loading" role="status">
-        <span className="spinner" aria-hidden="true" /> Loading your plan…
-      </p>
-    );
-  }
+/** The plan could not be loaded and there is nothing to show. */
+function PlanUnavailable({ error }: { error: string }) {
+  return (
+    <div className="card">
+      <h1 className="section-title">Plan not available</h1>
+      <p role="alert">{error}</p>
+      <Link className="btn btn-primary" href="/">
+        Plan a new event
+      </Link>
+    </div>
+  );
+}
+
+/** Shown while the plan loads for the first time. */
+function PlanLoading() {
+  return (
+    <p className="loading" role="status">
+      <span className="spinner" aria-hidden="true" /> Loading your plan…
+    </p>
+  );
+}
+
+/** The short note shown when the plan was just shared from this device. */
+function firstNotice(isNew: boolean, initialTab?: string): string {
+  if (!isNew) return "";
+  return initialTab === "guests"
+    ? "Your plan is saved online. Turn on guest replies below to get the link for guests."
+    : "Your team link is ready. Send it to your helpers below.";
+}
+
+/**
+ * A plan shared with the team: everyone with the link sees and updates the same plan.
+ * Rendered in the browser only (see the page), as it reads the page URL and saved preferences.
+ */
+export function SharedPlanView({
+  id,
+  initialTab,
+  isNew = false,
+}: {
+  id: string;
+  /** Tab to open first, from the page address. */
+  initialTab?: string;
+  /** Just shared from this device: show a short note. */
+  isNew?: boolean;
+}) {
+  const [notice, setNotice] = useState(() => firstNotice(isNew, initialTab));
+  const { shared, error, change, toggle } = useSharedPlan(id, setNotice);
+  const [viewer, setViewer] = useState(() => loadViewer(id));
+  const router = useRouter();
+
+  // Keep this plan in My events on this device, so it can be found again without the link.
+  const sharedInput = shared?.input;
+  useEffect(() => {
+    if (sharedInput) rememberShared(id, sharedInput);
+  }, [id, sharedInput]);
+
+  if (error && !shared) return <PlanUnavailable error={error} />;
+  if (!shared) return <PlanLoading />;
 
   return (
     <div className="shared-page">
@@ -171,7 +192,7 @@ export function SharedPlanView({
         planId={id}
         initialTab={initialTab}
         data={shared}
-        shareUrl={shareUrl}
+        shareUrl={`${window.location.origin}/p/${id}`}
         viewer={viewer}
         onViewerChange={(m) => {
           setViewer(m);

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadPlan, savePlan, type LocalWorkspace } from "@/lib/client";
+import { loadPlan, type LocalWorkspace } from "@/lib/client";
 import {
   currentEvent,
   listEvents,
@@ -64,7 +64,7 @@ describe("My events storage", () => {
   });
 
   it("moves the plan from the one-plan version into the list, once", () => {
-    savePlan(ws());
+    localStorage.setItem("shuba:last-plan:v2", JSON.stringify(ws()));
     const list = listEvents();
     expect(list).toHaveLength(1);
     expect(loadPlan()).toBeNull();

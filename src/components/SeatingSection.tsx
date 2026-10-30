@@ -4,7 +4,7 @@ import { useId, useMemo } from "react";
 import type { Reply } from "@/lib/rsvp";
 import type { GuestList } from "@/lib/guestList";
 import { planSeating, seatingText, type Seating } from "@/lib/seating";
-import { CopyButton } from "./PlanSections";
+import { CopyButton } from "./plan/CopyButton";
 import { NoTablesHint, SeatingControls, SeatingScope, SeatTable } from "./guests/SeatingParts";
 
 interface Props {

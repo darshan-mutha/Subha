@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { toCsv } from "./csv";
+import { daysBetween } from "./dates";
 import { GUEST_GROUP_LABELS, GUEST_GROUPS, type GuestGroup, type Reply } from "./rsvp";
 
 /**
@@ -239,10 +241,6 @@ export function entryStatus(entry: GuestEntry, reply: Reply | undefined): EntryS
   return entry.invitedAt ? "invited" : "not-invited";
 }
 
-function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
-}
-
 /** Invited, no reply yet, and a week has passed since the invitation or the last reminder. */
 export function needsReminder(entry: GuestEntry, reply: Reply | undefined, today: string): boolean {
   if (reply || !entry.invitedAt) return false;
@@ -360,12 +358,6 @@ export function reminderFor(entry: GuestEntry, base: { title: string; link: stri
   return `Dear ${firstName(entry.name)}, a gentle reminder about ${base.title} on ${base.when}. We'd love to know if you can come and how many of you. ${ask}`;
 }
 
-const csvCell = (value: string | number) => {
-  const text = String(value);
-  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-};
-
 export function guestListCsv(rows: ListRow[]): string {
   const head = ["Name", "People", "Phone", "Side", "Functions", "Status", "Invited on", "Coming (from reply)"];
   const lines = rows.map((r) => [
@@ -378,7 +370,7 @@ export function guestListCsv(rows: ListRow[]): string {
     r.entry.invitedAt,
     r.reply && r.reply.coming !== "no" ? r.reply.adults + r.reply.kids : "",
   ]);
-  return [head, ...lines].map((row) => row.map(csvCell).join(",")).join("\n");
+  return toCsv([head, ...lines]);
 }
 
 /* ------------------------------------------------------------------ */

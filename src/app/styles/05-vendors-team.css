@@ -16,16 +16,6 @@ summary {
   padding: 12px 14px;
   margin: 8px 0 0;
 }
-.ideas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin-top: 12px;
-}
-.ideas-grid h3,
-.theme h3 {
-  margin-top: 0;
-}
 .note {
   background: var(--c-accent-soft);
   color: var(--c-on-accent-soft);

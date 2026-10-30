@@ -11,6 +11,7 @@ import {
   type Coming,
   type GuestEvent,
 } from "@/lib/rsvp";
+import { fullDate } from "@/lib/dates";
 import { PetalMark } from "../Brand";
 import type { ReplyForm } from "./useGuestReply";
 
@@ -21,13 +22,6 @@ type SetField = <K extends keyof ReplyForm>(key: K, value: ReplyForm[K]) => void
 interface FieldHelpers {
   fieldProps: (name: string) => { "aria-invalid": true | undefined; "aria-describedby": string | undefined };
   fieldError: (name: string) => ReactNode;
-}
-
-function niceDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { dateStyle: "full", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
 }
 
 function fieldHelpers(id: string, errors: Record<string, string>): FieldHelpers {
@@ -54,7 +48,7 @@ export function InviteCard({ event }: { event: GuestEvent }) {
       <h1>{event.heading}</h1>
       <p>{event.message}</p>
       <ul className="facts" aria-label="When and where">
-        <li>{niceDate(event.date)}</li>
+        <li>{fullDate(event.date)}</li>
         {event.time && <li>{event.time}</li>}
         <li>{event.venue}</li>
       </ul>

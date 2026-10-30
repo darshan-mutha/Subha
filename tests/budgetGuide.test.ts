@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cityFactor, formatShortINR, niceRound, perGuest, suggestBudgets, TIERS } from "@/lib/budgetGuide";
+import { cityFactor, niceRound, perGuest, suggestBudgets, TIERS } from "@/lib/budgetGuide";
+import { formatLakhCrore } from "@/lib/money";
 import { EVENT_TYPES } from "@/lib/schemas";
 
 describe("suggestBudgets", () => {
@@ -55,9 +56,9 @@ describe("helpers", () => {
   });
 
   it("formats short rupee amounts", () => {
-    expect(formatShortINR(45_000)).toBe("₹45,000");
-    expect(formatShortINR(320_000)).toBe("₹3.2 lakh");
-    expect(formatShortINR(12_500_000)).toBe("₹1.25 crore");
+    expect(formatLakhCrore(45_000)).toBe("₹45,000");
+    expect(formatLakhCrore(320_000)).toBe("₹3.2 lakh");
+    expect(formatLakhCrore(12_500_000)).toBe("₹1.25 crore");
   });
 
   it("works out per-guest spend only when both numbers are real", () => {

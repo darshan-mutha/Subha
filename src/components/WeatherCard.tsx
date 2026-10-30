@@ -2,21 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { requestWeather } from "@/lib/client";
+import { shortDateWithYear, shortWeekday } from "@/lib/dates";
 import { describeCode, weatherTip, type WeatherSummary } from "@/lib/weather";
-
-function shortDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
-}
-
-function shortDay(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { weekday: "short", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
-}
 
 const RAIN_WORDS = { low: "mostly dry", some: "some chance of rain", likely: "rain likely" } as const;
 
@@ -62,7 +49,7 @@ export function WeatherCard({ city, date, days }: { city: string; date: string; 
           </p>
           <p className="weather-tag">
             Based on the past {weather.years} years
-            {weather.forecastFrom && ` · real forecast from ${shortDate(weather.forecastFrom)}`}
+            {weather.forecastFrom && ` · real forecast from ${shortDateWithYear(weather.forecastFrom)}`}
           </p>
         </div>
       </section>
@@ -82,7 +69,7 @@ export function WeatherCard({ city, date, days }: { city: string; date: string; 
         <p className="small">
           {weather.days.map((d, i) => {
             const words = describeCode(d.code).label;
-            const prefix = weather.days.length > 1 ? `Day ${i + 1} ${shortDay(d.date)}` : shortDay(d.date);
+            const prefix = weather.days.length > 1 ? `Day ${i + 1} ${shortWeekday(d.date)}` : shortWeekday(d.date);
             const rain = d.rainChance !== null && d.rainChance >= 20 ? `, ${d.rainChance}% chance of rain` : "";
             return (
               <span key={d.date} className="weather-day">

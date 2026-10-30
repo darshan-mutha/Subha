@@ -2,19 +2,11 @@
 
 import { useRef, useState } from "react";
 import { ApiError, requestIdeas } from "@/lib/client";
-import {
-  carryChosen,
-  ideaId,
-  ideasContext,
-  mergeIdeas,
-  tidyText,
-  type Direction,
-  type Heart,
-  type IdeaState,
-  type IdeasRequest,
-  type Leaning,
-} from "@/lib/ideas";
+import { ideasContext, type IdeasRequest } from "@/lib/ideas/prompt";
+import type { Direction, Heart, IdeaState, Leaning } from "@/lib/ideas/schema";
+import { carryChosen, ideaId, mergeIdeas, tidyText } from "@/lib/ideas/state";
 import type { EventInput, Idea, Plan } from "@/lib/schemas";
+import { ideaChoices, themeFromDirection } from "./ideaChoices";
 
 /** Which Shubā request is running, if any. */
 export type Job = "themes" | "ideas" | "more" | null;
@@ -86,12 +78,7 @@ export function useIdeasActions({ input, plan, state, heart, onSave, onAdd, clea
     const items = carryChosen(plan.ideas.items, result.items, state);
     const next: Plan = {
       ...plan,
-      theme: {
-        name: direction.name,
-        description: direction.mood,
-        colors: direction.colors.map((c) => c.name),
-        swatches: direction.colors.map((c) => c.hex),
-      },
+      theme: themeFromDirection(direction),
       ideas: { signature: result.signature ?? direction.signature, items },
     };
     await onSave({ plan: next, ideaState: { ...state, heart, skipped: [] } });
@@ -126,39 +113,7 @@ export function useIdeasActions({ input, plan, state, heart, onSave, onAdd, clea
     );
   }
 
-  const save = (ideaState: IdeaState) => void onSave({ ideaState }).catch(() => undefined);
-
-  function keep(idea: Idea) {
-    const iid = ideaId(idea);
-    const on = !state.kept.includes(iid);
-    save({ ...state, kept: on ? [...state.kept, iid] : state.kept.filter((x) => x !== iid) });
-    setAnnounce(on ? `Kept: ${idea.title}` : `No longer kept: ${idea.title}`);
-  }
-
-  function skip(idea: Idea) {
-    const iid = ideaId(idea);
-    const on = !state.skipped.includes(iid);
-    save({
-      ...state,
-      skipped: on ? [...state.skipped, iid] : state.skipped.filter((x) => x !== iid),
-      kept: state.kept.filter((x) => x !== iid),
-    });
-    setAnnounce(on ? `Skipped: ${idea.title}` : `Brought back: ${idea.title}`);
-  }
-
-  function addIdea(idea: Idea) {
-    const iid = ideaId(idea);
-    const isKept = state.kept.includes(iid);
-    void onAdd(idea, {
-      ...state,
-      added: [...state.added, iid],
-      kept: isKept ? state.kept : [...state.kept, iid],
-    });
-  }
-
-  function addSignature(sig: Idea) {
-    void onAdd(sig, { ...state, added: [...state.added, ideaId(sig)] });
-  }
+  const choices = ideaChoices({ state, onSave, onAdd, setAnnounce });
 
   return {
     job,
@@ -172,9 +127,6 @@ export function useIdeasActions({ input, plan, state, heart, onSave, onAdd, clea
     choose,
     submitOwn,
     moreLike,
-    keep,
-    skip,
-    addIdea,
-    addSignature,
+    ...choices,
   };
 }

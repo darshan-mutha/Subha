@@ -1,6 +1,6 @@
 "use client";
 
-import { ideaId } from "@/lib/ideas";
+import { ideaId } from "@/lib/ideas/state";
 import type { Idea, Plan } from "@/lib/schemas";
 
 interface Props {

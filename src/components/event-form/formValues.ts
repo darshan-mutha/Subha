@@ -1,4 +1,5 @@
 import { suggestedFunctions, type TraditionValues } from "@/components/TraditionPicker";
+import { addDays, todayIST } from "@/lib/dates";
 import type { EventInput, EventType, FocusArea, FoodPref, GuestNeed } from "@/lib/schemas";
 
 /** Everything the event form holds, as typed by the host (numbers stay strings until checked). */
@@ -43,9 +44,9 @@ export const EMPTY_FORM: FormValues = {
   additions: [],
 };
 
+/** The date `days` days from today in India, so examples pass the form's IST date check. */
 function daysFromNow(days: number): string {
-  const d = new Date(Date.now() + days * 86_400_000);
-  return d.toISOString().slice(0, 10);
+  return addDays(todayIST(), days);
 }
 
 /** Ready-made examples the host can load with one tap. */

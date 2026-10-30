@@ -4,10 +4,12 @@ import { INVITE_LANGUAGES, INVITE_TONES, TONE_LABELS, type InviteDetails, type I
 import type { Errors } from "./useInviteEditor";
 
 type SetDetail = <K extends keyof InviteDetails>(key: K, value: InviteDetails[K]) => void;
+/** The card details typed as free text (language and tone are picked from lists). */
+type TextDetail = "hosts" | "venue" | "time" | "note";
 
 interface DetailFieldProps {
   uid: string;
-  name: keyof InviteDetails;
+  name: TextDetail;
   label: string;
   max: number;
   placeholder: string;
@@ -42,7 +44,7 @@ export function DetailField({
         value={details[name]}
         aria-invalid={Boolean(errors[name])}
         aria-describedby={errors[name] ? `${uid}-${name}-err` : hint ? `${uid}-${name}-hint` : undefined}
-        onChange={(e) => setDetail(name, e.target.value as never)}
+        onChange={(e) => setDetail(name, e.target.value)}
         onBlur={onBlur}
       />
       {hint && !errors[name] && (
@@ -77,7 +79,10 @@ export function VoiceFields({ uid, details, errors, setDetail }: FieldsProps) {
           <select
             id={`${uid}-language`}
             value={details.language}
-            onChange={(e) => setDetail("language", e.target.value as InviteDetails["language"])}
+            onChange={(e) => {
+              const picked = INVITE_LANGUAGES.find((l) => l.code === e.target.value);
+              if (picked) setDetail("language", picked.code);
+            }}
           >
             {INVITE_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code} lang={l.code}>

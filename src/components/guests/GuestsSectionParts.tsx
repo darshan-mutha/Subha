@@ -12,7 +12,7 @@ import {
 } from "@/lib/rsvp";
 import { GUEST_NEED_LABELS } from "@/lib/schemas";
 import { whatsappLink } from "@/lib/team";
-import { CopyButton } from "../PlanSections";
+import { CopyButton } from "../plan/CopyButton";
 
 type Summary = ReplySummary;
 type GuestLink = NonNullable<GuestsState["link"]>;

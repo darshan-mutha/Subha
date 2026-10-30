@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { toCsv } from "./csv";
 import type { Invite } from "./invite";
 import { inviteFacts } from "./invite";
 import {
@@ -246,13 +247,6 @@ export function rsvpMessage(title: string, link: string, inviteText = ""): strin
   return inviteText ? `${inviteText}\n\n${ask}` : ask;
 }
 
-const csvCell = (value: string | number) => {
-  const text = String(value);
-  // Stop spreadsheet apps treating a cell as a formula.
-  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-};
-
 /** The replies as a spreadsheet file (CSV), for the caterer or a printout. */
 export function repliesCsv(replies: Reply[]): string {
   const head = ["Name", "Phone", "Reply", "Adults", "Children", "Food", "Side", "Needs", "Note", "Replied on"];
@@ -268,5 +262,5 @@ export function repliesCsv(replies: Reply[]): string {
     r.note,
     r.updatedAt.slice(0, 10),
   ]);
-  return [head, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  return toCsv([head, ...rows]);
 }

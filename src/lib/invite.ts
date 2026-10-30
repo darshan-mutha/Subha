@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "./ai";
-import { EVENT_TYPE_LABELS, makeEventInputSchema, safeText, type EventInput } from "./schemas";
+import { EVENT_TYPE_LABELS, safeText, StoredEventInputSchema, type EventInput } from "./schemas";
 
 /**
  * Invitation card. Claude writes only the words (heading, invitation, closing)
@@ -73,7 +73,7 @@ export type Invite = z.infer<typeof InviteSchema>;
 
 export const InviteRequestSchema = z.object({
   /** Allows past dates: a shared plan stays useful up to and on the day. */
-  input: makeEventInputSchema(new Date(Date.now() - 400 * 86_400_000)),
+  input: StoredEventInputSchema,
   details: InviteDetailsSchema,
 });
 export type InviteRequest = z.infer<typeof InviteRequestSchema>;

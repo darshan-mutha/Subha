@@ -132,19 +132,6 @@
   margin: 0;
 }
 
-/* Phones: every tab stays in view (two rows) instead of hiding off to the side. */
-@media (max-width: 640px) {
-  .tablist {
-    flex-wrap: wrap;
-    justify-content: center;
-    overflow-x: visible;
-    border-radius: var(--radius-lg);
-  }
-  .tab {
-    padding: 8px 12px;
-  }
-}
-
 /* Once a plan or the events list is open, the welcome text gives way to it. */
 main:has(.plan, .my-events) > .hero,
 main:has(.plan, .my-events) > .lead {
@@ -169,16 +156,6 @@ main:has(.plan, .my-events) > .lead {
 .plan-tabs .do-next,
 .plan-tabs .celebrate {
   margin-bottom: 0;
-}
-
-/* Computers and tablets: the section bar stays in view while scrolling. */
-@media (min-width: 641px) {
-  .plan-tabs .tablist {
-    position: sticky;
-    top: 8px;
-    z-index: 5;
-    box-shadow: var(--shadow);
-  }
 }
 
 /* Phones: a bar fixed to the bottom of the screen replaces the tabs. */
@@ -249,8 +226,8 @@ main:has(.plan, .my-events) > .lead {
 }
 .nav-menu-actions {
   border-top: 1px solid var(--c-border);
-  margin-top: 6px !important;
-  padding-top: 6px !important;
+  margin-top: 6px;
+  padding-top: 6px;
 }
 .nav-menu-item {
   font: inherit;
@@ -269,10 +246,16 @@ main:has(.plan, .my-events) > .lead {
   background: color-mix(in oklch, var(--c-primary) 10%, transparent);
   font-weight: 600;
 }
+/* Phones: every tab stays in view (two rows) instead of hiding off to the side. */
 @media (max-width: 640px) {
-  .plan-tabs .tablist,
-  .plan .header-actions {
-    display: none;
+  .tablist {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+    border-radius: var(--radius-lg);
+  }
+  .tab {
+    padding: 8px 12px;
   }
   body:has(.section-nav) {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
@@ -291,17 +274,6 @@ main:has(.plan, .my-events) > .lead {
 @media print {
   .section-nav {
     display: none !important;
-  }
-}
-@media (min-width: 641px) {
-  .plan-tabs .tablist {
-    flex-wrap: wrap;
-    justify-content: center;
-    overflow-x: visible;
-    border-radius: var(--radius-lg);
-  }
-  .plan-tabs .tab {
-    padding: 8px 14px;
   }
 }
 .refine-form .btn {
@@ -368,9 +340,4 @@ main:has(.plan, .my-events) > .lead {
   outline: 2px solid var(--c-primary);
   outline-offset: 6px;
   border-radius: var(--radius-md);
-}
-.nav-menu-actions {
-  border-top: 1px solid var(--c-border);
-  margin-top: 6px !important;
-  padding-top: 10px;
 }

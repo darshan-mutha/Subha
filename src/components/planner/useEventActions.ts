@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { listEvents, removeEvent, setCurrentEvent, type EventEntry } from "@/lib/myEvents";
 import type { FormValues } from "../event-form/formValues";
 import { savedWorkspace, type Mode } from "./savedWorkspace";
+import { startHeadingRef } from "./StartScreens";
 import type { Draft } from "./useDraft";
 import type { RequestStatus } from "./useRequestStatus";
 import type { SavedEvents } from "./useSavedEvents";
@@ -35,7 +36,11 @@ export function useEventActions({ saved, draft, status, setMode, setViewer }: De
     saved.setEvents(list);
     status.setError("");
     setMode(list.length ? "events" : "voice");
-    requestAnimationFrame(() => document.getElementById(list.length ? "my-events-heading" : "start-heading")?.focus());
+    requestAnimationFrame(() => {
+      // The My events heading lives in MyEvents.tsx, which has no ref for it yet.
+      const heading = list.length ? document.getElementById("my-events-heading") : startHeadingRef.current;
+      heading?.focus();
+    });
   }
 
   function openEvent(entry: EventEntry) {

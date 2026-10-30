@@ -1,6 +1,9 @@
 import type { Plan, Priority } from "./schemas";
 import type { Assignments, Done, PlanItem } from "./team";
 import { planStructure } from "./team";
+import { addDays, daysBetween, shortDate } from "./dates";
+
+export { addDays, daysBetween, shortDate };
 
 /**
  * Turns the plan's "8 weeks before"-style timeline into real dates, so Shubā
@@ -8,7 +11,6 @@ import { planStructure } from "./team";
  * All dates are YYYY-MM-DD strings in India time.
  */
 
-const DAY_MS = 86_400_000;
 const UNIT_DAYS: Record<string, number> = { day: 1, week: 7, month: 30 };
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 const DUE_SOON_DAYS = 7;
@@ -30,22 +32,6 @@ export type Shifts = Record<string, number>;
 
 /** The rangoli has six petals; the first is always gold, so five can fill. */
 export const MAX_MILESTONES = 5;
-
-function toDay(iso: string): number {
-  return Date.parse(`${iso}T00:00:00Z`) / DAY_MS;
-}
-
-function fromDay(day: number): string {
-  return new Date(day * DAY_MS).toISOString().slice(0, 10);
-}
-
-export function daysBetween(fromIso: string, toIso: string): number {
-  return Math.round(toDay(toIso) - toDay(fromIso));
-}
-
-export function addDays(iso: string, days: number): string {
-  return fromDay(toDay(iso) + days);
-}
 
 /** Reads labels like "8 weeks before", "2 months before", "Day before", "Event day". */
 export function parseWhen(label: string): number | null {
@@ -273,13 +259,6 @@ export function doNext(items: ScheduledItem[], assignments: Assignments, viewer 
         PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority],
     )
     .slice(0, limit);
-}
-
-/** "9 Jan" style date for compact display. */
-export function shortDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }).format(
-    new Date(`${iso}T00:00:00Z`),
-  );
 }
 
 export function dueText(item: Pick<ScheduledItem, "due" | "status">, today: string): string {

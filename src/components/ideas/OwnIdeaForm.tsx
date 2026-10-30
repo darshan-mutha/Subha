@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { LEANINGS, LEANING_LABELS, type Leaning } from "@/lib/ideas";
+import { LEANINGS, LEANING_LABELS, type Leaning } from "@/lib/ideas/schema";
 import { toggleIn } from "./toggleIn";
 import type { Job } from "./useIdeasActions";
 

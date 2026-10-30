@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { EMPTY_IDEA_STATE, type IdeaState } from "@/lib/ideas";
+import { EMPTY_IDEA_STATE, type IdeaState } from "@/lib/ideas/schema";
 import { bloomMessage } from "@/lib/schedule";
 import { Bloom } from "./Celebrate";
 import { SectionNav, type NavAction } from "./SectionNav";

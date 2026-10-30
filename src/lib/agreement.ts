@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "./ai";
-import { formatINR } from "./budget";
+import { longDate } from "./dates";
+import { formatINR } from "./money";
 import { cleanAgreementText, QuoteSchema, type Quote } from "./deals";
-import { EVENT_TYPE_LABELS, makeEventInputSchema, type EventInput } from "./schemas";
+import { EVENT_TYPE_LABELS, StoredEventInputSchema, type EventInput } from "./schemas";
 
 /**
  * Vendor confirmation: a one-page agreement the host can send to a vendor.
@@ -34,20 +35,13 @@ const ReplySchema = z.object({
 
 export const AgreementRequestSchema = z.object({
   /** Allows past dates: a shared plan stays useful up to and on the day. */
-  input: makeEventInputSchema(new Date(Date.now() - 400 * 86_400_000)),
+  input: StoredEventInputSchema,
   vendor: z.object({ type: z.string().trim().min(1).max(60), brief: z.string().trim().max(700).default("") }),
   quote: QuoteSchema,
   advance: z.number().min(0).max(1_000_000_000).default(0),
 });
 
 export type AgreementRequest = z.infer<typeof AgreementRequestSchema>;
-
-function longDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { dateStyle: "long", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
-}
 
 function eventLabel(input: EventInput): string {
   return input.eventName || EVENT_TYPE_LABELS[input.eventType];

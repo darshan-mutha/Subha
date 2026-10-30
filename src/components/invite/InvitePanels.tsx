@@ -10,7 +10,7 @@ import {
 } from "@/lib/invite";
 import { LOOK_PALETTES } from "@/lib/inviteCard";
 import { whatsappLink } from "@/lib/team";
-import { CopyButton } from "../PlanSections";
+import { CopyButton } from "../plan/CopyButton";
 import type { CardImage } from "./useInviteCard";
 
 /** The "about 10–20 seconds" note shown while Claude writes. */

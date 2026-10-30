@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type FormEvent } from "react";
+import { useId, useRef, type FormEvent } from "react";
 import { TraditionPicker } from "@/components/TraditionPicker";
 import {
   TRADITIONAL_EVENT_TYPES,
@@ -32,6 +32,7 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
   const form = useEventFormState(initial, initialErrors);
   const { values, errors, update } = form;
   const id = useId();
+  const formRef = useRef<HTMLFormElement>(null);
   const allErrors = { ...serverErrors, ...errors };
   const ctx = { id, errors: allErrors };
   const errorCount = Object.keys(allErrors).length;
@@ -42,8 +43,9 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
     if (!parsed.success) {
       const found = fieldErrors(parsed.error);
       form.setErrors(found);
-      const first = Object.keys(found)[0];
-      document.getElementById(`${id}-${first}`)?.focus();
+      // Form controls can be looked up by id within the form.
+      const first = formRef.current?.elements.namedItem(`${id}-${Object.keys(found)[0]}`);
+      if (first instanceof HTMLElement) first.focus();
       return;
     }
     form.setErrors({});
@@ -51,7 +53,7 @@ export function EventForm({ initial = EMPTY_FORM, initialErrors = {}, busy, serv
   }
 
   return (
-    <form className="card event-form" onSubmit={handleSubmit} noValidate aria-busy={busy}>
+    <form ref={formRef} className="card event-form" onSubmit={handleSubmit} noValidate aria-busy={busy}>
       <div className="examples" role="group" aria-label="Try an example">
         <span className="examples-label">Try an example:</span>
         {EXAMPLES.map((ex) => (

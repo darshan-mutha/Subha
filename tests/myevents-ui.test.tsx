@@ -5,7 +5,7 @@ import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Planner } from "@/components/Planner";
 import { SharedPlanView } from "@/components/SharedPlanView";
-import { savePlan, type LocalWorkspace } from "@/lib/client";
+import type { LocalWorkspace } from "@/lib/client";
 import { listEvents, saveEvent, setCurrentEvent } from "@/lib/myEvents";
 import { baseInput, samplePlan } from "./fixtures";
 import { currentSection, menuAction, openSection } from "./nav";
@@ -47,7 +47,7 @@ async function violations(container: HTMLElement) {
 describe("My events", () => {
   it("keeps the first plan when starting a second, and switches between them", async () => {
     const user = userEvent.setup();
-    savePlan(ws()); // a plan from the one-plan version
+    localStorage.setItem("shuba:last-plan:v2", JSON.stringify(ws())); // a plan from the one-plan version
     const housewarming = { ...baseInput, eventType: "housewarming" as const, eventName: "Griha pravesh" };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ input: housewarming, plan: samplePlan, timings: null })));
     const { container } = render(<Planner />);

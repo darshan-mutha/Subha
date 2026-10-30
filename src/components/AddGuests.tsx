@@ -20,7 +20,7 @@ interface Props {
 export function AddGuests({ input, functions, onAdd, onCancel }: Props) {
   const id = useId();
   const sides = groupChoices(input.eventType);
-  const a = useAddGuests({ id, input, functions, sides, onAdd });
+  const a = useAddGuests({ input, functions, sides, onAdd });
 
   const back = (
     <button type="button" className="btn btn-link btn-small" onClick={() => a.setMode("choose")}>
@@ -80,7 +80,14 @@ export function AddGuests({ input, functions, onAdd, onCancel }: Props) {
         <>
           {back}
           {!a.drafts ? (
-            <PasteNames id={id} forGroup={a.forGroup} text={a.text} onText={a.setText} onRead={a.read} />
+            <PasteNames
+              id={id}
+              boxRef={a.pasteRef}
+              forGroup={a.forGroup}
+              text={a.text}
+              onText={a.setText}
+              onRead={a.read}
+            />
           ) : (
             <DraftsReview
               id={id}

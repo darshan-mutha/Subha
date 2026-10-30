@@ -9,12 +9,14 @@
   }
 
   .progress-bar,
+  .bar,
   .vs-bar,
   .fn-bar,
   .gl-bar-listed {
     border: 1px solid CanvasText;
   }
   .progress-bar span,
+  .bar span,
   .vs-bar > *,
   .fn-bar > * {
     forced-color-adjust: none;

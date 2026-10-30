@@ -14,11 +14,12 @@ import {
   type ListFilter,
 } from "@/lib/guestList";
 import { inviteFacts, inviteMessage, type Invite } from "@/lib/invite";
+import { longDate } from "@/lib/dates";
 import type { EventInput } from "@/lib/schemas";
 import { AddGuests } from "./AddGuests";
 import { GuestRows, type MessageBase } from "./guests/GuestRow";
 import { ListActions, ListCounts, ListFilters, ListNudges } from "./guests/GuestListParts";
-import { useGuestsState } from "./guests/useGuestsState";
+import { useReplies } from "./useReplies";
 
 interface Props {
   entries: Entries;
@@ -39,36 +40,29 @@ interface Props {
   onShowReplies: () => void;
 }
 
-function niceDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
-}
-
-/** The host's guest list: counts, filters, each family with its status, invites and reminders. */
-export function GuestList(props: Props) {
-  const { entries, planId, active, input, title, invite, functions, today, busy, onChange } = props;
-  const id = useId();
-  const { state, error: loadError, refresh } = useGuestsState(planId, active);
+/** Guest list state: replies matched to the list, filter, what is being added, edited or removed. */
+function useGuestListModel(props: Props) {
+  const { entries, planId, active, input, title, invite, today, onChange } = props;
+  const { replies, state, error: loadError, refresh } = useReplies(planId, active);
   const [filter, setFilter] = useState<ListFilter>("all");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState("");
   const [confirming, setConfirming] = useState("");
   const [announce, setAnnounce] = useState("");
 
-  const replies = useMemo(() => state?.replies ?? [], [state]);
   const rows = useMemo(() => listRows(entries, replies, today), [entries, replies, today]);
   const s = useMemo(() => listSummary(rows), [rows]);
-  const shown = rows.filter((r) => rowMatches(r, filter));
-  const suggestion = listSuggestsGuests(s.people, input.guests, s.families, s.notInvited === 0);
   const link = state?.link?.open ? `${window.location.origin}/r/${state.link.token}` : "";
   const base: MessageBase = {
     title,
     link,
-    when: niceDate(input.date),
+    when: longDate(input.date),
     inviteText: invite ? inviteMessage(invite.wording, inviteFacts(input, invite.details)) : "",
   };
+  const filters: ListFilter[] = [
+    ...LIST_FILTERS.filter((f) => f === "all" || rows.some((r) => rowMatches(r, f))),
+    ...(s.sides.length > 1 ? s.sides.map((side) => `side:${side}` as ListFilter) : []),
+  ];
 
   const update = (entryId: string, change: Partial<GuestEntry>) =>
     onChange(entries.map((e) => (e.id === entryId ? { ...e, ...change } : e)));
@@ -86,18 +80,49 @@ export function GuestList(props: Props) {
     );
   }
 
-  const filters: ListFilter[] = [
-    ...LIST_FILTERS.filter((f) => f === "all" || rows.some((r) => rowMatches(r, f))),
-    ...(s.sides.length > 1 ? s.sides.map((side) => `side:${side}` as ListFilter) : []),
-  ];
+  function remove(entry: GuestEntry) {
+    onChange(entries.filter((e) => e.id !== entry.id));
+    setAnnounce(`${entry.name} removed from the list`);
+  }
+
+  return {
+    rows,
+    s,
+    link,
+    base,
+    filters,
+    filter,
+    setFilter,
+    adding,
+    setAdding,
+    editing,
+    setEditing,
+    confirming,
+    setConfirming,
+    announce,
+    loadError,
+    refresh,
+    update,
+    addEntries,
+    remove,
+  };
+}
+
+/** The host's guest list: counts, filters, each family with its status, invites and reminders. */
+export function GuestList(props: Props) {
+  const { entries, planId, input, functions, today, busy } = props;
+  const id = useId();
+  const m = useGuestListModel(props);
+  const shown = m.rows.filter((r) => rowMatches(r, m.filter));
+  const suggestion = listSuggestsGuests(m.s.people, input.guests, m.s.families, m.s.notInvited === 0);
 
   const status = (
     <p className="sr-only" role="status">
-      {announce}
+      {m.announce}
     </p>
   );
 
-  if (entries.length === 0 || adding) {
+  if (entries.length === 0 || m.adding) {
     return (
       <>
         {status}
@@ -110,8 +135,8 @@ export function GuestList(props: Props) {
         <AddGuests
           input={input}
           functions={functions}
-          onAdd={addEntries}
-          onCancel={entries.length ? () => setAdding(false) : null}
+          onAdd={m.addEntries}
+          onCancel={entries.length ? () => m.setAdding(false) : null}
         />
       </>
     );
@@ -121,7 +146,7 @@ export function GuestList(props: Props) {
     <>
       {status}
       <ListCounts
-        s={s}
+        s={m.s}
         guests={input.guests}
         shared={Boolean(planId)}
         suggestion={suggestion}
@@ -129,36 +154,33 @@ export function GuestList(props: Props) {
         onUseGuests={props.onUseGuests}
       />
       <ListNudges
-        remind={s.remind}
+        remind={m.s.remind}
         shared={Boolean(planId)}
-        hasLink={Boolean(link)}
-        onRemindFilter={() => setFilter("remind")}
+        hasLink={Boolean(m.link)}
+        onRemindFilter={() => m.setFilter("remind")}
         onShowReplies={props.onShowReplies}
       />
-      {loadError && <p className="form-error">{loadError}</p>}
+      {m.loadError && <p className="form-error">{m.loadError}</p>}
 
-      <ListFilters filters={filters} rows={rows} filter={filter} onFilter={setFilter} />
+      <ListFilters filters={m.filters} rows={m.rows} filter={m.filter} onFilter={m.setFilter} />
 
       <GuestRows
         rows={shown}
-        base={base}
+        base={m.base}
         functions={functions}
         eventType={input.eventType}
-        editing={editing}
-        confirming={confirming}
-        onEditing={setEditing}
-        onConfirming={setConfirming}
-        onUpdate={update}
-        onRemove={(entry) => {
-          onChange(entries.filter((e) => e.id !== entry.id));
-          setAnnounce(`${entry.name} removed from the list`);
-        }}
+        editing={m.editing}
+        confirming={m.confirming}
+        onEditing={m.setEditing}
+        onConfirming={m.setConfirming}
+        onUpdate={m.update}
+        onRemove={m.remove}
         today={today}
       />
       {shown.length === 0 && (
         <p className="muted">
           No one here right now.{" "}
-          <button type="button" className="btn-inline" onClick={() => setFilter("all")}>
+          <button type="button" className="btn-inline" onClick={() => m.setFilter("all")}>
             Show everyone
           </button>
         </p>
@@ -166,10 +188,10 @@ export function GuestList(props: Props) {
 
       <ListActions
         id={id}
-        csv={guestListCsv(rows)}
+        csv={guestListCsv(m.rows)}
         shared={Boolean(planId)}
-        onAdd={() => setAdding(true)}
-        onRefresh={() => void refresh()}
+        onAdd={() => m.setAdding(true)}
+        onRefresh={() => void m.refresh()}
       />
     </>
   );

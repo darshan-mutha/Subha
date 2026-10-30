@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { neon } from "@neondatabase/serverless";
-import { PlannerError } from "./ai";
+import { connect, databaseUrl, type Rows, type Sql } from "./db";
+import { HttpError } from "./errors";
 import { MAX_REPLIES, type Reply, type ReplyInput } from "./rsvp";
 
 /**
@@ -40,9 +40,8 @@ function sameHash(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-const tooMany = () => new PlannerError("This event has reached the limit for replies. Please contact the hosts.", 409);
-const notYours = () =>
-  new PlannerError("This reply could not be changed from this phone. Please send a new reply.", 403);
+const tooMany = () => new HttpError("This event has reached the limit for replies. Please contact the hosts.", 409);
+const notYours = () => new HttpError("This reply could not be changed from this phone. Please send a new reply.", 403);
 
 /* ------------------------------------------------------------------ */
 
@@ -119,108 +118,98 @@ const toReply = (row: ReplyRow): Reply => ({
   updatedAt: new Date(row.updated_at).toISOString(),
 });
 
-const toLink = (row: unknown): GuestLink | null => {
-  const r = row as { token: string; plan_id: string; open: boolean } | undefined;
+const toLink = (rows: Rows): GuestLink | null => {
+  const r = rows[0] as { token: string; plan_id: string; open: boolean } | undefined;
   return r ? { token: r.token, planId: r.plan_id, open: r.open } : null;
 };
 
-/** Neon serverless Postgres. Tables are created automatically on first use. */
-export function createNeonRsvpStore(databaseUrl: string): RsvpStore {
-  const sql = neon(databaseUrl);
-  let ready: Promise<unknown> | null = null;
-  const ensureTables = () =>
-    (ready ??= (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS shuba_guest_links (
-          token       text PRIMARY KEY,
-          plan_id     text NOT NULL UNIQUE,
-          open        boolean NOT NULL DEFAULT true,
-          created_at  timestamptz NOT NULL DEFAULT now()
-        )`;
-      await sql`
-        CREATE TABLE IF NOT EXISTS shuba_replies (
-          id           text PRIMARY KEY,
-          plan_id      text NOT NULL,
-          secret_hash  text NOT NULL,
-          data         jsonb NOT NULL,
-          created_at   timestamptz NOT NULL DEFAULT now(),
-          updated_at   timestamptz NOT NULL DEFAULT now()
-        )`;
-      await sql`CREATE INDEX IF NOT EXISTS shuba_replies_plan ON shuba_replies (plan_id)`;
-    })().catch((error) => {
-      ready = null;
-      throw error;
-    }));
+const createRsvpTables = async (sql: Sql) => {
+  await sql`
+    CREATE TABLE IF NOT EXISTS shuba_guest_links (
+      token       text PRIMARY KEY,
+      plan_id     text NOT NULL UNIQUE,
+      open        boolean NOT NULL DEFAULT true,
+      created_at  timestamptz NOT NULL DEFAULT now()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS shuba_replies (
+      id           text PRIMARY KEY,
+      plan_id      text NOT NULL,
+      secret_hash  text NOT NULL,
+      data         jsonb NOT NULL,
+      created_at   timestamptz NOT NULL DEFAULT now(),
+      updated_at   timestamptz NOT NULL DEFAULT now()
+    )`;
+  await sql`CREATE INDEX IF NOT EXISTS shuba_replies_plan ON shuba_replies (plan_id)`;
+};
 
-  const store: RsvpStore = {
+/** Adds a new reply unless the event already has the most replies allowed, in one statement. */
+async function insertReply(sql: Sql, planId: string, input: ReplyInput) {
+  const newId = replyId();
+  const newSecret = token();
+  const rows = await sql`
+    INSERT INTO shuba_replies (id, plan_id, secret_hash, data)
+    SELECT ${newId}, ${planId}, ${hash(newSecret)}, ${JSON.stringify(input)}::jsonb
+     WHERE (SELECT count(*) FROM shuba_replies WHERE plan_id = ${planId}) < ${MAX_REPLIES}
+    RETURNING id`;
+  if (!rows[0]) throw tooMany();
+  return { id: newId, secret: newSecret };
+}
+
+/** Neon serverless Postgres. Tables are created automatically on first use. */
+export function createNeonRsvpStore(url: string): RsvpStore {
+  const sql = connect(url, createRsvpTables);
+  const getLinkForPlan = async (planId: string) =>
+    toLink(await sql`SELECT token, plan_id, open FROM shuba_guest_links WHERE plan_id = ${planId}`);
+  return {
     async openLink(planId) {
-      await ensureTables();
-      await sql`
+      const rows = await sql`
         INSERT INTO shuba_guest_links (token, plan_id) VALUES (${token()}, ${planId})
-        ON CONFLICT (plan_id) DO NOTHING`;
-      return (await store.getLinkForPlan(planId))!;
+        ON CONFLICT (plan_id) DO NOTHING
+        RETURNING token, plan_id, open`;
+      const link = toLink(rows) ?? (await getLinkForPlan(planId));
+      if (!link) throw new Error("The guest link was not saved.");
+      return link;
     },
-    async getLinkForPlan(planId) {
-      await ensureTables();
-      return toLink((await sql`SELECT token, plan_id, open FROM shuba_guest_links WHERE plan_id = ${planId}`)[0]);
-    },
+    getLinkForPlan,
     async getLink(t) {
-      await ensureTables();
-      return toLink((await sql`SELECT token, plan_id, open FROM shuba_guest_links WHERE token = ${t}`)[0]);
+      return toLink(await sql`SELECT token, plan_id, open FROM shuba_guest_links WHERE token = ${t}`);
     },
     async setOpen(planId, open) {
-      await ensureTables();
       return toLink(
-        (
-          await sql`UPDATE shuba_guest_links SET open = ${open} WHERE plan_id = ${planId}
-                    RETURNING token, plan_id, open`
-        )[0],
+        await sql`UPDATE shuba_guest_links SET open = ${open} WHERE plan_id = ${planId} RETURNING token, plan_id, open`,
       );
     },
     async saveReply(planId, input, id, secret) {
-      await ensureTables();
-      if (id && secret) {
-        const rows = await sql`
-          UPDATE shuba_replies SET data = ${JSON.stringify(input)}::jsonb, updated_at = now()
-           WHERE id = ${id} AND plan_id = ${planId} AND secret_hash = ${hash(secret)}
-          RETURNING id`;
-        if (!rows[0]) throw notYours();
-        return { id, secret };
-      }
-      const [{ n }] = (await sql`SELECT count(*)::int AS n FROM shuba_replies WHERE plan_id = ${planId}`) as {
-        n: number;
-      }[];
-      if (n >= MAX_REPLIES) throw tooMany();
-      const newId = replyId();
-      const newSecret = token();
-      await sql`
-        INSERT INTO shuba_replies (id, plan_id, secret_hash, data)
-        VALUES (${newId}, ${planId}, ${hash(newSecret)}, ${JSON.stringify(input)}::jsonb)`;
-      return { id: newId, secret: newSecret };
+      if (!id || !secret) return insertReply(sql, planId, input);
+      const rows = await sql`
+        UPDATE shuba_replies SET data = ${JSON.stringify(input)}::jsonb, updated_at = now()
+         WHERE id = ${id} AND plan_id = ${planId} AND secret_hash = ${hash(secret)}
+        RETURNING id`;
+      if (!rows[0]) throw notYours();
+      return { id, secret };
     },
     async listReplies(planId) {
-      await ensureTables();
       const rows = await sql`
         SELECT id, data, created_at, updated_at FROM shuba_replies
          WHERE plan_id = ${planId} ORDER BY updated_at DESC LIMIT ${MAX_REPLIES}`;
       return (rows as ReplyRow[]).map(toReply);
     },
     async removeReply(planId, id) {
-      await ensureTables();
       await sql`DELETE FROM shuba_replies WHERE id = ${id} AND plan_id = ${planId}`;
     },
   };
-  return store;
 }
 
 /* ------------------------------------------------------------------ */
 
 let rsvpStore: RsvpStore | null = null;
 
+/** Returns the configured reply store, or throws a friendly 503 if it is not set up. */
 export function getRsvpStore(): RsvpStore {
   if (rsvpStore) return rsvpStore;
-  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-  if (!url) throw new PlannerError("Guest replies are not set up yet.", 503);
+  const url = databaseUrl();
+  if (!url) throw new HttpError("Guest replies are not set up yet.", 503);
   rsvpStore = createNeonRsvpStore(url);
   return rsvpStore;
 }

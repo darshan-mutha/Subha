@@ -1,7 +1,8 @@
 "use client";
 
 import { formatINR } from "@/lib/budget";
-import { formatShortINR, suggestBudgets, type BudgetOption } from "@/lib/budgetGuide";
+import { suggestBudgets, type BudgetOption } from "@/lib/budgetGuide";
+import { formatLakhCrore } from "@/lib/money";
 import { EVENT_TYPE_LABELS, LIMITS, type EventType } from "@/lib/schemas";
 
 interface Props {
@@ -52,7 +53,7 @@ export function BudgetHelper({ id, eventType, guests, city, current, onPick, onC
                 <li key={opt.tier} className={`budget-option${chosen ? " is-chosen" : ""}`}>
                   <h4>{opt.label}</h4>
                   <p className="budget-range">
-                    {formatShortINR(opt.low)} – {formatShortINR(opt.high)}
+                    {formatLakhCrore(opt.low)} – {formatLakhCrore(opt.high)}
                   </p>
                   <p className="muted small">About {formatINR(opt.perGuest)} per guest</p>
                   <ul className="budget-includes">
@@ -66,7 +67,7 @@ export function BudgetHelper({ id, eventType, guests, city, current, onPick, onC
                     aria-pressed={chosen}
                     onClick={() => onPick(opt)}
                   >
-                    {chosen && <span aria-hidden="true">✓ </span>}Use {formatShortINR(opt.suggested)}
+                    {chosen && <span aria-hidden="true">✓ </span>}Use {formatLakhCrore(opt.suggested)}
                     <span className="sr-only"> ({opt.label})</span>
                   </button>
                 </li>

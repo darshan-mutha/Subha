@@ -8,6 +8,7 @@ import { planStructure, pruneState } from "@/lib/team";
 import { EMPTY_FORM } from "../event-form/formValues";
 import type { VoicePayload } from "../VoiceStart";
 import type { Mode } from "./savedWorkspace";
+import { startHeadingRef } from "./StartScreens";
 import type { Draft } from "./useDraft";
 import type { RequestStatus } from "./useRequestStatus";
 import type { SavedEvents } from "./useSavedEvents";
@@ -87,7 +88,7 @@ export function usePlanRequests({ saved, draft, status, setMode }: Deps) {
           ? `Got it. Please fill in ${result.missing.length} missing detail${result.missing.length > 1 ? "s" : ""}.`
           : "Got it. Please check the details and create your plan.",
       );
-      requestAnimationFrame(() => document.getElementById("start-heading")?.focus());
+      requestAnimationFrame(() => startHeadingRef.current?.focus());
     } catch (e) {
       const message = e instanceof ApiError ? e.message : "Something went wrong. Please try again.";
       status.setError(message);

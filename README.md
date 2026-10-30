@@ -145,9 +145,9 @@ npm run check   # Prettier, ESLint, TypeScript strict, tests with coverage
 
 - **ESLint** (Next.js core-web-vitals + TypeScript rules) and **Prettier** formatting, enforced in CI.
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) runs formatting, lint, type-check, tests with coverage and a production build on every push.
-- **Coverage**: about 96% of lines and 88% of branches (thresholds enforced: 90% lines/statements, 85% functions, 80% branches).
+- **Coverage**: about 98% of lines and 90% of branches (thresholds enforced: 90% lines/statements, 85% functions, 80% branches).
 
-612 automated tests in 65 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
+690 automated tests in 80 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
 
 ## Assumptions
 
@@ -172,6 +172,7 @@ npm run dev
 
 ## Changelog
 
+- **30 Oct 2026** – Second tidy-up after two independent code reviews, again with no change to what users see (every screen compared pixel by pixel): one shared home for dates, money, CSV and scaling maths; one error type and one error handler for all API routes; database updates and the reply limit each done in a single query (checked on a real Postgres); safe, validated browser storage in one place; the Ideas code split by job so the AI client stays on the server; fewer type casts. Tests for the two untested routes and weak screens (690 tests, branches 90%), quiet test output. Accessibility: error messages linked in the quote form and functions list, the section menu closes when keyboard focus leaves it, the listening timer no longer re-announces every second, team progress is labelled, budget bars visible in high contrast.
 - **30 Oct 2026** – Code tidy-up with no change to what users see (every screen checked pixel by pixel): long screens split into small parts and hooks, one-file styles split by area, 112 more tests for edge cases and error paths (branch coverage 84% → 88%), and high-contrast support for Windows contrast themes.
 - **30 Oct 2026** – Calmer Vendors screen: vendors grouped into "To book" and "Booked", one vendor at a time in three steps (Ask → Compare → Book), with a short summary of booked count and money. On computers the plan now uses the full width.
 - **29 Oct 2026** – Familiar chat-style start box: type, or tap the small mic; the spoken sentence appears when you stop, with no flickering half-heard words.

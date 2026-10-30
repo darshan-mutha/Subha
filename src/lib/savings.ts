@@ -6,7 +6,7 @@ import {
   FOCUS_LABELS,
   GUEST_NEED_LABELS,
   LIMITS,
-  makeEventInputSchema,
+  StoredEventInputSchema,
   PlanSchema,
   type EventInput,
   type Plan,
@@ -96,7 +96,7 @@ export type OverLine = z.infer<typeof OverLineSchema>;
 
 export const SavingsRequestSchema = z.object({
   /** Allows past dates: a plan stays useful up to and on the day. */
-  input: makeEventInputSchema(new Date(Date.now() - 400 * 86_400_000)),
+  input: StoredEventInputSchema,
   budget: PlanSchema.shape.budget,
   vendors: z.array(z.string().trim().min(1).max(60)).max(10).default([]),
   mode: z.enum(SAVING_MODES),

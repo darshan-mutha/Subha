@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { formatINR } from "@/lib/budget";
 import { ApiError, requestAgreement } from "@/lib/client";
-import { QuoteSchema, bookedQuote, emptyDeal, newQuoteId, type Deal, type VendorRef } from "@/lib/deals";
+import { QuoteSchema, bookedQuote, emptyDeal, newQuoteId, type Deal, type Quote, type VendorRef } from "@/lib/deals";
 import { fieldErrors } from "@/lib/schemas";
 import { BLANK_QUOTE, type DealPart, type DealState } from "./types";
 
@@ -21,6 +21,65 @@ function useDealDrafts(deal: Deal) {
   return { advance, setAdvance, agreement, setAgreement };
 }
 
+interface PaperworkOptions {
+  vendor: VendorRef;
+  brief: string;
+  state: DealState;
+  deal: Deal;
+  booked: Quote | null;
+  drafts: ReturnType<typeof useDealDrafts>;
+  save: (next: Deal, message: string) => Promise<boolean>;
+  setError: (message: string) => void;
+  setStatus: (message: string) => void;
+}
+
+/** Saving the advance and drafting, editing and saving the agreement for a booked vendor. */
+function usePaperwork({ vendor, brief, state, deal, booked, drafts, save, setError, setStatus }: PaperworkOptions) {
+  const [drafting, setDrafting] = useState(false);
+
+  async function saveAdvance() {
+    const value = Math.max(0, Math.round(Number(drafts.advance) || 0));
+    if (!booked || value === deal.advance) return;
+    if (value > booked.amount) {
+      setError(`The advance can't be more than the agreed price of ${formatINR(booked.amount)}.`);
+      return;
+    }
+    await save({ ...deal, advance: value }, "Advance saved");
+  }
+
+  async function draft() {
+    if (!booked) return;
+    setDrafting(true);
+    setError("");
+    setStatus("Drafting the agreement…");
+    try {
+      const result = await requestAgreement({
+        input: state.input,
+        vendor: { type: vendor.type, brief },
+        quote: booked,
+        advance: deal.advance,
+      });
+      drafts.setAgreement(result.text);
+      await save(
+        { ...deal, agreement: result.text },
+        result.source === "ai" ? "Agreement drafted" : "Shubā was busy, so it used standard wording. Agreement ready.",
+      );
+    } catch (e) {
+      setStatus("");
+      setError(e instanceof ApiError ? e.message : "Could not draft the agreement. Please try again.");
+    } finally {
+      setDrafting(false);
+    }
+  }
+
+  async function saveAgreement() {
+    if (drafts.agreement === deal.agreement) return;
+    await save({ ...deal, agreement: drafts.agreement }, "Agreement saved");
+  }
+
+  return { drafting, saveAdvance, draft, saveAgreement };
+}
+
 /** State and actions for one vendor's quotes, booking, advance and agreement. */
 export function useVendorDeal(vendor: VendorRef, brief: string, state: DealState, onStep?: (part: DealPart) => void) {
   const deal = state.deals[vendor.id] ?? emptyDeal();
@@ -31,7 +90,6 @@ export function useVendorDeal(vendor: VendorRef, brief: string, state: DealState
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
-  const [drafting, setDrafting] = useState(false);
   const drafts = useDealDrafts(deal);
 
   async function save(next: Deal, message: string) {
@@ -86,45 +144,7 @@ export function useVendorDeal(vendor: VendorRef, brief: string, state: DealState
     if ((await save(next, "Quote removed")) && isBooked) state.onBooked(vendor.id, false);
   }
 
-  async function saveAdvance() {
-    const value = Math.max(0, Math.round(Number(drafts.advance) || 0));
-    if (!booked || value === deal.advance) return;
-    if (value > booked.amount) {
-      setError(`The advance can't be more than the agreed price of ${formatINR(booked.amount)}.`);
-      return;
-    }
-    await save({ ...deal, advance: value }, "Advance saved");
-  }
-
-  async function draft() {
-    if (!booked) return;
-    setDrafting(true);
-    setError("");
-    setStatus("Drafting the agreement…");
-    try {
-      const result = await requestAgreement({
-        input: state.input,
-        vendor: { type: vendor.type, brief },
-        quote: booked,
-        advance: deal.advance,
-      });
-      drafts.setAgreement(result.text);
-      await save(
-        { ...deal, agreement: result.text },
-        result.source === "ai" ? "Agreement drafted" : "Shubā was busy, so it used standard wording. Agreement ready.",
-      );
-    } catch (e) {
-      setStatus("");
-      setError(e instanceof ApiError ? e.message : "Could not draft the agreement. Please try again.");
-    } finally {
-      setDrafting(false);
-    }
-  }
-
-  async function saveAgreement() {
-    if (drafts.agreement === deal.agreement) return;
-    await save({ ...deal, agreement: drafts.agreement }, "Agreement saved");
-  }
+  const paperwork = usePaperwork({ vendor, brief, state, deal, booked, drafts, save, setError, setStatus });
 
   return {
     deal,
@@ -136,15 +156,12 @@ export function useVendorDeal(vendor: VendorRef, brief: string, state: DealState
     setAdding,
     error,
     status,
-    drafting,
     ...drafts,
     save,
     addQuote,
     book,
     cancelBooking,
     removeQuote,
-    saveAdvance,
-    draft,
-    saveAgreement,
+    ...paperwork,
   };
 }

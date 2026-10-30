@@ -2,19 +2,12 @@
 
 import { useState } from "react";
 import { sortEvents, type EventEntry } from "@/lib/myEvents";
-import { EVENT_TYPE_LABELS, todayIST } from "@/lib/schemas";
-
-function niceDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return iso;
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
-}
+import { daysBetween, shortDateWithYear, todayIST } from "@/lib/dates";
+import { EVENT_TYPE_LABELS } from "@/lib/schemas";
 
 /** "In 12 days", "Tomorrow", "Today", "Done" (in the past). */
 export function countdown(date: string, today: string): string {
-  const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
+  const days = daysBetween(today, date);
   if (!Number.isFinite(days)) return "";
   if (days < 0) return "Over";
   if (days === 0) return "Today";
@@ -59,7 +52,9 @@ export function MyEvents({ events, current = "", onOpen, onRemove, onNew }: Prop
               <div className="event-info">
                 <h3>{event.title}</h3>
                 <p className="small muted">
-                  {[event.title !== label && label, niceDate(event.date), event.city].filter(Boolean).join(" · ")}
+                  {[event.title !== label && label, shortDateWithYear(event.date), event.city]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
                 <p className="event-tags small">
                   {when && <span className={`chip-label${when === "Over" ? " is-past" : ""}`}>{when}</span>}

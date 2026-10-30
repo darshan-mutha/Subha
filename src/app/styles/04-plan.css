@@ -171,8 +171,9 @@
   font-weight: 700;
   border-bottom: none;
 }
-.num {
-  text-align: right !important;
+/* Outranks ".budget-table th, .budget-table td { text-align: left }" without !important. */
+.budget-table .num {
+  text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

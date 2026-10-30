@@ -6,7 +6,6 @@ import { PlanWorkspace } from "@/components/PlanWorkspace";
 import { SharedPlanView } from "@/components/SharedPlanView";
 import { Planner } from "@/components/Planner";
 import { ClientOnly } from "@/components/ClientOnly";
-import { savePlan } from "@/lib/client";
 import { planItems } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
 import { currentSection, menuAction, openSection } from "./nav";
@@ -288,7 +287,7 @@ describe("SharedPlanView", () => {
 
 describe("Planner", () => {
   it("reopens a plan saved in this browser and shares it", async () => {
-    savePlan({ ...data, timings: null });
+    localStorage.setItem("shuba:last-plan:v2", JSON.stringify({ ...data, timings: null }));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ id: "B".repeat(22) })));
     render(<Planner />);
     expect(screen.getByRole("heading", { name: "Aarav turns 5" })).toBeInTheDocument();

@@ -1,5 +1,6 @@
 "use client";
 
+import type { RefObject } from "react";
 import type { GuestGroupIdea } from "@/lib/guestGroups";
 import type { DraftEntry } from "@/lib/guestList";
 import { GUEST_GROUP_LABELS, type GuestGroup } from "@/lib/rsvp";
@@ -126,12 +127,15 @@ export function GroupIdeasList({
 /** The textarea where the host pastes or types names, and the "Read my list" button. */
 export function PasteNames({
   id,
+  boxRef,
   forGroup,
   text,
   onText,
   onRead,
 }: {
   id: string;
+  /** Focused when the host chooses to paste a list. */
+  boxRef: RefObject<HTMLTextAreaElement | null>;
   forGroup: string;
   text: string;
   onText: (text: string) => void;
@@ -144,6 +148,7 @@ export function PasteNames({
           {forGroup ? `Names for "${forGroup}"` : "Paste or type names"}, one family or person per line
         </label>
         <textarea
+          ref={boxRef}
           id={`${id}-paste`}
           rows={6}
           maxLength={20000}

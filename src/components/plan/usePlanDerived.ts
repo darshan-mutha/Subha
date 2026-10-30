@@ -6,7 +6,7 @@ import { bookedByLine, paymentSummary, pruneDeals } from "@/lib/deals";
 import { progressOf } from "@/lib/palette";
 import { overLines, totalOver } from "@/lib/savings";
 import { doNext, milestoneItems, petalsFilled, pruneShifts, schedule } from "@/lib/schedule";
-import { todayIST } from "@/lib/schemas";
+import { todayIST } from "@/lib/dates";
 import { planItems } from "@/lib/team";
 
 /** Everything the plan screen works out from the saved plan: schedule, money and progress. */

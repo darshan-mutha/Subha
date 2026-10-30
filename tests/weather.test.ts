@@ -9,10 +9,10 @@ import {
   rainLevel,
   summariseForecast,
   summariseUsual,
-  todayIst,
   WeatherRequestSchema,
   weatherTip,
 } from "@/lib/weather";
+import { todayIST } from "@/lib/dates";
 
 const NOW = new Date("2026-10-29T07:00:00Z"); // 29 Oct 2026, 12:30 IST
 
@@ -41,7 +41,7 @@ describe("weather helpers", () => {
   it("does date sums and today in India", () => {
     expect(addDays("2026-12-30", 3)).toBe("2027-01-02");
     expect(daysBetween("2026-10-29", "2026-11-14")).toBe(16);
-    expect(todayIst(new Date("2026-10-29T20:00:00Z"))).toBe("2026-10-30");
+    expect(todayIST(new Date("2026-10-29T20:00:00Z"))).toBe("2026-10-30");
   });
 
   it("turns numbers into plain words", () => {

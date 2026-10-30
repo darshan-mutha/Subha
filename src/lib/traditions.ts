@@ -1,3 +1,5 @@
+import { addDays } from "./dates";
+
 /**
  * Traditions, functions and modern additions.
  *
@@ -159,9 +161,7 @@ export function dayLabel(day: number): string {
 /** The calendar date of a function's day (YYYY-MM-DD); day 1 is the event date. Day 0 has no fixed date. */
 export function dateOfDay(firstDay: string, day: number): string | null {
   if (day <= 0) return null;
-  const [y, m, d] = firstDay.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d + day - 1));
-  return date.toISOString().slice(0, 10);
+  return addDays(firstDay, day - 1);
 }
 
 /** Functions to plan: the host's own choices, or the usual set for their traditions if they chose none. */
@@ -245,7 +245,7 @@ export function matchFunctionName(spoken: string, traditions: readonly Tradition
   const lists = [
     usualFunctions(traditions, "wedding"),
     ...TRADITIONS.map((t) => WEDDING_FUNCTIONS[t]),
-    Object.values(ADDITION_FUNCTIONS).map((f) => f!.name),
+    Object.values(ADDITION_FUNCTIONS).flatMap((f) => (f ? [f.name] : [])),
   ];
   for (const list of lists) {
     const exact = list.find((name) => norm(name) === said);

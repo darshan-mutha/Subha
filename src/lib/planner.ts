@@ -1,6 +1,8 @@
 import { formatINR, localWarnings, mergeWarnings, normalizeBudget } from "./budget";
 import { generateStructured, claudeGenerator, type TextGenerator } from "./ai";
 import { findLocation } from "./locations";
+import { scaleToTotal } from "./scale";
+import { shortDate } from "./dates";
 import { normalizeTimeline } from "./schedule";
 import { calculateTimings, type DayTimings } from "./muhurat";
 import {
@@ -61,14 +63,12 @@ export function normalizeFunctions(list: Plan["functions"], input: EventInput): 
   }));
   const sum = fixed.reduce((acc, f) => acc + f.amount, 0);
   if (sum <= 0) return fixed;
-  const scaled = fixed.map((f) => ({ ...f, amount: Math.round(((f.amount / sum) * input.budget) / 100) * 100 }));
-  const diff = input.budget - scaled.reduce((acc, f) => acc + f.amount, 0);
-  let largest = 0;
-  scaled.forEach((f, i) => {
-    if (f.amount > scaled[largest].amount) largest = i;
-  });
-  scaled[largest] = { ...scaled[largest], amount: Math.max(0, scaled[largest].amount + diff) };
-  return scaled;
+  const amounts = scaleToTotal(
+    fixed.map((f) => f.amount),
+    input.budget,
+    { step: 100 },
+  );
+  return fixed.map((f, i) => ({ ...f, amount: amounts[i] }));
 }
 
 async function timingsFor(input: EventInput, locate: typeof findLocation): Promise<DayTimings | null> {
@@ -181,17 +181,10 @@ export async function refinePlan(
   };
 }
 
-function shortDay(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d)),
-  );
-}
-
 /** Changes Shubā can state for certain, without trusting the AI. */
 export function factChanges(before: EventInput, after: EventInput): string[] {
   const out: string[] = [];
-  if (before.date !== after.date) out.push(`Date moved from ${shortDay(before.date)} to ${shortDay(after.date)}`);
+  if (before.date !== after.date) out.push(`Date moved from ${shortDate(before.date)} to ${shortDate(after.date)}`);
   if (before.guests !== after.guests)
     out.push(`Guests: ${before.guests.toLocaleString("en-IN")} → ${after.guests.toLocaleString("en-IN")}`);
   if (before.budget !== after.budget)

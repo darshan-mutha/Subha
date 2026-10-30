@@ -184,24 +184,23 @@ export function cleanExtraction(input: RawExtraction, now: Date = new Date()): E
   // Older callers and tests may leave out the newer fields; defaults fill them in.
   const raw = RawExtractionSchema.parse(input);
   const shape = makeEventInputSchema(now).shape;
-  const keep = <T>(field: keyof typeof shape, value: unknown, fallback: T): T | string => {
+  /** The value as the form would show it if it passes the form's rule, otherwise "". */
+  const valid = (field: keyof typeof shape, value: unknown): string => {
     const result = shape[field].safeParse(value);
-    return result.success ? (result.data as T) : fallback;
+    return result.success ? String(result.data) : "";
   };
-
-  const eventType = String(keep("eventType", raw.eventType, "")) as EventType | "";
-  const guests = raw.guests > 0 ? keep("guests", raw.guests, "") : "";
-  const budget = raw.budget > 0 ? keep("budget", Math.round(raw.budget), "") : "";
+  const typeResult = shape.eventType.safeParse(raw.eventType);
+  const eventType: EventType | "" = typeResult.success ? typeResult.data : "";
 
   const values: ExtractedValues = {
     eventType,
-    eventName: String(keep("eventName", raw.eventName.slice(0, 80), "")),
-    date: raw.date ? String(keep("date", raw.date, "")) : "",
-    city: raw.city ? String(keep("city", raw.city, "")) : "",
-    guests: guests === "" ? "" : String(guests),
-    budget: budget === "" ? "" : String(budget),
-    style: String(keep("style", raw.style.slice(0, 60), "")),
-    notes: String(keep("notes", raw.notes.slice(0, LIMITS.maxNotes), "")),
+    eventName: valid("eventName", raw.eventName.slice(0, 80)),
+    date: raw.date ? valid("date", raw.date) : "",
+    city: raw.city ? valid("city", raw.city) : "",
+    guests: raw.guests > 0 ? valid("guests", raw.guests) : "",
+    budget: raw.budget > 0 ? valid("budget", Math.round(raw.budget)) : "",
+    style: valid("style", raw.style.slice(0, 60)),
+    notes: valid("notes", raw.notes.slice(0, LIMITS.maxNotes)),
     includeMuhurat: eventType !== "" && TRADITIONAL_EVENT_TYPES.has(eventType),
     focus: shape.focus.catch([]).parse(raw.focus.slice(0, 3)),
     food: shape.food.parse(raw.food),
@@ -229,15 +228,13 @@ export function traditionValues(raw: ParsedExtraction, eventType: EventType | ""
   const multiDay = MULTI_DAY_EVENT_TYPES.has(eventType);
   if (!multiDay && !(eventType && TRADITIONAL_EVENT_TYPES.has(eventType))) return none;
 
-  const traditions = shape.traditions
-    .catch([])
-    .parse([...new Set(raw.traditions)].slice(0, multiDay ? 2 : 1)) as Tradition[];
+  const traditions = shape.traditions.catch([]).parse([...new Set(raw.traditions)].slice(0, multiDay ? 2 : 1));
   const traditionOther = traditions.includes("other")
     ? String(shape.traditionOther.catch("").parse(raw.traditionOther.slice(0, 40)))
     : "";
   if (!multiDay) return { ...none, traditions, traditionOther };
 
-  const additions = shape.additions.catch([]).parse([...new Set(raw.additions)]) as ModernAddition[];
+  const additions = shape.additions.catch([]).parse([...new Set(raw.additions)]);
   const spokenDays = raw.functions.map((f) => Math.round(f.day)).filter((d) => d >= 1 && d <= MAX_DAYS);
   const asked = Math.round(raw.days);
   const days = asked >= 1 && asked <= MAX_DAYS ? asked : spokenDays.length ? Math.max(...spokenDays) : 1;
@@ -269,7 +266,7 @@ export function traditionValues(raw: ParsedExtraction, eventType: EventType | ""
       .map((x) => ({ name: x.name, day: additionDay(x.day, days) }));
     functions = [...extra.filter((e) => e.day === 0), ...placed, ...extra.filter((e) => e.day !== 0)];
   }
-  functions = shape.functions.catch([]).parse(functions.slice(0, MAX_FUNCTIONS)) as FunctionChoice[];
+  functions = shape.functions.catch([]).parse(functions.slice(0, MAX_FUNCTIONS));
   return { traditions, traditionOther, days, functions, additions };
 }
 

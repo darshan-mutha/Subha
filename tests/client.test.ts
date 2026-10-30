@@ -10,7 +10,6 @@ import {
   requestAssign,
   requestPlan,
   saveProgress,
-  savePlan,
   saveViewer,
   updateShared,
 } from "@/lib/client";
@@ -78,9 +77,9 @@ describe("API client", () => {
 });
 
 describe("saved data in this browser", () => {
-  it("saves, loads and clears the working plan", () => {
+  it("loads and clears the plan saved by the one-plan version", () => {
     const ws = { input: baseInput, plan: samplePlan, timings: null, team: [], assignments: {}, done: {} };
-    savePlan(ws);
+    localStorage.setItem("shuba:last-plan:v2", JSON.stringify(ws));
     expect(loadPlan()).toEqual(ws);
     clearPlan();
     expect(loadPlan()).toBeNull();

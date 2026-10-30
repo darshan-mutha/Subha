@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { FEELINGS, FEELING_LABELS, type Feeling } from "@/lib/ideas";
+import { FEELINGS, FEELING_LABELS, type Feeling } from "@/lib/ideas/schema";
 import type { Plan } from "@/lib/schemas";
 import { Dots } from "./Dots";
 import { toggleIn } from "./toggleIn";

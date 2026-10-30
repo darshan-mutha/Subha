@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "./ai";
 import { traditionLines } from "./prompt";
+import { scaleToTotal } from "./scale";
 import { GUEST_GROUPS } from "./rsvp";
-import { EVENT_TYPE_LABELS, makeEventInputSchema, type EventInput } from "./schemas";
+import { EVENT_TYPE_LABELS, StoredEventInputSchema, type EventInput } from "./schemas";
 
 /**
  * "Help me build it": the groups of people to think of for this event and
@@ -51,7 +52,7 @@ export const GuestGroupsSchema = z.object({
 export type GuestGroups = z.infer<typeof GuestGroupsSchema>;
 
 export const GuestGroupsRequestSchema = z.object({
-  input: makeEventInputSchema(new Date(Date.now() - 400 * 86_400_000)),
+  input: StoredEventInputSchema,
   /** Function names, so groups can say which functions they usually attend. */
   functions: z.array(z.string().trim().min(1).max(60)).max(12).default([]),
 });
@@ -62,17 +63,12 @@ export function scaleGroups(groups: GuestGroupIdea[], total: number): GuestGroup
   const sum = groups.reduce((s, g) => s + g.about, 0);
   if (sum <= 0 || total <= 0) return groups;
   const step = total >= 60 ? 5 : 1;
-  const scaled = groups.map((g) => ({
-    ...g,
-    about: Math.max(step, Math.round(((g.about / sum) * total) / step) * step),
-  }));
-  const diff = total - scaled.reduce((s, g) => s + g.about, 0);
-  let largest = 0;
-  scaled.forEach((g, i) => {
-    if (g.about > scaled[largest].about) largest = i;
-  });
-  scaled[largest] = { ...scaled[largest], about: Math.max(0, scaled[largest].about + diff) };
-  return scaled;
+  const abouts = scaleToTotal(
+    groups.map((g) => g.about),
+    total,
+    { step, min: step },
+  );
+  return groups.map((g, i) => ({ ...g, about: abouts[i] }));
 }
 
 const WEDDING: GuestGroupIdea[] = [

@@ -1,15 +1,16 @@
 "use client";
 
 import { useId, useState } from "react";
-import { EMPTY_IDEA_STATE, byMoment, ideaId, themeSwatches, tidyText, type Feeling, type IdeaState } from "@/lib/ideas";
+import { themeSwatches } from "@/lib/ideas/colors";
+import { EMPTY_IDEA_STATE, type Feeling, type IdeaState } from "@/lib/ideas/schema";
+import { byMoment, ideaId, tidyText } from "@/lib/ideas/state";
 import type { EventInput, Idea, Plan } from "@/lib/schemas";
-import { FunctionFilter } from "./ideas/FunctionFilter";
 import { HeartCard } from "./ideas/HeartCard";
-import { MomentGroup } from "./ideas/MomentGroup";
+import { IdeasList } from "./ideas/IdeasList";
 import { OwnIdeaForm } from "./ideas/OwnIdeaForm";
 import { SignatureMoment } from "./ideas/SignatureMoment";
 import { ThemeDirections } from "./ideas/ThemeDirections";
-import { WAIT, useIdeasActions } from "./ideas/useIdeasActions";
+import { WAIT, useIdeasActions, type Job } from "./ideas/useIdeasActions";
 
 interface Props {
   input: EventInput;
@@ -19,6 +20,24 @@ interface Props {
   onSave: (next: { plan?: Plan; ideaState: IdeaState }) => Promise<void>;
   /** Turns an idea into a task, budget and vendor message (with What changed and Undo). */
   onAdd: (idea: Idea, ideaState: IdeaState) => Promise<void>;
+}
+
+/** The visible wait message while Shubā works (announced separately) and any error. */
+function IdeasProgress({ job, error }: { job: Job; error: string }) {
+  return (
+    <>
+      {job !== null && (
+        <p className="loading" aria-hidden="true">
+          <span className="spinner" /> {WAIT[job]}
+        </p>
+      )}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  );
 }
 
 /**
@@ -73,16 +92,7 @@ export function IdeasPanel({ input, plan, state = EMPTY_IDEA_STATE, onSave, onAd
         onShowThemes={() => void act.showThemes()}
       />
 
-      {job !== null && (
-        <p className="loading" aria-hidden="true">
-          <span className="spinner" /> {WAIT[job]}
-        </p>
-      )}
-      {error && (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      )}
+      <IdeasProgress job={job} error={error} />
 
       {state.directions.length > 0 && (
         <ThemeDirections
@@ -107,38 +117,24 @@ export function IdeasPanel({ input, plan, state = EMPTY_IDEA_STATE, onSave, onAd
 
       <OwnIdeaForm id={id} own={own} setOwn={setOwn} functions={functions} job={job} onSubmit={act.submitOwn} />
 
-      <h3 ref={listRef} tabIndex={-1} className="section-title ideas-heading">
-        Ideas for the day
-      </h3>
-      <FunctionFilter functions={functions} filter={filter} setFilter={setFilter} />
-
-      {groups.length === 0 && (
-        <p className="muted">
-          {filter ? `No ideas for ${filter} yet. Ask for some in the box above.` : "No ideas yet. Ask for some above."}
-        </p>
-      )}
-
-      {groups.map(([moment, list]) => (
-        <MomentGroup
-          key={moment}
-          id={id}
-          moment={moment}
-          ideas={list}
-          state={state}
-          fresh={fresh}
-          busy={busy}
-          onAdd={act.addIdea}
-          onKeep={act.keep}
-          onSkip={act.skip}
-          onMore={act.moreLike}
-        />
-      ))}
-
-      {skippedCount > 0 && (
-        <button type="button" className="btn btn-link btn-small no-print" onClick={() => setShowSkipped((s) => !s)}>
-          {showSkipped ? "Hide skipped ideas" : `Show ${skippedCount} skipped ${skippedCount === 1 ? "idea" : "ideas"}`}
-        </button>
-      )}
+      <IdeasList
+        id={id}
+        groups={groups}
+        functions={functions}
+        filter={filter}
+        setFilter={setFilter}
+        state={state}
+        fresh={fresh}
+        busy={busy}
+        listRef={listRef}
+        skippedCount={skippedCount}
+        showSkipped={showSkipped}
+        onToggleSkipped={() => setShowSkipped((s) => !s)}
+        onAdd={act.addIdea}
+        onKeep={act.keep}
+        onSkip={act.skip}
+        onMore={act.moreLike}
+      />
       <p className="muted small">Costs are rough estimates for {input.city}, not quotes.</p>
     </div>
   );

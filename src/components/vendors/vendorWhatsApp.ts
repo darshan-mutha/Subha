@@ -4,8 +4,9 @@ import { whatsappLink } from "@/lib/team";
 export function vendorWhatsApp(phone: string, text: string): string {
   const digits = phone.replace(/\D/g, "");
   const number = digits.length === 10 ? `91${digits}` : digits.length >= 11 ? digits : "";
-  const base = whatsappLink(text);
-  return number ? base.replace("https://wa.me/", `https://wa.me/${number}`) : base;
+  const url = new URL(whatsappLink(text));
+  url.pathname = `/${number}`;
+  return url.href;
 }
 
 /** Prints only the agreement box, then restores the page after printing. */

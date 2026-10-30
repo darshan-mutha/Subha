@@ -1,9 +1,14 @@
 "use client";
 
+import { useId } from "react";
 import { SPEECH_LANGUAGES, START_EXAMPLES } from "./options";
 import { clock } from "./speech";
 
-/** The calm "Listening" sign shown in place of the box while the host speaks. */
+/**
+ * The calm "Listening" sign shown in place of the box while the host speaks.
+ * The running clock is hidden from screen readers so the status is announced
+ * once, not every second.
+ */
 export function ListeningSign({ seconds }: { seconds: number }) {
   return (
     <div className="listening" role="status">
@@ -14,7 +19,9 @@ export function ListeningSign({ seconds }: { seconds: number }) {
         ))}
       </span>
       <span className="listening-text">
-        <strong>Listening… {clock(seconds)}</strong>
+        <strong>
+          Listening… <span aria-hidden="true">{clock(seconds)}</span>
+        </strong>
         <span className="muted">Your words appear when you stop</span>
       </span>
     </div>
@@ -34,14 +41,15 @@ interface BarProps {
 
 /** The row under the box: speaking language, mic or stop, and send. */
 export function ComposerBar({ supported, recording, busy, ready, lang, onLang, onStart, onStop }: BarProps) {
+  const langId = useId();
   return (
     <div className="composer-bar">
       {supported && (
         <span className="lang-chip">
-          <label htmlFor="speech-lang" className="sr-only">
+          <label htmlFor={langId} className="sr-only">
             Speaking in
           </label>
-          <select id="speech-lang" value={lang} onChange={(e) => onLang(e.target.value)} disabled={busy || recording}>
+          <select id={langId} value={lang} onChange={(e) => onLang(e.target.value)} disabled={busy || recording}>
             {SPEECH_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
                 {l.label}
