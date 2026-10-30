@@ -86,3 +86,14 @@ export function fullDateIn(iso: string, locale: string): string {
 export function shortWeekday(iso: string): string {
   return formatIso(WEEKDAY_SHORT, iso);
 }
+
+/** A date written as YYYY-MM-DD. */
+export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** True for a YYYY-MM-DD date that exists on the calendar (no 30 February). */
+export function isRealDate(value: string): boolean {
+  if (!ISO_DATE.test(value)) return false;
+  const [y, m, d] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+}

@@ -2,7 +2,8 @@ import { z } from "zod";
 import { formatINR } from "./budget";
 import type { Plan } from "./schemas";
 import { localId } from "./ids";
-import { NAME_TEXT, SAFE_TEXT } from "./validation";
+import { ID } from "./ids";
+import { MARKUP_CHARS, nameField, NO_MARKUP, phoneField, SAFE_TEXT } from "./validation";
 
 /* ------------------------------------------------------------------ */
 /* Vendor quotes, booking and payments. Worked out in code, not by AI, */
@@ -13,25 +14,15 @@ export const MAX_QUOTES = 5;
 export const MAX_AGREEMENT = 4000;
 const MAX_AMOUNT = 1_000_000_000;
 
-/** Agreement text is free-form, but never markup or code. */
-const AGREEMENT_TEXT = /^[^<>{}`\\]*$/u;
-
-const QuoteId = z.string().regex(/^q[a-z0-9]{1,12}$/);
+const QuoteId = z.string().regex(ID.quote);
 
 export const QuoteSchema = z.object({
   id: QuoteId,
-  vendorName: z
-    .string()
-    .trim()
-    .min(1, "Please enter the vendor's name")
-    .max(60, "Name is too long")
-    .regex(NAME_TEXT, "Name contains characters that are not allowed"),
-  phone: z
-    .string()
-    .trim()
-    .max(20, "Phone number is too long")
-    .regex(/^[0-9+\s-]*$/, "Phone can only contain numbers")
-    .default(""),
+  vendorName: nameField(60, {
+    empty: "Please enter the vendor's name",
+    invalid: "Name contains characters that are not allowed",
+  }),
+  phone: phoneField(),
   amount: z.coerce
     .number({ message: "Please enter the quoted amount" })
     .min(1, "Please enter the quoted amount")
@@ -57,7 +48,8 @@ export const DealSchema = z
     agreement: z
       .string()
       .max(MAX_AGREEMENT, "The agreement is too long")
-      .regex(AGREEMENT_TEXT, "The agreement contains characters that are not allowed")
+      // Agreement text is free-form, but never markup or code.
+      .regex(NO_MARKUP, "The agreement contains characters that are not allowed")
       .default(""),
   })
   .refine((d) => !d.booked || d.quotes.some((q) => q.id === d.booked), {
@@ -67,7 +59,7 @@ export const DealSchema = z
 
 export type Deal = z.infer<typeof DealSchema>;
 
-const VendorItemId = z.string().regex(/^v_[a-z0-9]{1,12}$/);
+const VendorItemId = z.string().regex(ID.vendorItem);
 export const DealsSchema = z.record(VendorItemId, DealSchema);
 export type Deals = z.infer<typeof DealsSchema>;
 
@@ -85,7 +77,7 @@ export function pruneDeals(deals: Deals | undefined, vendorIds: string[]): Deals
 
 /** Strips characters the agreement field does not accept (used on AI output). */
 export function cleanAgreementText(text: string): string {
-  return text.replace(/[<>{}`\\]/g, "").slice(0, MAX_AGREEMENT);
+  return text.replace(MARKUP_CHARS, "").slice(0, MAX_AGREEMENT);
 }
 
 /* ------------------------------------------------------------------ */

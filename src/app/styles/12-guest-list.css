@@ -19,7 +19,8 @@
   color: var(--muted);
   cursor: pointer;
 }
-.segmented button[aria-pressed="true"] {
+.segmented button[aria-pressed="true"],
+.segmented button[aria-selected="true"] {
   background: var(--c-primary);
   color: var(--on-primary);
 }

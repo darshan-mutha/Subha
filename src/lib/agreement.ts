@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "./ai";
+import { aiOrStandard, claudeGenerator, generateStructured, type Source, type TextGenerator } from "./ai";
 import { longDate } from "./dates";
 import { formatINR } from "./money";
 import { cleanAgreementText, QuoteSchema, type Quote } from "./deals";
@@ -126,25 +126,20 @@ Style: ${input.style || "not stated"}
 export async function draftAgreement(
   request: AgreementRequest,
   generate: TextGenerator = claudeGenerator,
-): Promise<{ text: string; source: "ai" | "standard" }> {
-  try {
-    const sections = await generateStructured(
-      {
-        system: AGREEMENT_SYSTEM_INSTRUCTION,
-        prompt: buildAgreementPrompt(request),
-        jsonSchema: AGREEMENT_JSON_SCHEMA,
-        maxTokens: 3_000,
-      },
-      ReplySchema,
-      generate,
-    );
-    return { text: composeAgreement(request, sections), source: "ai" };
-  } catch (error) {
-    // A refusal means the request itself was not acceptable; don't paper over it.
-    if (error instanceof PlannerError && error.status === 422) throw error;
-    return {
-      text: composeAgreement(request, standardSections(request.vendor.type, request.quote)),
-      source: "standard",
-    };
-  }
+): Promise<{ text: string; source: Source }> {
+  const { value: sections, source } = await aiOrStandard(
+    () =>
+      generateStructured(
+        {
+          system: AGREEMENT_SYSTEM_INSTRUCTION,
+          prompt: buildAgreementPrompt(request),
+          jsonSchema: AGREEMENT_JSON_SCHEMA,
+          maxTokens: 3_000,
+        },
+        ReplySchema,
+        generate,
+      ),
+    () => standardSections(request.vendor.type, request.quote),
+  );
+  return { text: composeAgreement(request, sections), source };
 }

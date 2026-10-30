@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { LocalWorkspace } from "@/lib/client";
 import { DEFAULT_SEATING } from "@/lib/seating";
-import type { TabItem } from "../Tabs";
 import { GuestsHub } from "../GuestsHub";
 import { IdeasPanel } from "../IdeasPanel";
 import { InviteMaker } from "../InviteMaker";
@@ -19,7 +18,7 @@ import { TimelineSection } from "./TimelineSection";
 import { TimingsSection } from "./TimingsSection";
 import type { PlanActions } from "./usePlanActions";
 import type { PlanDerived } from "./usePlanDerived";
-import type { Act, PlanWorkspaceProps } from "./workspaceTypes";
+import type { Act, PlanWorkspaceProps, SectionItem } from "./workspaceTypes";
 
 /** Order of the plan sections in the navigation. */
 const SECTION_ORDER = [
@@ -48,7 +47,7 @@ type Ctx = Pick<PlanWorkspaceProps, "shareUrl" | "onChange" | "onShare" | "viewe
 };
 
 /** The sections every plan has, except Guests (which shares state with Functions). */
-function coreTabs(ctx: Ctx): TabItem[] {
+function coreTabs(ctx: Ctx): SectionItem[] {
   const { data, derived, actions, busy, act, onChange, onShare, shareUrl } = ctx;
   const { input, plan, team, assignments, done } = data;
   const { scheduled, today } = derived;
@@ -133,7 +132,7 @@ function coreTabs(ctx: Ctx): TabItem[] {
 }
 
 /** Builds the plan's sections in navigation order. Sections not in this plan (Timings, Functions) are left out. */
-export function usePlanTabs(ctx: Ctx): TabItem[] {
+export function usePlanTabs(ctx: Ctx): SectionItem[] {
   const { data, planId, initialTab, tab, derived, actions, busy, act, onChange, onShare, goTo } = ctx;
   const { input, plan, timings } = data;
   const { today } = derived;
@@ -142,7 +141,7 @@ export function usePlanTabs(ctx: Ctx): TabItem[] {
   // One load of the guest replies, shared by the Guests views and Functions.
   const replies = useReplies(planId, tab === "guests" || tab === "functions");
 
-  const tabs: TabItem[] = [
+  const tabs: SectionItem[] = [
     ...coreTabs(ctx),
     {
       id: "guests",

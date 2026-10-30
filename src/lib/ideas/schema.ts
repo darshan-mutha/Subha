@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ID } from "../ids";
 import { SignatureSchema, clip, safeText } from "../schemas";
 import { knownOnly } from "../validation";
 
@@ -50,7 +51,7 @@ export const HeartSchema = z.object({
 });
 export type Heart = z.infer<typeof HeartSchema>;
 
-const IdeaId = z.string().regex(/^i_[a-z0-9]{1,12}$/);
+const IdeaId = z.string().regex(ID.idea);
 const idList = z.array(IdeaId).max(200).catch([]).default([]);
 
 export const DirectionSchema = z.object({

@@ -1,6 +1,7 @@
 "use client";
 
 import { dayLabel, type FunctionChoice } from "@/lib/traditions";
+import { invalidAttrs } from "../fieldErrors";
 
 interface Props {
   id: string;
@@ -102,8 +103,7 @@ function CustomFunction({
           maxLength={40}
           placeholder="Add your own"
           value={custom}
-          aria-invalid={customError ? true : undefined}
-          aria-describedby={customError ? `${id}-fn-custom-error` : undefined}
+          {...invalidAttrs(`${id}-fn-custom-error`, customError)}
           onChange={(e) => setCustom(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {

@@ -222,7 +222,7 @@
   background: color-mix(in oklch, var(--success) 10%, var(--surface));
   color: var(--success);
 }
-.vb-step[aria-pressed="true"] {
+.vb-step[aria-selected="true"] {
   background: var(--c-primary);
   border-color: var(--c-primary);
   color: var(--on-primary);

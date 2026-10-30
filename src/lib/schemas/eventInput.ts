@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { todayIST } from "../dates";
+import { isRealDate, todayIST } from "../dates";
 import { MAX_DAYS, MAX_FUNCTIONS, MODERN_ADDITIONS, TRADITIONS } from "../traditions";
 import { knownValues, SAFE_TEXT } from "../validation";
 import { FOCUS_AREAS, GUEST_NEEDS, EVENT_TYPES, FOOD_PREFS, MAX_FOCUS } from "./choices";
@@ -29,7 +29,6 @@ export const LIMITS = {
 } as const;
 
 const CITY_TEXT = /^[\p{L}\p{M}\s.,'\-()]+$/u;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export const safeText = (max: number, label: string) =>
   z
@@ -39,13 +38,6 @@ export const safeText = (max: number, label: string) =>
     .regex(SAFE_TEXT, `${label} contains characters that are not allowed`);
 
 export { todayIST };
-
-function isRealDate(value: string): boolean {
-  if (!ISO_DATE.test(value)) return false;
-  const [y, m, d] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
-}
 
 function addYears(isoDate: string, years: number): string {
   const [y, m, d] = isoDate.split("-");

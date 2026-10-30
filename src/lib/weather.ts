@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { addDays, daysBetween, todayIST } from "./dates";
+import { addDays, daysBetween, isRealDate, todayIST } from "./dates";
+import { memoryCache } from "./memoryCache";
 import { findLocation } from "./locations";
 
 export { addDays, daysBetween };
@@ -21,10 +22,7 @@ const RAINY_MM = 1;
 
 export const WeatherRequestSchema = z.object({
   city: z.string().trim().min(1).max(80),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`))),
+  date: z.string().refine(isRealDate),
   days: z.number().int().min(1).max(7).default(1),
 });
 export type WeatherRequest = z.infer<typeof WeatherRequestSchema>;
@@ -120,7 +118,7 @@ async function getDaily(url: string, fetcher: typeof fetch, timeoutMs: number): 
 
 const round = (n: number) => Math.round(n);
 
-const cache = new Map<string, { at: number; value: WeatherSummary }>();
+const cache = memoryCache<WeatherSummary>(1000);
 const FORECAST_TTL = 3 * 60 * 60 * 1000;
 const USUAL_TTL = 7 * 24 * 60 * 60 * 1000;
 
@@ -149,8 +147,8 @@ export async function getWeather(
   if (daysBetween(today, last) < 0) return NONE; // the event is over
 
   const key = `${req.city.trim().toLowerCase()}|${req.date}|${days}|${today}`;
-  const hit = cache.get(key);
-  if (hit && now.getTime() - hit.at < (hit.value.kind === "forecast" ? FORECAST_TTL : USUAL_TTL)) return hit.value;
+  const hit = cache.get(key, now.getTime());
+  if (hit) return hit;
 
   const place = await findLocation(req.city, fetcher);
   if (!place) return NONE;
@@ -183,7 +181,7 @@ export async function getWeather(
       ? summariseUsual(daily, req.date, days, startYear, endYear, place.name, addDays(last, -(FORECAST_DAYS - 1)))
       : NONE;
   }
-  if (value.kind !== "none") cache.set(key, { at: now.getTime(), value });
+  if (value.kind !== "none") cache.set(key, value, value.kind === "forecast" ? FORECAST_TTL : USUAL_TTL, now.getTime());
   return value;
 }
 

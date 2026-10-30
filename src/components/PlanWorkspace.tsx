@@ -5,7 +5,6 @@ import { EMPTY_IDEA_STATE, type IdeaState } from "@/lib/ideas/schema";
 import { bloomMessage } from "@/lib/schedule";
 import { Bloom } from "./Celebrate";
 import { SectionNav, type NavAction } from "./SectionNav";
-import type { TabItem } from "./Tabs";
 import { aliveFromProgress } from "./plan/eventTitle";
 import { OverBudgetBanner, PlanHeader, WhatChanged } from "./plan/PlanBanners";
 import { useAct } from "./plan/useAct";
@@ -14,12 +13,12 @@ import { usePlanActions } from "./plan/usePlanActions";
 import { usePlanDerived } from "./plan/usePlanDerived";
 import { usePlanTabs } from "./plan/usePlanTabs";
 import { useSectionNav } from "./plan/useSectionNav";
-import type { PlanWorkspaceProps } from "./plan/workspaceTypes";
+import type { PlanWorkspaceProps, SectionItem } from "./plan/workspaceTypes";
 
 export { eventTitle, aliveFromProgress } from "./plan/eventTitle";
 
 /** The section panels under the navigation; only the current one is shown. */
-function SectionPanels({ tabs, current }: { tabs: TabItem[]; current: string }) {
+function SectionPanels({ tabs, current }: { tabs: SectionItem[]; current: string }) {
   return (
     <>
       {tabs.map((t) => (

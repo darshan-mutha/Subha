@@ -125,8 +125,8 @@ Browser (React, Next.js)                     Server (Next.js route handlers)
 Automated scan with **axe-core (WCAG 2.2 A/AA + best practices): 0 violations** at 0% and 100% progress, in light and dark mode, on every screen (voice start, details check, form errors, all plan tabs, shared plan) at desktop and mobile widths. axe checks also run in the test suite (`tests/a11y.test.tsx`).
 
 - Semantic landmarks, skip link, one `h1`, labelled form controls.
-- Errors linked to fields with `aria-invalid` and `aria-describedby`; focus moves to the first error.
-- WAI-ARIA tabs with arrow-key, Home and End navigation.
+- Errors linked to fields with `aria-invalid` and `aria-describedby` (one shared helper, so only the field with the problem is marked); focus moves to the first error.
+- Views inside a section (Guest list / Replies / Seating, Ask / Compare / Book) are WAI-ARIA tabs with one tab stop and arrow-key, Home and End navigation; filters and on/off choices are toggle buttons (`aria-pressed`).
 - Live region announces progress and results; focus moves to the plan heading when ready.
 - WCAG AA colour contrast, 44 px touch targets, visible focus ring, reduced-motion support, mobile-first layout.
 - High contrast (Windows contrast themes): progress bars, selected choices and focus stay visible with system colours.
@@ -143,11 +143,11 @@ Automated scan with **axe-core (WCAG 2.2 A/AA + best practices): 0 violations** 
 npm run check   # Prettier, ESLint, TypeScript strict, tests with coverage
 ```
 
-- **ESLint** (Next.js core-web-vitals + TypeScript rules) and **Prettier** formatting, enforced in CI.
+- **ESLint** (Next.js core-web-vitals + TypeScript rules, no non-null assertions in app code) and **Prettier** formatting, enforced in CI.
 - **GitHub Actions CI** (`.github/workflows/ci.yml`) runs formatting, lint, type-check, tests with coverage and a production build on every push.
 - **Coverage**: about 98% of lines and 90% of branches (thresholds enforced: 90% lines/statements, 85% functions, 85% branches).
 
-702 automated tests in 81 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
+707 automated tests in 81 files (Vitest + Testing Library) cover validation, budget maths, guest list, seating, vendors, weather, sunrise and Rahu Kalam calculations, geocoding fallback, AI reply parsing and retries, prompts, voice-note extraction, team task split, shared-plan storage and API, API routes (validation, 413/415/429), the voice start, form and keyboard tab navigation.
 
 ## Assumptions
 
@@ -172,6 +172,7 @@ npm run dev
 
 ## Changelog
 
+- **30 Oct 2026** – Fourth tidy-up, every screen again compared pixel by pixel (28 screens, no change): leftover code from earlier screens removed (the old tabs component and unused vendor filters); the Guests views and the Ask / Compare / Book steps are now proper keyboard tabs; one helper links each form error to the right field (fixes a role error marking the name box); saved events are checked by the same rules as shared plans, with no type casts; one home each for names, phone numbers, AI text cleaning, id patterns and calendar dates; one AI-or-standard-wording helper for the four AI features that have a fallback; city and weather caches have a size limit; plan actions split into three small hooks; no `!` assertions left in app code. 707 tests.
 - **30 Oct 2026** – Third tidy-up, again with every screen compared pixel by pixel and no visible change: the four longest files split by job (the vendors screen into summary, list and detail parts; the guest list, savings and schemas modules into folders, with the AI call kept server-side); one home for text rules, "keep the valid items" lists and known-choice lists; one id maker for things kept on the device; one field-error wiring for forms; the budget rebalance uses the shared scaling maths; the page owns the heading focus instead of a module-level ref; guest replies load once for the whole Guests section instead of once per part; the guest-link route checks the plan exists without loading it and opens or reopens the link in one query; saved plans are validated and upgraded by one honest schema; example presets are dated when tapped. 702 tests, branch threshold raised to 85%.
 - **30 Oct 2026** – Second tidy-up after two independent code reviews, again with no change to what users see (every screen compared pixel by pixel): one shared home for dates, money, CSV and scaling maths; one error type and one error handler for all API routes; database updates and the reply limit each done in a single query (checked on a real Postgres); safe, validated browser storage in one place; the Ideas code split by job so the AI client stays on the server; fewer type casts. Tests for the two untested routes and weak screens (690 tests, branches 90%), quiet test output. Accessibility: error messages linked in the quote form and functions list, the section menu closes when keyboard focus leaves it, the listening timer no longer re-announces every second, team progress is labelled, budget bars visible in high contrast.
 - **30 Oct 2026** – Code tidy-up with no change to what users see (every screen checked pixel by pixel): long screens split into small parts and hooks, one-file styles split by area, 112 more tests for edge cases and error paths (branch coverage 84% → 88%), and high-contrast support for Windows contrast themes.

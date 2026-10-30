@@ -12,7 +12,8 @@ import {
   type FoodPref,
   type GuestNeed,
 } from "./schemas";
-import { knownValues, NAME_TEXT } from "./validation";
+import { ID, TOKEN } from "./ids";
+import { knownValues, nameField, phoneField } from "./validation";
 
 /**
  * Guest replies (RSVPs). One link for all guests: each family opens it, says
@@ -24,9 +25,9 @@ import { knownValues, NAME_TEXT } from "./validation";
 export const MAX_REPLIES = 3000;
 export const MAX_PARTY = 30;
 
-export const RSVP_TOKEN = /^[A-Za-z0-9_-]{22}$/;
-export const REPLY_ID = /^r[a-z0-9]{6,16}$/;
-export const REPLY_SECRET = /^[A-Za-z0-9_-]{22}$/;
+export const RSVP_TOKEN = TOKEN;
+export const REPLY_ID = ID.reply;
+export const REPLY_SECRET = TOKEN;
 
 export const COMING = ["yes", "maybe", "no"] as const;
 export type Coming = (typeof COMING)[number];
@@ -97,18 +98,8 @@ const count = (label: string) =>
 /** A guest's reply, as sent from the guest page. */
 export const ReplyInputSchema = z
   .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, "Please enter your name")
-      .max(60, "Name is too long")
-      .regex(NAME_TEXT, "Name can only contain letters and numbers"),
-    phone: z
-      .string()
-      .trim()
-      .max(20, "Phone number is too long")
-      .regex(/^[0-9+\s-]*$/, "Phone can only contain numbers")
-      .default(""),
+    name: nameField(60, { empty: "Please enter your name", invalid: "Name can only contain letters and numbers" }),
+    phone: phoneField(),
     coming: z.enum(COMING, { message: "Please say whether you can come" }),
     adults: count("adults").default(1),
     kids: count("children").default(0),

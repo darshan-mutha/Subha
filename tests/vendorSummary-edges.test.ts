@@ -1,17 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ScheduledItem } from "@/lib/schedule";
-import {
-  currentStep,
-  filterCount,
-  matchesFilter,
-  nextLine,
-  rowDetail,
-  rowStatus,
-  shortName,
-  stageTag,
-  vendorIcon,
-  vendorSummary,
-} from "@/lib/vendorSummary";
+import { currentStep, rowDetail, rowStatus, shortName, vendorIcon, vendorSummary } from "@/lib/vendorSummary";
 import type { VendorRow } from "@/lib/vendorSummary";
 import { samplePlan } from "./fixtures";
 
@@ -47,7 +36,6 @@ describe("vendorSummary row building", () => {
     const s = vendorSummary(items, { ...samplePlan, vendors: [samplePlan.vendors[0]] }, {}, {});
     expect(s.rows.map((r) => r.type)).toEqual(["Caterer", "Book a florist"]);
     expect(s.rows[1].mustHave).toBe(false);
-    expect(s.niceToHave).toBe(1);
   });
 
   it("counts a ticked-off vendor as booked even without a quote", () => {
@@ -77,51 +65,9 @@ describe("vendorSummary row building", () => {
   });
 });
 
-describe("filters", () => {
-  it("matches each filter to the right rows", () => {
-    const late = row({ overdue: true });
-    const quoting = row({ stage: "quotes", quotes: 2 });
-    expect(matchesFilter(late, "all")).toBe(true);
-    expect(matchesFilter(late, "overdue")).toBe(true);
-    expect(matchesFilter(quoting, "overdue")).toBe(false);
-    expect(matchesFilter(quoting, "quotes")).toBe(true);
-    expect(matchesFilter(quoting, "booked")).toBe(false);
-  });
-
-  it("counts the rows for a filter", () => {
-    const s = vendorSummary(
-      [item("a", "Caterer", "2026-11-01"), item("b", "Entertainer", "2026-11-02")],
-      samplePlan,
-      {},
-      { a: true },
-    );
-    expect(filterCount(s, "booked")).toBe(1);
-    expect(filterCount(s, "not-started")).toBe(1);
-    expect(filterCount(s, "all")).toBe(2);
-  });
-});
-
 describe("labels for a vendor", () => {
-  it("shows 'Booked' alone when a vendor is ticked off without an amount", () => {
-    expect(stageTag(row({ stage: "booked" }))).toEqual({ text: "Booked", tone: "ok" });
+  it("says 'Marked as booked' when a vendor is ticked off without an amount", () => {
     expect(rowDetail(row({ stage: "booked" }))).toBe("Marked as booked");
-  });
-
-  it("uses the singular for a single quote", () => {
-    expect(stageTag(row({ stage: "quotes", quotes: 1 })).text).toMatch(/^1 quote · by/);
-    expect(stageTag(row({ stage: "quotes", quotes: 1, overdue: true })).text).toBe("Overdue · 1 quote");
-  });
-
-  it("says 'by today' on the due date and 'overdue by 1 day' a day later", () => {
-    expect(nextLine(row({ due: "2026-11-20" }), "2026-11-20")).toBe(
-      "Caterer — by today. No quotes yet: send the ready-made message to a few vendors.",
-    );
-    expect(nextLine(row({ overdue: true }), "2026-11-21")).toContain("(overdue by 1 day)");
-  });
-
-  it("shows a single quote's price, and ₹0 when the cheapest is unknown", () => {
-    expect(nextLine(row({ quotes: 1, cheapest: 9000 }), "2026-11-01")).toContain("1 quote in; cheapest ₹9,000.");
-    expect(nextLine(row({ quotes: 2, cheapest: null }), "2026-11-01")).toContain("2 quotes in; cheapest ₹0.");
   });
 
   it("describes payment state for a booked vendor", () => {

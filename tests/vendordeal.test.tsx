@@ -51,7 +51,7 @@ async function openVendors() {
   await openSection("Vendors");
   await user.click(screen.getByRole("button", { name: /^Caterer/ }));
   const caterer = within(screen.getByRole("region", { name: "Caterer" }));
-  await user.click(caterer.getByRole("button", { name: "2 Compare" }));
+  await user.click(caterer.getByRole("tab", { name: "2 Compare" }));
   return { user, toggle, caterer };
 }
 
@@ -111,7 +111,7 @@ describe("vendor quotes, booking and agreement", () => {
     await user.click(caterer.getByRole("button", { name: "Book Home Baker Co for ₹18,000" }));
     expect(toggle).toHaveBeenCalledWith(catererId, true);
     // Booking moves the vendor to step 3, and the row to "Booked".
-    expect(caterer.getByRole("button", { name: "3 Book" })).toHaveAttribute("aria-pressed", "true");
+    expect(caterer.getByRole("tab", { name: "3 Book" })).toHaveAttribute("aria-selected", "true");
     expect(caterer.getByRole("heading", { name: "Booking" }).parentElement).toHaveTextContent(
       "Booked Home Baker Co for ₹18,000",
     );
@@ -232,22 +232,22 @@ describe("vendor screen layout", () => {
     expect(screen.queryByRole("region", { name: /^Booked/ })).not.toBeInTheDocument();
 
     // Ask step: the ready-made message and questions.
-    await user.click(caterer.getByRole("button", { name: "1 Ask" }));
+    await user.click(caterer.getByRole("tab", { name: "1 Ask" }));
     expect(caterer.getByText(samplePlan.vendors[0].brief)).toBeInTheDocument();
     expect(caterer.getByRole("heading", { name: "Questions to ask" })).toBeInTheDocument();
 
     // With a quote in, the row says so and the vendor opens on Compare.
-    await user.click(caterer.getByRole("button", { name: "2 Compare" }));
+    await user.click(caterer.getByRole("tab", { name: "2 Compare" }));
     await addQuote(user, caterer, "Home Baker Co", "18000");
     expect(toBook.getByRole("button", { name: /^Caterer/ })).toHaveTextContent("1 quote · ₹18,000");
     expect(toBook.getByRole("button", { name: /^Caterer/ })).toHaveTextContent("Quotes in");
-    expect(catererPanel().getByRole("button", { name: /1 Ask \(done\)/ })).toBeInTheDocument();
+    expect(catererPanel().getByRole("tab", { name: /1 Ask \(done\)/ })).toBeInTheDocument();
 
     // Book step before booking explains what to do.
-    await user.click(catererPanel().getByRole("button", { name: "3 Book" }));
+    await user.click(catererPanel().getByRole("tab", { name: "3 Book" }));
     expect(catererPanel().getByText(/Not booked yet/)).toBeInTheDocument();
     await user.click(catererPanel().getByRole("button", { name: "Compare quotes" }));
-    expect(catererPanel().getByRole("button", { name: "2 Compare" })).toHaveAttribute("aria-pressed", "true");
+    expect(catererPanel().getByRole("tab", { name: "2 Compare" })).toHaveAttribute("aria-selected", "true");
 
     // Back to the list, focus returns to the vendor's row.
     await user.click(catererPanel().getByRole("button", { name: "‹ All vendors" }));

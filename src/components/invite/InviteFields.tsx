@@ -2,6 +2,7 @@
 
 import { INVITE_LANGUAGES, INVITE_TONES, TONE_LABELS, type InviteDetails, type InviteWording } from "@/lib/invite";
 import type { Errors } from "./useInviteEditor";
+import { invalidAttrs } from "../fieldErrors";
 
 type SetDetail = <K extends keyof InviteDetails>(key: K, value: InviteDetails[K]) => void;
 /** The card details typed as free text (language and tone are picked from lists). */
@@ -42,8 +43,7 @@ export function DetailField({
         maxLength={max}
         placeholder={placeholder}
         value={details[name]}
-        aria-invalid={Boolean(errors[name])}
-        aria-describedby={errors[name] ? `${uid}-${name}-err` : hint ? `${uid}-${name}-hint` : undefined}
+        {...invalidAttrs(`${uid}-${name}-err`, errors[name], hint ? `${uid}-${name}-hint` : undefined)}
         onChange={(e) => setDetail(name, e.target.value)}
         onBlur={onBlur}
       />
@@ -173,8 +173,7 @@ export function WordField({ uid, name, label, max, long = false, wording, errors
     id: `${uid}-w-${name}`,
     value: wording[name],
     maxLength: max,
-    "aria-invalid": Boolean(errors[name]),
-    "aria-describedby": errors[name] ? `${uid}-w-${name}-err` : undefined,
+    ...invalidAttrs(`${uid}-w-${name}-err`, errors[name]),
     onBlur,
   };
   return (

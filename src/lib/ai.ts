@@ -146,3 +146,20 @@ export async function generateStructured<S extends z.ZodTypeAny>(
   if (lastError instanceof PlannerError) throw lastError;
   throw new PlannerError("The AI service is busy right now. Please try again in a minute.", 502);
 }
+
+/** Where an AI-written part came from: Claude, or Shubā's standard wording. */
+export type Source = "ai" | "standard";
+
+/**
+ * Runs an AI call; if the AI is busy, slow or replies badly, returns
+ * `standard()` instead so the host still gets something usable. A refusal
+ * (422) is passed on: the request itself was not acceptable.
+ */
+export async function aiOrStandard<T>(ask: () => Promise<T>, standard: () => T): Promise<{ value: T; source: Source }> {
+  try {
+    return { value: await ask(), source: "ai" };
+  } catch (error) {
+    if (error instanceof PlannerError && error.status === 422) throw error;
+    return { value: standard(), source: "standard" };
+  }
+}

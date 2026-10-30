@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "./ai";
+import { aiOrStandard, claudeGenerator, generateStructured, type Source, type TextGenerator } from "./ai";
 import { traditionLines } from "./prompt";
 import { scaleToTotal } from "./scale";
 import { GUEST_GROUPS } from "./rsvp";
 import { EVENT_TYPE_LABELS, StoredEventInputSchema, type EventInput } from "./schemas";
-import { validList } from "./validation";
+import { plainText, validList } from "./validation";
 
 /**
  * "Help me build it": the groups of people to think of for this event and
@@ -15,23 +15,12 @@ import { validList } from "./validation";
 
 export const MAX_GROUPS = 10;
 
-const text = (max: number) =>
-  z
-    .string()
-    .transform((v) =>
-      v
-        .replace(/[<>{}`\\]/g, "")
-        .replace(/\s+/g, " ")
-        .trim(),
-    )
-    .pipe(z.string().min(1).max(max));
-
 export const GuestGroupSchema = z.object({
-  name: text(60),
+  name: plainText(60),
   /** Rough number of people from this group. */
   about: z.number().int().min(0).max(10000),
   /** Who is in it, to jog the host's memory. */
-  who: text(200),
+  who: plainText(200),
   side: z.enum(GUEST_GROUPS).catch("").default(""),
 });
 export type GuestGroupIdea = z.infer<typeof GuestGroupSchema>;
@@ -39,7 +28,7 @@ export type GuestGroupIdea = z.infer<typeof GuestGroupSchema>;
 export const GuestGroupsSchema = z.object({
   groups: validList(GuestGroupSchema, MAX_GROUPS).refine((list) => list.length >= 2, "Too few groups"),
   /** People hosts often forget. */
-  reminders: z.array(text(140)).max(5).catch([]).default([]),
+  reminders: z.array(plainText(140)).max(5).catch([]).default([]),
 });
 export type GuestGroups = z.infer<typeof GuestGroupsSchema>;
 
@@ -164,21 +153,22 @@ ${functions.length ? `Functions: ${functions.join(", ")}` : ""}
 export async function suggestGuestGroups(
   request: GuestGroupsRequest,
   generate: TextGenerator = claudeGenerator,
-): Promise<GuestGroups & { source: "ai" | "standard" }> {
-  try {
-    const reply = await generateStructured(
-      {
-        system: GUEST_GROUPS_SYSTEM,
-        prompt: buildGroupsPrompt(request),
-        jsonSchema: GUEST_GROUPS_JSON_SCHEMA,
-        maxTokens: 2_000,
-      },
-      GuestGroupsSchema,
-      generate,
-    );
-    return { groups: scaleGroups(reply.groups, request.input.guests), reminders: reply.reminders, source: "ai" };
-  } catch (error) {
-    if (error instanceof PlannerError && error.status === 422) throw error;
-    return { ...standardGroups(request.input), source: "standard" };
-  }
+): Promise<GuestGroups & { source: Source }> {
+  const { value, source } = await aiOrStandard(
+    async () => {
+      const reply = await generateStructured(
+        {
+          system: GUEST_GROUPS_SYSTEM,
+          prompt: buildGroupsPrompt(request),
+          jsonSchema: GUEST_GROUPS_JSON_SCHEMA,
+          maxTokens: 2_000,
+        },
+        GuestGroupsSchema,
+        generate,
+      );
+      return { groups: scaleGroups(reply.groups, request.input.guests), reminders: reply.reminders };
+    },
+    () => standardGroups(request.input),
+  );
+  return { ...value, source };
 }

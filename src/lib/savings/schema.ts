@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { LIMITS, StoredEventInputSchema, PlanSchema } from "../schemas";
-import { UNSAFE_CHARS } from "../validation";
+import { plainText, UNSAFE_CHARS } from "../validation";
 
 /**
  * "Over budget? See your choices." When bookings cost more than planned, or the
@@ -50,25 +50,14 @@ export function cleanInstruction(text: string): string {
   return text.replace(UNSAFE_CHARS, "").replace(/\s+/g, " ").trim().slice(0, LIMITS.maxInstruction);
 }
 
-const tidy = (max: number) =>
-  z
-    .string()
-    .transform((v) =>
-      v
-        .replace(/[<>{}`\\]/g, "")
-        .replace(/\s+/g, " ")
-        .trim(),
-    )
-    .pipe(z.string().min(1).max(max));
-
 export const SavingOptionSchema = z.object({
   kind: z.enum(SAVING_KINDS),
-  title: tidy(80),
-  detail: tidy(260),
+  title: plainText(80),
+  detail: plainText(260),
   /** Estimated saving in rupees. Always an estimate. */
   saving: z.number().min(0).max(LIMITS.maxBudget),
   /** What the host gives up, in plain words. */
-  affects: tidy(180),
+  affects: plainText(180),
   /** The change request that applies this choice. Empty for raise-budget, which code applies. */
   instruction: z.string().transform(cleanInstruction).pipe(z.string().max(LIMITS.maxInstruction)),
 });

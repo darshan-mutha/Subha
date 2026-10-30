@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { localId } from "../ids";
+import { isRealDate } from "../dates";
+import { ID, localId } from "../ids";
 import { GUEST_GROUPS } from "../rsvp";
-import { validList } from "../validation";
+import { GUEST_NAME_TEXT, nameField, phoneField, validList } from "../validation";
 
 /**
  * One line of the host's guest list: a family or group with a head count,
@@ -13,41 +14,32 @@ export const MAX_PEOPLE_PER_ENTRY = 50;
 /** Days after an invitation (or a reminder) before Shubā suggests a reminder. */
 export const REMIND_AFTER_DAYS = 7;
 
-const ENTRY_ID = /^g[a-z0-9]{4,16}$/;
-const NAME_TEXT = /^[\p{L}\p{M}\p{N}\s.,'&()\-/+]+$/u;
-const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** A day something was sent, or "" for not yet. */
+const sentOn = () =>
+  z
+    .union([z.string().refine(isRealDate), z.literal("")])
+    .catch("")
+    .default("");
 
 export const GuestEntrySchema = z.object({
-  id: z.string().regex(ENTRY_ID),
-  name: z
-    .string()
-    .trim()
-    .min(1, "Please enter a name")
-    .max(80, "Name is too long")
-    .regex(NAME_TEXT, "Name can only contain letters and numbers"),
+  id: z.string().regex(ID.guest),
+  name: nameField(
+    80,
+    { empty: "Please enter a name", invalid: "Name can only contain letters and numbers" },
+    GUEST_NAME_TEXT,
+  ),
   people: z.coerce
     .number({ message: "Please enter how many people" })
     .int("Please enter a whole number")
     .min(1, "At least 1 person")
     .max(MAX_PEOPLE_PER_ENTRY, `Up to ${MAX_PEOPLE_PER_ENTRY} people per entry`),
-  phone: z
-    .string()
-    .trim()
-    .max(20, "Phone number is too long")
-    .regex(/^[0-9+\s-]*$/, "Phone can only contain numbers")
-    .default(""),
+  phone: phoneField(),
   side: z.enum(GUEST_GROUPS).catch("").default(""),
   /** Function names this family is invited to. Empty means every function. */
   functions: z.array(z.string().trim().min(1).max(60)).max(12).catch([]).default([]),
   /** Day the invitation was sent ("" = not yet). */
-  invitedAt: z
-    .union([z.string().regex(ISO_DAY), z.literal("")])
-    .catch("")
-    .default(""),
-  remindedAt: z
-    .union([z.string().regex(ISO_DAY), z.literal("")])
-    .catch("")
-    .default(""),
+  invitedAt: sentOn(),
+  remindedAt: sentOn(),
 });
 export type GuestEntry = z.infer<typeof GuestEntrySchema>;
 

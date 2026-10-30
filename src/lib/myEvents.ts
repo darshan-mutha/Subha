@@ -2,8 +2,7 @@ import { z } from "zod";
 import { clearPlan, loadPlan, StoredWorkspaceSchema, type LocalWorkspace } from "./client";
 import { EVENT_TYPE_LABELS, EVENT_TYPES, type EventInput } from "./schemas";
 import { readJson, removeKey, writeJson } from "./storage";
-import { SHARE_ID } from "./team";
-import { localId } from "./ids";
+import { ID, localId, TOKEN } from "./ids";
 import { validList } from "./validation";
 
 /**
@@ -20,7 +19,7 @@ const INDEX_KEY = "shuba:events:v1";
 const CURRENT_KEY = "shuba:events:current";
 const eventKey = (key: string) => `shuba:event:${key}`;
 
-const KEY = /^e[a-z0-9]{4,16}$/;
+const KEY = ID.event;
 
 export const EventEntrySchema = z.object({
   key: z.string().regex(KEY),
@@ -30,7 +29,7 @@ export const EventEntrySchema = z.object({
   city: z.string().max(60).catch(""),
   updatedAt: z.number().catch(0),
   /** Set once the plan has a team link; the plan then lives on the server. */
-  sharedId: z.string().regex(SHARE_ID).optional().catch(undefined),
+  sharedId: z.string().regex(TOKEN).optional().catch(undefined),
 });
 export type EventEntry = z.infer<typeof EventEntrySchema>;
 
@@ -120,7 +119,7 @@ export function markShared(key: string, sharedId: string, input: EventInput): vo
 
 /** A shared plan was opened here (by the host or a helper): add or refresh it in the list. */
 export function rememberShared(sharedId: string, input: EventInput): void {
-  if (!SHARE_ID.test(sharedId)) return;
+  if (!TOKEN.test(sharedId)) return;
   const list = readIndex();
   const existing = list.find((e) => e.sharedId === sharedId);
   const next = entryFor(existing?.key ?? newEventKey(), input, { sharedId });

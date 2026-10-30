@@ -16,6 +16,11 @@ const config = [
       "prefer-const": "error",
     },
   },
+  {
+    // App code proves a value is there instead of asserting it with "!".
+    files: ["src/**/*.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-non-null-assertion": "error" },
+  },
 ];
 
 export default config;

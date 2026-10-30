@@ -1,3 +1,4 @@
+import type { Source } from "./ai";
 import type { WeatherSummary } from "./weather";
 import type { Quote } from "./deals";
 import type { ExtractResult } from "./extract";
@@ -93,24 +94,16 @@ export const requestAgreement = (body: {
   vendor: { type: string; brief: string };
   quote: Quote;
   advance: number;
-}) =>
-  requestJson<{ text: string; source: "ai" | "standard" }>(
-    "POST",
-    "/api/agreement",
-    (d) => typeof d.text === "string",
-    body,
-  );
+}) => requestJson<{ text: string; source: Source }>("POST", "/api/agreement", (d) => typeof d.text === "string", body);
 
 export const requestInvite = (input: EventInput, details: InviteDetails) =>
-  requestJson<{ wording: InviteWording; source: "ai" | "standard" }>(
-    "POST",
-    "/api/invite",
-    (d) => Boolean(d.wording?.heading),
-    { input, details },
-  );
+  requestJson<{ wording: InviteWording; source: Source }>("POST", "/api/invite", (d) => Boolean(d.wording?.heading), {
+    input,
+    details,
+  });
 
 export const requestSavings = (body: SavingsRequest) =>
-  requestJson<{ options: SavingOption[]; source: "ai" | "standard" }>(
+  requestJson<{ options: SavingOption[]; source: Source }>(
     "POST",
     "/api/savings",
     (d) => Array.isArray(d.options),
@@ -126,7 +119,7 @@ export const requestIdeas = (body: IdeasRequest) =>
   );
 
 export const requestGuestGroups = (body: { input: EventInput; functions: string[] }) =>
-  requestJson<{ groups: GuestGroupIdea[]; reminders: string[]; source: "ai" | "standard" }>(
+  requestJson<{ groups: GuestGroupIdea[]; reminders: string[]; source: Source }>(
     "POST",
     "/api/guestlist",
     (d) => Array.isArray(d.groups),

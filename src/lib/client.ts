@@ -1,15 +1,11 @@
 import { z } from "zod";
 import { DealsSchema } from "./deals";
-import { GuestListSchema } from "./guestList";
-import { IdeaStateSchema } from "./ideas/schema";
-import { InviteSchema } from "./invite";
-import { PlanSchema, withInputDefaults, type EventInput } from "./schemas";
-import { DEFAULT_SEATING, SeatingSchema } from "./seating";
+import { StoredEventInputSchema } from "./schemas";
 import { readJson, readText, removeKey, writeJson, writeText } from "./storage";
 import {
   AssignmentsSchema,
   DoneSchema,
-  ShiftsSchema,
+  makeSharedContentSchema,
   TeamSchema,
   TimingsSchema,
   type Done,
@@ -29,26 +25,19 @@ export interface LocalWorkspace extends SharedPlanContent {
 
 /**
  * A plan saved in this browser, read with the upgrades older versions of Shubā
- * need: parts added later get their defaults, and a damaged part is dropped
- * rather than losing the whole event. The details are kept as typed, since
- * the form checks them again when they are edited.
+ * need: the same parts as a shared plan (see makeSharedContentSchema), with
+ * the ticks added, parts added later given their defaults, and a damaged part
+ * dropped rather than losing the whole event. The event details follow the
+ * form's rules, except that the date may be in the past.
  */
-export const StoredWorkspaceSchema: z.ZodType<LocalWorkspace, unknown> = z
-  .object({
-    input: z.looseObject({ eventType: z.string(), date: z.string() }),
-    plan: PlanSchema,
-    done: DoneSchema.catch({}).default({}),
-    timings: TimingsSchema.catch(null).default(null),
-    team: TeamSchema.catch([]).default([]),
-    assignments: AssignmentsSchema.catch({}).default({}),
-    deals: DealsSchema.catch({}).default({}),
-    invite: InviteSchema.nullable().catch(null).default(null),
-    shifts: ShiftsSchema.catch({}).default({}),
-    seating: SeatingSchema.catch(DEFAULT_SEATING).default(DEFAULT_SEATING),
-    guestList: GuestListSchema.default([]),
-    ideaState: IdeaStateSchema.optional().catch(undefined),
-  })
-  .transform((saved) => ({ ...saved, input: withInputDefaults(saved.input as EventInput) }));
+export const StoredWorkspaceSchema: z.ZodType<LocalWorkspace, unknown> = makeSharedContentSchema().extend({
+  input: StoredEventInputSchema,
+  done: DoneSchema.catch({}).default({}),
+  timings: TimingsSchema.catch(null).default(null),
+  team: TeamSchema.catch([]).default([]),
+  assignments: AssignmentsSchema.catch({}).default({}),
+  deals: DealsSchema.catch({}).default({}),
+});
 
 /** Where the one-plan version of Shubā kept its plan; moved into My events once. */
 const LEGACY_PLAN_KEY = "shuba:last-plan:v2";

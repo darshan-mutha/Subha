@@ -90,7 +90,7 @@ describe("Guest list linked to seating and functions", () => {
     expect(screen.getByText(/Mehendi \(11 invited\), Sangeet \(18 invited\)/)).toBeInTheDocument();
 
     await openSection("Guests");
-    await user.click(within(currentSection()).getByRole("button", { name: "Seating" }));
+    await user.click(within(currentSection()).getByRole("tab", { name: "Seating" }));
     const guests = within(currentSection());
     expect(guests.getByRole("button", { name: "Everyone on my list" })).toHaveAttribute("aria-pressed", "true");
     expect(guests.getByText(/tables? of/)).toHaveTextContent("23 people (3 families)");

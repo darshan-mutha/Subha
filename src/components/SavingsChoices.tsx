@@ -1,11 +1,13 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
+import type { Source } from "@/lib/ai";
 import { formatINR } from "@/lib/budget";
 import { ApiError, requestSavings } from "@/lib/client";
 import { totalOver } from "@/lib/savings/options";
 import { SAVING_KIND_LABELS, type OverLine, type SavingOption, type SavingsRequest } from "@/lib/savings/schema";
 import { LIMITS, type EventInput, type Plan } from "@/lib/schemas";
+import { invalidAttrs } from "./fieldErrors";
 
 interface Props {
   input: EventInput;
@@ -23,7 +25,7 @@ function useSavings({ input, plan, over, onChoose }: Omit<Props, "busy">) {
   const overBy = totalOver(over);
   const [amount, setAmount] = useState("");
   const [options, setOptions] = useState<SavingOption[] | null>(null);
-  const [source, setSource] = useState<"ai" | "standard">("ai");
+  const [source, setSource] = useState<Source>("ai");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [request, setRequest] = useState<SavingsRequest | null>(null);
@@ -106,7 +108,7 @@ function SavingsOptions({
   onChoose,
 }: {
   options: SavingOption[];
-  source: "ai" | "standard";
+  source: Source;
   working: boolean;
   onChoose: (option: SavingOption) => void;
 }) {
@@ -177,8 +179,7 @@ export function SavingsChoices({ input, plan, over, busy, onChoose }: Props) {
               inputMode="numeric"
               placeholder="e.g. 50000"
               value={amount}
-              aria-invalid={Boolean(error) || undefined}
-              aria-describedby={error ? `${id}-error` : undefined}
+              {...invalidAttrs(`${id}-error`, error)}
               onChange={(e) => setAmount(e.target.value)}
             />
           </div>

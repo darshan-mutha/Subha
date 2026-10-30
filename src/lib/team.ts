@@ -8,27 +8,21 @@ import { InviteSchema, type Invite } from "./invite";
 import type { DayTimings } from "./muhurat";
 import type { Shifts } from "./schedule";
 import { makeEventInputSchema, PlanSchema, type EventInput, type Plan } from "./schemas";
-import { localId } from "./ids";
+import { ID, localId, TOKEN } from "./ids";
+import { NAME_TEXT, nameField } from "./validation";
 
 /* ------------------------------------------------------------------ */
 /* Team members and the tasks they own.                               */
 /* ------------------------------------------------------------------ */
 
-const NAME_TEXT = /^[\p{L}\p{M}\p{N}\s.'\-()&]+$/u;
-
 export const MemberSchema = z.object({
-  id: z.string().regex(/^m[a-z0-9]{1,12}$/),
-  name: z
-    .string()
-    .trim()
-    .min(1, "Please enter a name")
-    .max(40, "Name is too long")
-    .regex(NAME_TEXT, "Name contains characters that are not allowed"),
+  id: z.string().regex(ID.member),
+  name: nameField(40, { empty: "Please enter a name", invalid: "Name contains characters that are not allowed" }),
   role: z
     .string()
     .trim()
     .max(40, "Role is too long")
-    .regex(/^[\p{L}\p{M}\p{N}\s.'\-()&,/]*$/u, "Role contains characters that are not allowed")
+    .refine((v) => v === "" || NAME_TEXT.test(v), "Role contains characters that are not allowed")
     .default(""),
 });
 
@@ -37,8 +31,8 @@ export type Member = z.infer<typeof MemberSchema>;
 export const MAX_MEMBERS = 15;
 export const TeamSchema = z.array(MemberSchema).max(MAX_MEMBERS, `Up to ${MAX_MEMBERS} people can be added`);
 
-const ItemId = z.string().regex(/^[tv]_[a-z0-9]{1,12}$/);
-export const AssignmentsSchema = z.record(ItemId, z.string().regex(/^m[a-z0-9]{1,12}$/));
+const ItemId = z.string().regex(ID.planItem);
+export const AssignmentsSchema = z.record(ItemId, z.string().regex(ID.member));
 export const DoneSchema = z.record(ItemId, z.boolean());
 /** Extra days per task after something ran late (see schedule.ts). */
 export const ShiftsSchema = z.record(ItemId, z.number().int().min(1).max(400));
@@ -164,7 +158,7 @@ export function makeSharedContentSchema(now: Date = new Date()) {
 export const ProgressSchema = z.object({ itemId: ItemId, done: z.boolean() });
 
 /** Share links use 128 random bits, so they cannot be guessed. */
-export const SHARE_ID = /^[A-Za-z0-9_-]{22}$/;
+export const SHARE_ID = TOKEN;
 
 /* ------------------------------------------------------------------ */
 /* WhatsApp messages.                                                  */

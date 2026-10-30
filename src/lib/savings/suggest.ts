@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "../ai";
+import {
+  aiOrStandard,
+  claudeGenerator,
+  generateStructured,
+  PlannerError,
+  type Source,
+  type TextGenerator,
+} from "../ai";
 import { formatINR } from "../budget";
 import { EVENT_TYPE_LABELS, FOCUS_LABELS, GUEST_NEED_LABELS } from "../schemas";
 import { validList } from "../validation";
@@ -82,36 +89,37 @@ export function buildSavingsPrompt(request: SavingsRequest): string {
 export async function suggestSavings(
   request: SavingsRequest,
   generate: TextGenerator = claudeGenerator,
-): Promise<{ options: SavingOption[]; source: "ai" | "standard" }> {
+): Promise<{ options: SavingOption[]; source: Source }> {
   const raise = request.mode === "cover" ? raiseBudgetOption(request.input.budget, request.overLines) : null;
-  const tail = coverClause(request);
-  let suggested: SavingOption[];
-  let source: "ai" | "standard" = "ai";
-  try {
-    const reply = await generateStructured(
-      {
-        system: SAVINGS_SYSTEM_INSTRUCTION,
-        prompt: buildSavingsPrompt(request),
-        jsonSchema: SAVINGS_JSON_SCHEMA,
-        maxTokens: 3_000,
-      },
-      AiOptionsSchema,
-      generate,
-    );
-    const seen = new Set<SavingKind>();
-    suggested = reply.options
-      .filter((o) => o.kind !== "raise-budget" && o.instruction.length >= 10 && !seen.has(o.kind) && seen.add(o.kind))
-      .slice(0, 6)
-      .map((o) => ({
-        ...o,
-        saving: Math.round(Math.min(o.saving, request.input.budget) / 100) * 100,
-        instruction: withTail(o.instruction, tail),
-      }));
-    if (suggested.length < 2) throw new PlannerError("Too few choices", 502);
-  } catch (error) {
-    if (error instanceof PlannerError && error.status === 422) throw error;
-    suggested = standardOptions(request);
-    source = "standard";
-  }
+  const { value: suggested, source } = await aiOrStandard(
+    () => aiOptions(request, generate),
+    () => standardOptions(request),
+  );
   return { options: raise ? [raise, ...suggested] : suggested, source };
+}
+
+/** Claude's choices, one per kind, with the saving capped and the cover clause added; at least two. */
+async function aiOptions(request: SavingsRequest, generate: TextGenerator): Promise<SavingOption[]> {
+  const tail = coverClause(request);
+  const reply = await generateStructured(
+    {
+      system: SAVINGS_SYSTEM_INSTRUCTION,
+      prompt: buildSavingsPrompt(request),
+      jsonSchema: SAVINGS_JSON_SCHEMA,
+      maxTokens: 3_000,
+    },
+    AiOptionsSchema,
+    generate,
+  );
+  const seen = new Set<SavingKind>();
+  const options = reply.options
+    .filter((o) => o.kind !== "raise-budget" && o.instruction.length >= 10 && !seen.has(o.kind) && seen.add(o.kind))
+    .slice(0, 6)
+    .map((o) => ({
+      ...o,
+      saving: Math.round(Math.min(o.saving, request.input.budget) / 100) * 100,
+      instruction: withTail(o.instruction, tail),
+    }));
+  if (options.length < 2) throw new PlannerError("Too few choices", 502);
+  return options;
 }

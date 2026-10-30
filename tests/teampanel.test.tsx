@@ -35,6 +35,32 @@ describe("TeamPanel", () => {
     await userEvent.type(screen.getByLabelText("Name"), "ravi");
     await userEvent.click(screen.getByRole("button", { name: "Add person" }));
     expect(screen.getByRole("alert")).toHaveTextContent(/already in the team/);
+    expect(screen.getByLabelText("Name")).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("marks only the box that has the problem", async () => {
+    const onTeamChange = vi.fn();
+    render(<TeamPanel {...base} team={[]} shareUrl={null} onTeamChange={onTeamChange} onShare={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Add family & friends" }));
+    const name = screen.getByLabelText("Name");
+    const role = screen.getByLabelText(/Role/);
+
+    await userEvent.type(name, "Ravi");
+    await userEvent.type(role, "<script>");
+    await userEvent.click(screen.getByRole("button", { name: "Add person" }));
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(/Role contains characters/);
+    expect(role).toHaveAttribute("aria-invalid", "true");
+    expect(role).toHaveAttribute("aria-describedby", alert.id);
+    expect(name).not.toHaveAttribute("aria-invalid");
+
+    await userEvent.clear(name);
+    await userEvent.clear(role);
+    await userEvent.click(screen.getByRole("button", { name: "Add person" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/Please enter a name/);
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(role).not.toHaveAttribute("aria-invalid");
+    expect(onTeamChange).not.toHaveBeenCalled();
   });
 
   it("shows progress, per-person counts and WhatsApp links once shared", () => {

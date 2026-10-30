@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { LocalWorkspace } from "@/lib/client";
 import type { SharedPlanContent } from "@/lib/team";
 
@@ -31,5 +32,19 @@ export interface PlanWorkspaceProps {
 /** The plan as it was before the last change, so the host can undo it. */
 export type Snapshot = Partial<SharedPlanContent>;
 
+/** The last change shown in "What changed", with what to restore on Undo. */
+export interface LastChange {
+  lines: string[];
+  before: Snapshot;
+  note: string;
+}
+
 /** Runs a save with busy state and announcements; resolves to whether it worked. */
 export type Act = (task: () => Promise<void>, working: string, doneMessage: string) => Promise<boolean>;
+
+/** One section of the plan screen (Home, Budget, Guests…) and what it shows. */
+export interface SectionItem {
+  id: string;
+  label: string;
+  content: ReactNode;
+}

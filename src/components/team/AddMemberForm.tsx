@@ -2,6 +2,10 @@
 
 import { useId, useState, type FormEvent, type RefObject } from "react";
 import { MemberSchema, newMemberId, type Member } from "@/lib/team";
+import { invalidAttrs } from "../fieldErrors";
+
+/** Which input a problem belongs to, so only that one is marked invalid. */
+type Problem = { field: "name" | "role"; message: string } | null;
 
 /** Name and role inputs that add one helper, rejecting bad or duplicate names. */
 export function AddMemberForm({
@@ -18,20 +22,24 @@ export function AddMemberForm({
   const id = useId();
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [error, setError] = useState("");
+  const [problem, setProblem] = useState<Problem>(null);
+  const errorId = `${id}-error`;
+  const errorFor = (field: "name" | "role") => (problem?.field === field ? problem.message : undefined);
 
   function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsed = MemberSchema.safeParse({ id: newMemberId(), name, role });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Please check the name");
+      const issue = parsed.error.issues[0];
+      const field = issue?.path[0] === "role" ? "role" : "name";
+      setProblem({ field, message: issue?.message ?? `Please check the ${field}` });
       return;
     }
     if (team.some((m) => m.name.toLowerCase() === parsed.data.name.toLowerCase())) {
-      setError(`${parsed.data.name} is already in the team`);
+      setProblem({ field: "name", message: `${parsed.data.name} is already in the team` });
       return;
     }
-    setError("");
+    setProblem(null);
     onTeamChange([...team, parsed.data]);
     setName("");
     setRole("");
@@ -50,8 +58,7 @@ export function AddMemberForm({
           placeholder="e.g. Ravi"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
+          {...invalidAttrs(errorId, errorFor("name"))}
         />
       </div>
       <div className="field">
@@ -63,14 +70,15 @@ export function AddMemberForm({
           placeholder="e.g. cousin, knows caterers"
           value={role}
           onChange={(e) => setRole(e.target.value)}
+          {...invalidAttrs(errorId, errorFor("role"))}
         />
       </div>
       <button type="submit" className="btn" disabled={busy}>
         Add person
       </button>
-      {error && (
-        <p id={`${id}-error`} className="field-error" role="alert">
-          {error}
+      {problem && (
+        <p id={errorId} className="field-error" role="alert">
+          {problem.message}
         </p>
       )}
     </form>

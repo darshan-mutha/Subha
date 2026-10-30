@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormEvent, InputHTMLAttributes } from "react";
+import { invalidAttrs } from "../fieldErrors";
 import type { QuoteDraft } from "./types";
 
 /** One labelled quote input whose error (when shown) is linked to it with aria-describedby. */
@@ -19,7 +20,7 @@ function QuoteField({
   return (
     <div className={wide ? "field field-wide" : "field"}>
       <label htmlFor={id}>{label}</label>
-      <input id={id} {...input} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-err` : undefined} />
+      <input id={id} {...input} {...invalidAttrs(`${id}-err`, error)} />
       {error && (
         <span id={`${id}-err`} className="field-error">
           {error}

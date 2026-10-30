@@ -246,17 +246,8 @@ main:has(.plan, .my-events) > .lead {
   background: color-mix(in oklch, var(--c-primary) 10%, transparent);
   font-weight: 600;
 }
-/* Phones: every tab stays in view (two rows) instead of hiding off to the side. */
+/* Phones: room for the bottom navigation bar. */
 @media (max-width: 640px) {
-  .tablist {
-    flex-wrap: wrap;
-    justify-content: center;
-    overflow-x: visible;
-    border-radius: var(--radius-lg);
-  }
-  .tab {
-    padding: 8px 12px;
-  }
   body:has(.section-nav) {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }

@@ -2,6 +2,7 @@
 
 import { MAX_DAYS, TRADITIONS, TRADITION_LABELS } from "@/lib/traditions";
 import type { TraditionValues } from "../TraditionPicker";
+import { invalidAttrs } from "../fieldErrors";
 
 interface Props {
   id: string;
@@ -56,8 +57,7 @@ export function TraditionFields({ id, values, multiDay, errors, setTraditions, s
             maxLength={60}
             placeholder="e.g. Konkani, Kodava, Sindhi, Parsi"
             value={values.traditionOther}
-            aria-invalid={errors.traditionOther ? true : undefined}
-            aria-describedby={errors.traditionOther ? `${id}-traditionOther-error` : undefined}
+            {...invalidAttrs(`${id}-traditionOther-error`, errors.traditionOther)}
             onChange={(e) => setTraditionOther(e.target.value)}
           />
           {errors.traditionOther && (

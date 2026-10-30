@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "./ai";
+import { aiOrStandard, claudeGenerator, generateStructured, type Source, type TextGenerator } from "./ai";
 import { EVENT_TYPE_LABELS, safeText, StoredEventInputSchema, type EventInput } from "./schemas";
 import { fullDateIn } from "./dates";
+import { NO_MARKUP } from "./validation";
 
 /**
  * Invitation card. Claude writes only the words (heading, invitation, closing)
@@ -53,7 +54,7 @@ const words = (max: number, label: string) =>
         .string()
         .min(1, `Please add the ${label.toLowerCase()}`)
         .max(max, `${label} must be ${max} characters or fewer`)
-        .regex(/^[^<>{}\\`]*$/u, `${label} contains characters that are not allowed`),
+        .regex(NO_MARKUP, `${label} contains characters that are not allowed`),
     );
 
 export const InviteWordingSchema = z.object({
@@ -190,22 +191,20 @@ export function standardWording(input: EventInput, details: InviteDetails): Invi
 export async function draftInvite(
   request: InviteRequest,
   generate: TextGenerator = claudeGenerator,
-): Promise<{ wording: InviteWording; source: "ai" | "standard" }> {
-  try {
-    const wording = await generateStructured(
-      {
-        system: INVITE_SYSTEM_INSTRUCTION,
-        prompt: buildInvitePrompt(request),
-        jsonSchema: INVITE_JSON_SCHEMA,
-        maxTokens: 2_000,
-      },
-      InviteWordingSchema,
-      generate,
-    );
-    return { wording, source: "ai" };
-  } catch (error) {
-    // A refusal means the request itself was not acceptable; don't paper over it.
-    if (error instanceof PlannerError && error.status === 422) throw error;
-    return { wording: standardWording(request.input, request.details), source: "standard" };
-  }
+): Promise<{ wording: InviteWording; source: Source }> {
+  const { value, source } = await aiOrStandard(
+    () =>
+      generateStructured(
+        {
+          system: INVITE_SYSTEM_INSTRUCTION,
+          prompt: buildInvitePrompt(request),
+          jsonSchema: INVITE_JSON_SCHEMA,
+          maxTokens: 2_000,
+        },
+        InviteWordingSchema,
+        generate,
+      ),
+    () => standardWording(request.input, request.details),
+  );
+  return { wording: value, source };
 }

@@ -10,6 +10,7 @@ import { CopyButton } from "../plan/CopyButton";
 import { TaskRow } from "../plan/TaskRow";
 import type { TaskState } from "../plan/types";
 import { VendorDeal, type DealState } from "../VendorDeal";
+import { TabPanel, ViewTabs, type ViewTab } from "../ViewTabs";
 
 const STEPS: { id: VendorStep; label: string }[] = [
   { id: "ask", label: "Ask" },
@@ -75,35 +76,42 @@ function AskStep({ type, brief, questions }: { type: string; brief: string; ques
   );
 }
 
-/** Ask → Compare → Book buttons; steps before the vendor's current one show a tick. */
-function StepButtons({
+/** Ask → Compare → Book tabs; steps before the vendor's current one show a tick. */
+function StepTabs({
+  base,
   reached,
   step,
   onStep,
 }: {
+  base: string;
   reached: number;
   step: VendorStep;
   onStep: (step: VendorStep) => void;
 }) {
+  const items: ViewTab<VendorStep>[] = STEPS.map((s, i) => {
+    const done = i < reached;
+    return {
+      id: s.id,
+      className: done ? "is-done" : undefined,
+      label: (
+        <>
+          {done && <span aria-hidden="true">✓ </span>}
+          {i + 1} {s.label}
+          {done && <span className="sr-only"> (done)</span>}
+        </>
+      ),
+    };
+  });
   return (
-    <div className="vb-steps no-print" role="group" aria-label="Steps">
-      {STEPS.map((s, i) => {
-        const done = i < reached;
-        return (
-          <button
-            key={s.id}
-            type="button"
-            className={`vb-step${done ? " is-done" : ""}`}
-            aria-pressed={step === s.id}
-            onClick={() => onStep(s.id)}
-          >
-            {done && <span aria-hidden="true">✓ </span>}
-            {i + 1} {s.label}
-            {done && <span className="sr-only"> (done)</span>}
-          </button>
-        );
-      })}
-    </div>
+    <ViewTabs
+      base={base}
+      label="Steps"
+      className="vb-steps no-print"
+      tabClassName="vb-step"
+      items={items}
+      current={step}
+      onSelect={onStep}
+    />
   );
 }
 
@@ -133,6 +141,7 @@ export function Detail({
   const money = deals ? budgetForVendor(ref, deals.vendors, deals.deals, deals.budget) : null;
   const reached = STEP_ORDER.indexOf(currentStep(row));
   const shown = deals ? step : "ask";
+  const base = `vb-${item.id}-step`;
   return (
     <section className="vb-detail card-inner" aria-labelledby={`vb-${item.id}`}>
       <DetailHead
@@ -147,16 +156,24 @@ export function Detail({
         <TaskRow item={item} state={state} />
       </ul>
 
-      {deals && <StepButtons reached={reached} step={step} onStep={onStep} />}
-
-      {shown === "ask" && <AskStep type={vendor.type} brief={vendor.brief} questions={vendor.questions} />}
-      {deals && shown !== "ask" && (
+      {deals ? (
         <>
-          <VendorDeal vendor={ref} brief={vendor.brief} state={deals} part={shown} onStep={onStep} />
-          <div className="vb-folds">
-            <VendorBrief brief={vendor.brief} questions={vendor.questions} folded />
-          </div>
+          <StepTabs base={base} reached={reached} step={step} onStep={onStep} />
+          <TabPanel base={base} id={shown}>
+            {shown === "ask" ? (
+              <AskStep type={vendor.type} brief={vendor.brief} questions={vendor.questions} />
+            ) : (
+              <>
+                <VendorDeal vendor={ref} brief={vendor.brief} state={deals} part={shown} onStep={onStep} />
+                <div className="vb-folds">
+                  <VendorBrief brief={vendor.brief} questions={vendor.questions} folded />
+                </div>
+              </>
+            )}
+          </TabPanel>
         </>
+      ) : (
+        <AskStep type={vendor.type} brief={vendor.brief} questions={vendor.questions} />
       )}
     </section>
   );

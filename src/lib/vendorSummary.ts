@@ -1,5 +1,5 @@
-import { daysBetween, shortDate } from "./dates";
-import { formatINR, formatShortINR } from "./money";
+import { shortDate } from "./dates";
+import { formatShortINR } from "./money";
 import { bookedQuote, lineFor, paymentSummary, sortedQuotes, type Deals, type PaymentSummary } from "./deals";
 import type { ScheduledItem } from "./schedule";
 import type { Plan } from "./schemas";
@@ -12,16 +12,6 @@ import type { Done } from "./team";
  */
 
 export type VendorStage = "booked" | "quotes" | "not-started";
-export const VENDOR_FILTERS = ["all", "not-started", "quotes", "booked", "overdue"] as const;
-export type VendorFilter = (typeof VENDOR_FILTERS)[number];
-export const FILTER_LABELS: Record<VendorFilter, string> = {
-  all: "All",
-  "not-started": "Not started",
-  quotes: "Getting quotes",
-  booked: "Booked",
-  overdue: "Overdue",
-};
-
 export interface VendorRow {
   id: string;
   type: string;
@@ -40,16 +30,10 @@ export interface VendorRow {
 export interface VendorSummary {
   rows: VendorRow[];
   needed: number;
-  mustHave: number;
-  niceToHave: number;
   booked: VendorRow[];
   gettingQuotes: VendorRow[];
   notStarted: VendorRow[];
   overdue: VendorRow[];
-  /** All quotes received, for every vendor. */
-  quotesIn: number;
-  /** Quotes for vendors not booked yet: the ones still being compared. */
-  quotesToCompare: number;
   /** The budget lines that pay for vendors, added up. */
   vendorBudget: number;
   payments: PaymentSummary;
@@ -82,27 +66,16 @@ export function vendorSummary(items: ScheduledItem[], plan: Plan, deals: Deals, 
   const lines = new Set(refs.map((v) => lineFor(v, deals[v.id], plan.budget)).filter(Boolean));
   const vendorBudget = plan.budget.filter((l) => lines.has(l.category)).reduce((s, l) => s + l.amount, 0);
 
-  const open = rows.filter((r) => r.stage !== "booked");
-  const next =
-    [...open].sort(
-      (a, b) =>
-        Number(b.overdue) - Number(a.overdue) || a.due.localeCompare(b.due) || Number(b.mustHave) - Number(a.mustHave),
-    )[0] ?? null;
-
   return {
     rows,
     needed: rows.length,
-    mustHave: rows.filter((r) => r.mustHave).length,
-    niceToHave: rows.filter((r) => !r.mustHave).length,
     booked: rows.filter((r) => r.stage === "booked"),
     gettingQuotes: rows.filter((r) => r.stage === "quotes"),
     notStarted: rows.filter((r) => r.stage === "not-started"),
     overdue: rows.filter((r) => r.overdue),
-    quotesIn: rows.reduce((s, r) => s + r.quotes, 0),
-    quotesToCompare: open.reduce((s, r) => s + r.quotes, 0),
     vendorBudget,
     payments: paymentSummary(refs, deals),
-    next,
+    next: vendorGroups(rows).toBook[0] ?? null,
   };
 }
 
@@ -110,40 +83,6 @@ export function vendorSummary(items: ScheduledItem[], plan: Plan, deals: Deals, 
 export function shortName(type: string): string {
   const short = type.split(/\s*[(:–—]/u)[0].trim();
   return short || type;
-}
-
-export function matchesFilter(row: VendorRow, filter: VendorFilter): boolean {
-  if (filter === "all") return true;
-  if (filter === "overdue") return row.overdue;
-  return row.stage === filter;
-}
-
-export function filterCount(summary: VendorSummary, filter: VendorFilter): number {
-  return summary.rows.filter((r) => matchesFilter(r, filter)).length;
-}
-
-/** The short tag on each vendor card, e.g. "Overdue · 3 quotes", "Booked · ₹2,90,000". */
-export function stageTag(row: VendorRow): { text: string; tone: "ok" | "bad" | "info" } {
-  if (row.stage === "booked") {
-    return { text: row.bookedAmount ? `Booked · ${formatINR(row.bookedAmount)}` : "Booked", tone: "ok" };
-  }
-  const quotes = row.quotes ? `${row.quotes} quote${row.quotes === 1 ? "" : "s"}` : "Not started";
-  if (row.overdue) return { text: `Overdue · ${quotes}`, tone: "bad" };
-  return { text: `${quotes} · by ${shortDate(row.due)}`, tone: "info" };
-}
-
-/** "Book next" line, e.g. "Caterer — by 14 Nov (overdue by 2 days). 3 quotes in; cheapest ₹4,20,000." */
-export function nextLine(row: VendorRow, today: string): string {
-  const late = daysBetween(row.due, today);
-  const when = row.overdue
-    ? `by ${shortDate(row.due)} (overdue by ${late} day${late === 1 ? "" : "s"})`
-    : row.due === today
-      ? "by today"
-      : `by ${shortDate(row.due)}`;
-  const quotes = row.quotes
-    ? ` ${row.quotes} quote${row.quotes === 1 ? "" : "s"} in; cheapest ${formatINR(row.cheapest ?? 0)}.`
-    : " No quotes yet: send the ready-made message to a few vendors.";
-  return `${shortName(row.type)} — ${when}.${quotes}`;
 }
 
 /** "To book" (most urgent first) and "Booked": the two groups on the Vendors screen. */

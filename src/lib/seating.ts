@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ID } from "./ids";
 import { GUEST_FOOD_LABELS, GUEST_GROUP_LABELS, type GuestFood, type GuestGroup, type Reply } from "./rsvp";
 import { invitedTo, matchReplies, type GuestList } from "./guestList";
 
@@ -22,7 +23,7 @@ export const TABLE_SIZES = [6, 8, 10, 12] as const;
 export const MAX_TABLES = 400;
 
 /** A reply id (r…) or a guest-list entry id (g…). */
-const PartyRef = z.string().regex(/^[rg][a-z0-9]{4,16}$/);
+const PartyRef = z.string().regex(ID.party);
 
 export const SEAT_FROM = ["list", "replies"] as const;
 export type SeatFrom = (typeof SEAT_FROM)[number];
@@ -210,16 +211,21 @@ export function planSeating(
   // 1. Each side packs into its own tables.
   const bySide = new Map<GuestGroup, Party[]>();
   for (const p of parties) bySide.set(p.group, [...(bySide.get(p.group) ?? []), p]);
-  const sideOrder = [...bySide.keys()].sort((a, b) => (a === "" ? 1 : 0) - (b === "" ? 1 : 0) || a.localeCompare(b));
+  // Named sides first (alphabetically), guests with no side last.
+  const sides = [...bySide.entries()].sort(([a], [b]) => (a === "" ? 1 : 0) - (b === "" ? 1 : 0) || a.localeCompare(b));
+  const byId = new Map(parties.map((p) => [p.id, p]));
   let tables: Seat[][] = [];
   const leftovers: Party[] = [];
-  for (const side of sideOrder) {
-    const packed = pack(bySide.get(side)!, size);
+  for (const [, sideParties] of sides) {
+    const packed = pack(sideParties, size);
     // 2. A side's last half-empty table is merged with other small groups.
     const last = packed.at(-1);
-    if (packed.length > 0 && last && !last.some((s) => s.part) && used(last) <= size / 2) {
+    if (last && !last.some((s) => s.part) && used(last) <= size / 2) {
       packed.pop();
-      for (const seat of last) leftovers.push(parties.find((p) => p.id === seat.replyId)!);
+      for (const seat of last) {
+        const party = byId.get(seat.replyId);
+        if (party) leftovers.push(party);
+      }
     }
     tables.push(...packed);
   }

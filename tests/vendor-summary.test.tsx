@@ -7,7 +7,7 @@ import { PlanWorkspace } from "@/components/PlanWorkspace";
 import type { LocalWorkspace } from "@/lib/client";
 import { schedule } from "@/lib/schedule";
 import { planStructure } from "@/lib/team";
-import { nextLine, stageTag, vendorSummary } from "@/lib/vendorSummary";
+import { rowDetail, rowStatus, vendorSummary } from "@/lib/vendorSummary";
 import { baseInput, samplePlan } from "./fixtures";
 import { currentSection, openSection } from "./nav";
 
@@ -40,22 +40,20 @@ describe("vendor summary", () => {
     expect(s.needed).toBe(samplePlan.vendors.length);
     expect(s.booked.map((r) => r.type)).toEqual(["Caterer"]);
     expect(s.gettingQuotes.map((r) => r.type)).toEqual(["Entertainer"]);
-    expect(s.quotesIn).toBe(3);
-    expect(s.quotesToCompare).toBe(1);
+    expect(s.gettingQuotes[0].quotes).toBe(1);
     expect(s.payments).toMatchObject({ committed: 18000, advancePaid: 5000, balanceDue: 13000 });
     expect(s.vendorBudget).toBeGreaterThanOrEqual(20000);
     expect(s.next?.type).toBe("Entertainer");
-    expect(nextLine(s.next!, "2026-10-26")).toContain("1 quote in; cheapest ₹9,000");
-    expect(stageTag(s.booked[0]).text).toBe("Booked · ₹18,000");
+    expect(rowDetail(s.gettingQuotes[0])).toMatch(/^1 quote · /);
+    expect(rowStatus(s.booked[0])).toEqual({ text: "Booked", tone: "ok" });
   });
 
   it("puts overdue vendors first and says how late", () => {
     const s = vendorSummary(scheduled("2026-12-10"), samplePlan, {}, {});
     expect(s.overdue.length).toBeGreaterThan(0);
     expect(s.next?.overdue).toBe(true);
-    expect(nextLine(s.next!, "2026-12-10")).toMatch(/overdue by \d+ days?/);
-    expect(stageTag(s.next!)).toMatchObject({ tone: "bad" });
-    expect(stageTag(s.notStarted[0]).text).toMatch(/^Overdue · Not started|^Not started · by/);
+    expect(rowDetail(s.next!)).toMatch(/^Was due /);
+    expect(rowStatus(s.next!)).toMatchObject({ tone: "late" });
   });
 });
 
@@ -106,7 +104,7 @@ describe("Vendors section summary", () => {
     // "Open" goes to the next vendor, on its Compare step.
     await user.click(summary.getByRole("button", { name: "Open Entertainer" }));
     const panel = within(section.getByRole("region", { name: "Entertainer" }));
-    expect(panel.getByRole("button", { name: "2 Compare" })).toHaveAttribute("aria-pressed", "true");
+    expect(panel.getByRole("tab", { name: "2 Compare" })).toHaveAttribute("aria-selected", "true");
     expect(toBook.getByRole("button", { name: /^Entertainer/ })).toHaveAttribute("aria-current", "true");
   });
 });

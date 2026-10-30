@@ -208,9 +208,9 @@ describe("Guests tab", () => {
     render(<Harness planId={PLAN} onShare={vi.fn()} />);
     const panel = within(currentSection());
     expect(await panel.findByText("28 people")).toBeInTheDocument();
-    await user.click(panel.getByRole("button", { name: "Guest list" }));
-    await user.click(panel.getByRole("button", { name: "Seating" }));
-    await user.click(panel.getByRole("button", { name: "Replies" }));
+    await user.click(panel.getByRole("tab", { name: "Guest list" }));
+    await user.click(panel.getByRole("tab", { name: "Seating" }));
+    await user.click(panel.getByRole("tab", { name: "Replies" }));
     expect(await panel.findByText("28 people")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -251,7 +251,7 @@ describe("Guests tab", () => {
     }
     const { container } = render(<SeatHarness />);
     const panel = within(currentSection());
-    await userEvent.click(panel.getByRole("button", { name: "Seating" }));
+    await userEvent.click(panel.getByRole("tab", { name: "Seating" }));
     const seating = within(await panel.findByRole("region", { name: "Seating plan" }));
     expect(seating.getByText(/3 tables of 8 for 14 people/)).toBeInTheDocument();
     const first = within(seating.getAllByRole("listitem").find((li) => li.className.includes("seat-table"))!);

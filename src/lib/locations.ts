@@ -1,3 +1,4 @@
+import { memoryCache } from "./memoryCache";
 import type { Location } from "./muhurat";
 
 const IST = "Asia/Kolkata";
@@ -49,7 +50,9 @@ const CITIES: Record<string, [number, number]> = {
   visakhapatnam: [17.6868, 83.2185],
 };
 
-const cache = new Map<string, Location | null>();
+/** Looked-up places; a city that was not found is asked about again after a day. */
+const cache = memoryCache<Location | null>(1000);
+const NOT_FOUND_TTL = 24 * 60 * 60 * 1000;
 
 function key(city: string): string {
   return city.trim().toLowerCase().replace(/\s+/g, " ");
@@ -75,7 +78,8 @@ export async function findLocation(
   timeoutMs = 4000,
 ): Promise<Location | null> {
   const k = key(city);
-  if (cache.has(k)) return cache.get(k) ?? null;
+  const hit = cache.get(k);
+  if (hit !== undefined) return hit;
 
   const known = findKnownCity(city);
   if (known) {
@@ -99,7 +103,7 @@ export async function findLocation(
           timeZone: hit.timezone || IST,
         }
       : null;
-    cache.set(k, location);
+    cache.set(k, location, location ? Infinity : NOT_FOUND_TTL);
     return location;
   } catch {
     return null; // network issues should never break plan generation

@@ -70,7 +70,7 @@ describe("Guest list", () => {
     const { container } = render(<Harness />);
     await openSection("Guests");
     const guests = within(currentSection());
-    expect(guests.getByRole("button", { name: "Guest list" })).toHaveAttribute("aria-pressed", "true");
+    expect(guests.getByRole("tab", { name: "Guest list" })).toHaveAttribute("aria-selected", "true");
     expect(guests.getByRole("heading", { name: "How do you want to add guests?" })).toBeInTheDocument();
     expect(guests.queryByRole("button", { name: /Pick from my contacts/ })).not.toBeInTheDocument(); // no picker in this browser
     expect(await violations(container)).toEqual([]);
