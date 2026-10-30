@@ -98,11 +98,8 @@ export function useIdeasActions({ input, plan, state, heart, onSave, onAdd, clea
     requestAnimationFrame(() => listRef.current?.focus());
   }
 
+  /** The host's own idea (checked by the form first) becomes more ideas built on it. */
   function submitOwn(leanings: Leaning[], ownFunction: string) {
-    if (heart.own.length < 3 && leanings.length === 0) {
-      setError("Type your idea, or pick a starting point such as Budget-friendly.");
-      return;
-    }
     void more({ leanings, forFunction: tidyText(ownFunction, 40) }, "built on your idea");
   }
 

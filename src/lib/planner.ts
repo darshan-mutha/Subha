@@ -5,16 +5,8 @@ import { scaleToTotal } from "./scale";
 import { shortDate } from "./dates";
 import { normalizeTimeline } from "./schedule";
 import { calculateTimings, type DayTimings } from "./muhurat";
-import {
-  REFINE_FACTS_JSON_SCHEMA,
-  SYSTEM_INSTRUCTION,
-  buildPlanPartPrompt,
-  buildRefineFactsPrompt,
-  buildRefinePrompt,
-  planPartSchema,
-  refinePartSchema,
-  type PlanPart,
-} from "./prompt";
+import { SYSTEM_INSTRUCTION, buildPlanPartPrompt, buildRefineFactsPrompt, buildRefinePrompt } from "./prompt";
+import { REFINE_FACTS_JSON_SCHEMA, planPartSchema, refinePartSchema, type PlanPart } from "./promptSchemas";
 import {
   LIMITS,
   PlanSchema,
@@ -82,7 +74,7 @@ function withinLimits(value: number, min: number, max: number): boolean {
   return Number.isFinite(value) && value >= min && value <= max;
 }
 
-/** The two halves of a new plan (see PLAN_PARTS in prompt.ts). */
+/** The two halves of a new plan (see PLAN_PARTS in promptSchemas.ts). */
 const CoreSchema = PlanSchema.pick({
   summary: true,
   theme: true,

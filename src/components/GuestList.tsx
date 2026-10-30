@@ -161,7 +161,11 @@ export function GuestList(props: Props) {
         onRemindFilter={() => m.setFilter("remind")}
         onShowReplies={props.onShowReplies}
       />
-      {m.loadError && <p className="form-error">{m.loadError}</p>}
+      {m.loadError && (
+        <p className="form-error" role="alert">
+          {m.loadError}
+        </p>
+      )}
 
       <ListFilters filters={m.filters} rows={m.rows} filter={m.filter} onFilter={m.setFilter} />
 

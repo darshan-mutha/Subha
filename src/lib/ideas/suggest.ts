@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { claudeGenerator, generateStructured, PlannerError, type TextGenerator } from "../ai";
-import { IDEA_JSON, SIGNATURE_JSON } from "../prompt";
+import { IDEA_JSON, SIGNATURE_JSON } from "../promptSchemas";
 import { IdeaSchema, SignatureSchema, type Idea } from "../schemas";
 import { IDEAS_SYSTEM_INSTRUCTION, buildIdeasPrompt, type IdeasRequest } from "./prompt";
 import { DirectionSchema, type Direction } from "./schema";

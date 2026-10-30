@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { ApiError, ApiStatusError, loadGuestEvent, sendReply } from "@/lib/client";
 import { readJson, writeJson } from "@/lib/storage";
-import { ReplyInputSchema, type Coming, type GuestEvent, type ReplyInput } from "@/lib/rsvp";
+import { REPLY_ID, REPLY_SECRET, ReplyInputSchema, type Coming, type GuestEvent, type ReplyInput } from "@/lib/rsvp";
 import { fieldErrors, type GuestNeed } from "@/lib/schemas";
 
 /** A reply this browser sent, kept so the guest can change it later. */
@@ -29,9 +29,10 @@ export interface ReplyForm {
 
 const storageKey = (token: string) => `shuba:rsvp:${token}`;
 
+/** What this phone keeps to change its reply later: the same id and secret rules as the server. */
 const SavedReplySchema = z.object({
-  replyId: z.string().min(1),
-  secret: z.string().min(1),
+  replyId: z.string().regex(REPLY_ID),
+  secret: z.string().regex(REPLY_SECRET),
   reply: ReplyInputSchema,
 });
 

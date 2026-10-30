@@ -64,6 +64,14 @@ describe("Guest reply page states", () => {
     expect(await screen.findByRole("heading", { name: "Will you join us?" })).toBeInTheDocument();
   });
 
+  it("treats a saved reply with a damaged id or secret as a new reply", async () => {
+    localStorage.setItem(KEY, JSON.stringify({ replyId: "x", secret: "short", reply: savedReply }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(guestEvent(baseInput, null, true))));
+    render(<GuestReply token={TOKEN} />);
+    expect(await screen.findByRole("heading", { name: "Will you join us?" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change my reply" })).not.toBeInTheDocument();
+  });
+
   it("shows a saved reply, lets the guest cancel a change, and sends it as new if the old one was removed", async () => {
     localStorage.setItem(KEY, JSON.stringify({ replyId: "rold111", secret: "S".repeat(22), reply: savedReply }));
     const user = userEvent.setup();

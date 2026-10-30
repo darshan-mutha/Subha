@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { suggestedFunctions } from "@/components/TraditionPicker";
 import { normalizeFunctions } from "@/lib/planner";
-import { buildPlanPartPrompt, PLAN_PARTS, planPartSchema, traditionLines } from "@/lib/prompt";
+import { buildPlanPartPrompt, traditionLines } from "@/lib/prompt";
+import { PLAN_PARTS, planPartSchema } from "@/lib/promptSchemas";
 import { makeEventInputSchema, PlanSchema, withInputDefaults, type EventInput } from "@/lib/schemas";
 import { upgradeContent } from "@/lib/store";
 import {

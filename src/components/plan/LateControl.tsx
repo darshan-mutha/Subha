@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { canDelay, daysBetween, DELAY_CHOICES, delayedDate, shortDate, type ScheduledItem } from "@/lib/schedule";
+import { daysBetween, shortDate } from "@/lib/dates";
+import { canDelay, DELAY_CHOICES, delayedDate } from "@/lib/delay";
+import type { ScheduledItem } from "@/lib/schedule";
 import type { TaskState } from "./types";
 
 /** "Running late?" — pick a new date, and later tasks move with it. */

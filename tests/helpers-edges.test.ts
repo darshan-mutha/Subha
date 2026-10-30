@@ -108,9 +108,9 @@ describe("assign helpers", () => {
     expect(Object.values(out).sort()).toEqual(["ma", "mb"]);
   });
 
-  it("labels an unknown event type as a celebration and omits empty roles", () => {
-    const prompt = buildAssignPrompt("mystery", samplePlan, team);
-    expect(prompt).toMatch(/^Event: Celebration/);
+  it("names the kind of event and omits empty roles", () => {
+    const prompt = buildAssignPrompt("other", samplePlan, team);
+    expect(prompt).toMatch(/^Event: /);
     expect(prompt).toContain("ma: Asha (Aunt)");
     expect(prompt).toContain("mb: Bala\n");
     expect(prompt).toMatch(/v_[a-z0-9]+: Book caterer\n/);

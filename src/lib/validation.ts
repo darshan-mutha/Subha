@@ -13,6 +13,8 @@ export const UNSAFE_CHARS = /[^\p{L}\p{M}\p{N}\s.,'&()\-/!?:;₹%+#@"]/gu;
 export const NAME_TEXT = /^[\p{L}\p{M}\p{N}\s.,'&()\-/]+$/u;
 /** A family on the guest list, which may join names with "+" ("Ravi + Meena"). */
 export const GUEST_NAME_TEXT = /^[\p{L}\p{M}\p{N}\s.,'&()\-/+]+$/u;
+/** Every character GUEST_NAME_TEXT does not allow, for stripping them out of imported names. */
+export const GUEST_NAME_UNSAFE = /[^\p{L}\p{M}\p{N}\s.,'&()\-/+]/gu;
 /** Characters that could start markup or code: free text never keeps them. */
 export const MARKUP_CHARS = /[<>{}`\\]/g;
 /** Free text with none of MARKUP_CHARS in it. */

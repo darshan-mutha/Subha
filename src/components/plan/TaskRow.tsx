@@ -1,6 +1,7 @@
 "use client";
 
-import { dueText, shiftText, type ScheduledItem } from "@/lib/schedule";
+import { shiftText } from "@/lib/delay";
+import { dueText, type ScheduledItem } from "@/lib/schedule";
 import type { PlanItem } from "@/lib/team";
 import { LateControl } from "./LateControl";
 import type { TaskState } from "./types";

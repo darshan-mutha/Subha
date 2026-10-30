@@ -1,13 +1,13 @@
 "use client";
 
-import { useId, useState, type ComponentProps } from "react";
+import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import type { GuestList as Entries } from "@/lib/guestList";
 import { GuestList } from "./GuestList";
 import { GuestsSection } from "./GuestsSection";
 import { SeatingSection } from "./SeatingSection";
 import type { Replies } from "./useReplies";
 import { TabPanel, ViewTabs, type ViewTab } from "./ViewTabs";
-import { DEFAULT_SEATING } from "@/lib/seating";
+import { DEFAULT_SEATING, type Seating } from "@/lib/seating";
 
 type Part = "list" | "replies" | "seating";
 const PARTS: ViewTab<Part>[] = [
@@ -18,9 +18,11 @@ const PARTS: ViewTab<Part>[] = [
 
 type SectionProps = ComponentProps<typeof GuestsSection>;
 
-interface Props extends Omit<SectionProps, "part"> {
+interface Props extends SectionProps {
   /** Guest replies, loaded once for the whole section (see usePlanTabs). */
   replies: Replies;
+  seating?: Seating;
+  onSeating: (next: Seating) => void;
   entries: Entries;
   functions: string[];
   today: string;
@@ -30,11 +32,20 @@ interface Props extends Omit<SectionProps, "part"> {
 }
 
 /** The Guests section: the host's guest list, the replies from the guest link, and seating. */
-export function GuestsHub({ entries, functions, today, onList, initialPart = "list", ...section }: Props) {
+export function GuestsHub({
+  entries,
+  functions,
+  today,
+  onList,
+  initialPart = "list",
+  seating,
+  onSeating,
+  ...section
+}: Props) {
   const [part, setPart] = useState<Part>(initialPart);
   const base = useId();
   const { replies, error } = section.replies;
-  const views: Record<Part, () => React.ReactNode> = {
+  const views: Record<Part, () => ReactNode> = {
     list: () => (
       <GuestList
         entries={entries}
@@ -62,13 +73,13 @@ export function GuestsHub({ entries, functions, today, onList, initialPart = "li
           replies={replies}
           entries={entries}
           functions={functions}
-          seating={section.seating ?? DEFAULT_SEATING}
+          seating={seating ?? DEFAULT_SEATING}
           title={section.title}
-          onChange={section.onSeating}
+          onChange={onSeating}
         />
       </>
     ),
-    replies: () => <GuestsSection {...section} part="replies" />,
+    replies: () => <GuestsSection {...section} />,
   };
   return (
     <>

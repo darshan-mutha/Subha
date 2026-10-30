@@ -1,3 +1,4 @@
+import { GUEST_NAME_UNSAFE } from "../validation";
 import { MAX_GUEST_ENTRIES, MAX_PEOPLE_PER_ENTRY, type DraftEntry } from "./entry";
 
 /**
@@ -26,6 +27,16 @@ function tidyName(raw: string): string {
     .trim();
 }
 
+/**
+ * A guest's name as the guest list accepts it: characters the list rejects
+ * (emoji, @, markup) removed, spaces tidied, at most 80 characters. Empty when
+ * no letter is left. Used for pasted lists and phone contacts alike.
+ */
+export function cleanGuestName(raw: string): string {
+  const name = raw.replace(GUEST_NAME_UNSAFE, "").replace(/\s+/g, " ").slice(0, 80).trim();
+  return /\p{L}/u.test(name) ? name : "";
+}
+
 /** Reads one line such as "Sharma ji family 4 - 98290 12345" or "Meena aunty + Raj uncle". */
 export function parseGuestLine(line: string): DraftEntry | null {
   let text = line.replace(/\t/g, " ").trim();
@@ -46,11 +57,8 @@ export function parseGuestLine(line: string): DraftEntry | null {
       break;
     }
   }
-  const name = tidyName(text)
-    .replace(/[^\p{L}\p{M}\p{N}\s.,'&()\-/+]/gu, "")
-    .slice(0, 80)
-    .trim();
-  if (!name || !/\p{L}/u.test(name)) return null;
+  const name = cleanGuestName(tidyName(text));
+  if (!name) return null;
   let guessed = false;
   if (!people) {
     // No number given: a family or group is a guess (4), a couple is 2, one name is 1.

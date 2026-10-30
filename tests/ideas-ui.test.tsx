@@ -156,6 +156,9 @@ describe("Ideas section", () => {
 
     await user.click(within(ideas).getByRole("button", { name: "Get ideas" }));
     expect(within(ideas).getByRole("alert")).toHaveTextContent("Type your idea, or pick a starting point");
+    const box = within(ideas).getByLabelText(/Something you've seen/);
+    expect(box).toHaveAttribute("aria-invalid", "true");
+    expect(box).toHaveFocus();
     expect(fetchMock).not.toHaveBeenCalled();
 
     await user.type(within(ideas).getByLabelText(/Something you've seen/), "A mini zoo");

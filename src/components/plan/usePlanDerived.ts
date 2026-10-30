@@ -5,7 +5,8 @@ import type { LocalWorkspace } from "@/lib/client";
 import { bookedByLine, paymentSummary, pruneDeals } from "@/lib/deals";
 import { progressOf } from "@/lib/palette";
 import { overLines, totalOver } from "@/lib/savings/options";
-import { doNext, milestoneItems, petalsFilled, pruneShifts, schedule } from "@/lib/schedule";
+import { pruneShifts } from "@/lib/delay";
+import { doNext, milestoneItems, petalsFilled, schedule } from "@/lib/schedule";
 import { todayIST } from "@/lib/dates";
 import { planItems } from "@/lib/team";
 

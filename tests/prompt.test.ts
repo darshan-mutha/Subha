@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  SYSTEM_INSTRUCTION,
-  buildPlanPrompt,
-  buildRefinePrompt,
-  PLAN_JSON_SCHEMA,
-  REFINE_FACTS_JSON_SCHEMA,
-  refinePartSchema,
-} from "@/lib/prompt";
+import { SYSTEM_INSTRUCTION, buildPlanPrompt, buildRefinePrompt } from "@/lib/prompt";
+import { PLAN_JSON_SCHEMA, REFINE_FACTS_JSON_SCHEMA, refinePartSchema } from "@/lib/promptSchemas";
 import { baseInput, samplePlan } from "./fixtures";
 
 describe("prompts", () => {

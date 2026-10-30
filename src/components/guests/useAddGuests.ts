@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { ApiError, requestGuestGroups } from "@/lib/client";
 import type { GuestGroupIdea } from "@/lib/guestGroups";
-import { newEntryId, parseGuestText, type DraftEntry, type GuestEntry } from "@/lib/guestList";
+import type { Source } from "@/lib/ai";
+import { cleanGuestName, newEntryId, parseGuestText, type DraftEntry, type GuestEntry } from "@/lib/guestList";
 import type { GuestGroup } from "@/lib/rsvp";
 import type { EventInput } from "@/lib/schemas";
 
@@ -14,7 +15,7 @@ export type AddMode = "choose" | "help" | "paste" | "one";
 export interface GroupIdeas {
   groups: GuestGroupIdea[];
   reminders: string[];
-  source: string;
+  source: Source;
 }
 
 interface ContactsManager {
@@ -85,7 +86,7 @@ export function useAddGuests({ input, functions, sides, onAdd }: Options) {
       const picked = await contacts.select(["name", "tel"], { multiple: true });
       const list = picked
         .map((c) => ({
-          name: (c.name?.[0] ?? "").trim().slice(0, 80),
+          name: cleanGuestName(c.name?.[0] ?? ""),
           phone: (c.tel?.[0] ?? "").replace(/[^0-9+\s-]/g, "").slice(0, 20),
           people: 1,
           guessed: false,

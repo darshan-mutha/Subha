@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { invalidAttrs } from "./fieldErrors";
 import { ComposerBar, ListeningSign, StartExamples } from "./voice/ComposerParts";
 import { MAX_CHARS, canRecord, joinSpoken } from "./voice/speech";
 import { useSpeech } from "./voice/useSpeech";
@@ -9,6 +10,9 @@ export { SPEECH_LANGUAGES, START_EXAMPLES } from "./voice/options";
 export { canRecord, joinSpoken } from "./voice/speech";
 
 export type VoicePayload = { text: string };
+
+const ERROR_ID = "describe-event-error";
+const TOO_SHORT = "Please tell us a little more about your event, for example the date, city, guests and budget.";
 
 interface Props {
   busy: boolean;
@@ -26,6 +30,8 @@ interface Props {
 export function VoiceStart({ busy, error, onSubmit, onUseForm }: Props) {
   const [supported] = useState(canRecord);
   const [text, setText] = useState("");
+  // The box itself has a problem (too little said), as opposed to the mic or the server.
+  const [tooShort, setTooShort] = useState(false);
   const boxRef = useRef<HTMLTextAreaElement | null>(null);
   const { recording, seconds, micError, setMicError, lang, setLang, start, stop } = useSpeech((spoken) => {
     setText((before) => joinSpoken(before, spoken));
@@ -42,10 +48,12 @@ export function VoiceStart({ busy, error, onSubmit, onUseForm }: Props) {
 
   function send() {
     if (text.trim().length < 10) {
-      setMicError("Please tell us a little more about your event, for example the date, city, guests and budget.");
+      setMicError("");
+      setTooShort(true);
       boxRef.current?.focus();
       return;
     }
+    setTooShort(false);
     setMicError("");
     onSubmit({ text: text.trim() });
   }
@@ -66,11 +74,12 @@ export function VoiceStart({ busy, error, onSubmit, onUseForm }: Props) {
 
   function pickExample(example: string) {
     setMicError("");
+    setTooShort(false);
     setText(example);
     requestAnimationFrame(() => boxRef.current?.focus());
   }
 
-  const message = micError || error;
+  const message = (tooShort ? TOO_SHORT : "") || micError || error;
 
   return (
     <div className="start">
@@ -89,6 +98,7 @@ export function VoiceStart({ busy, error, onSubmit, onUseForm }: Props) {
             placeholder="What are you celebrating? When, where, how many guests and budget…"
             value={text}
             onChange={(e) => setText(e.target.value)}
+            {...invalidAttrs(ERROR_ID, tooShort ? TOO_SHORT : undefined)}
             onKeyDown={onKeyDown}
             disabled={busy}
           />
@@ -106,7 +116,7 @@ export function VoiceStart({ busy, error, onSubmit, onUseForm }: Props) {
       </form>
 
       {message && (
-        <p className="form-error" role="alert">
+        <p id={ERROR_ID} className="form-error" role="alert">
           {message}
         </p>
       )}

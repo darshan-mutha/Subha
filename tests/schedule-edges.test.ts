@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addDays, delayItem, delayLines, normalizeTimeline, schedule } from "@/lib/schedule";
-import type { DelayResult, ScheduledItem } from "@/lib/schedule";
+import { delayItem, delayLines, type DelayResult } from "@/lib/delay";
+import { addDays, normalizeTimeline, schedule, type ScheduledItem } from "@/lib/schedule";
 import type { Plan } from "@/lib/schemas";
 import { samplePlan } from "./fixtures";
 

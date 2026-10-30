@@ -146,10 +146,11 @@ describe("Add guests: help me build it", () => {
 describe("Add guests: phone contacts", () => {
   it("adds the people picked, keeping only names and clean phone numbers", async () => {
     withContacts(async () => [
-      { name: [" Meena Rao "], tel: ["+91 (98450) 12345"] },
+      { name: [" Meena Rao 🌸"], tel: ["+91 (98450) 12345"] },
       { name: [""], tel: ["123"] },
       {},
-      { name: ["Ravi"] },
+      { name: ["Ravi@work"] },
+      { name: ["😀 🎉"] },
     ]);
     const { user, onAdd } = setup();
     await user.click(screen.getByRole("button", { name: /Pick from my contacts/ }));
@@ -157,7 +158,7 @@ describe("Add guests: phone contacts", () => {
     await user.click(screen.getByRole("button", { name: "Add these 2" }));
     expect(onAdd).toHaveBeenCalledWith([
       expect.objectContaining({ name: "Meena Rao", phone: "+91 98450 12345", people: 1 }),
-      expect.objectContaining({ name: "Ravi", phone: "", people: 1 }),
+      expect.objectContaining({ name: "Raviwork", phone: "", people: 1 }),
     ]);
   });
 

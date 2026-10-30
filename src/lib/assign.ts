@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { generateStructured, claudeGenerator, type TextGenerator } from "./ai";
-import { EVENT_TYPE_LABELS, PlanSchema, type EventInput, type Plan } from "./schemas";
+import { EVENT_TYPE_LABELS, EVENT_TYPES, PlanSchema, type EventType, type Plan } from "./schemas";
 import { TeamSchema, planItems, type Assignments, type Member } from "./team";
 
 /**
@@ -36,7 +36,8 @@ const ReplySchema = z.object({
 });
 
 export const AssignRequestSchema = z.object({
-  input: z.object({ eventType: z.string().max(40) }).passthrough(),
+  // Only the kind of event is used; the other event details are not needed (and are dropped).
+  input: z.object({ eventType: z.enum(EVENT_TYPES) }),
   plan: PlanSchema,
   team: TeamSchema.min(1, "Add at least one person first"),
 });
@@ -62,8 +63,8 @@ export function balance(itemIds: string[], team: Member[], given: Assignments): 
   return result;
 }
 
-export function buildAssignPrompt(eventType: string, plan: Plan, team: Member[]): string {
-  const label = EVENT_TYPE_LABELS[eventType as EventInput["eventType"]] ?? "Celebration";
+export function buildAssignPrompt(eventType: EventType, plan: Plan, team: Member[]): string {
+  const label = EVENT_TYPE_LABELS[eventType];
   const people = team.map((m) => `${m.id}: ${m.name}${m.role ? ` (${m.role})` : ""}`).join("\n");
   const items = planItems(plan)
     .map((i) => `${i.id}: ${i.label}${i.kind === "task" ? ` [${i.group}]` : ""}`)
@@ -80,7 +81,7 @@ ${items}`;
 }
 
 export async function assignTasks(
-  eventType: string,
+  eventType: EventType,
   plan: Plan,
   team: Member[],
   generate: TextGenerator = claudeGenerator,

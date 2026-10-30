@@ -1,14 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  canDelay,
-  delayedDate,
-  delayItem,
-  delayLines,
-  pruneShifts,
-  schedule,
-  shiftText,
-  type ScheduledItem,
-} from "@/lib/schedule";
+import { canDelay, delayedDate, delayItem, delayLines, pruneShifts, shiftText } from "@/lib/delay";
+import { schedule, type ScheduledItem } from "@/lib/schedule";
 import { makeSharedContentSchema, planItems } from "@/lib/team";
 import { baseInput, samplePlan } from "./fixtures";
 

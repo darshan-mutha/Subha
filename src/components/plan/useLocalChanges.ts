@@ -2,7 +2,8 @@
 
 import { addIdeaToPlan } from "@/lib/ideas/addToPlan";
 import type { IdeaState } from "@/lib/ideas/schema";
-import { delayItem, delayLines, type ScheduledItem } from "@/lib/schedule";
+import { delayItem, delayLines } from "@/lib/delay";
+import type { ScheduledItem } from "@/lib/schedule";
 import type { Idea } from "@/lib/schemas";
 import type { PlanDerived } from "./usePlanDerived";
 import type { Act, LastChange, PlanWorkspaceProps, Snapshot } from "./workspaceTypes";

@@ -87,4 +87,11 @@ describe("POST /api/assign", () => {
     expect(res.status).toBe(400);
     expect((await res.json()).fields.team).toMatch(/at least one person/);
   });
+
+  it("accepts only known kinds of event", async () => {
+    const { POST } = await import("@/app/api/assign/route");
+    const team = [{ id: "mabc1", name: "Ravi", role: "" }];
+    const res = await POST(req("POST", { input: { ...input, eventType: "mystery" }, plan: samplePlan, team }));
+    expect(res.status).toBe(400);
+  });
 });

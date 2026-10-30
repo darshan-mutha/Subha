@@ -5,7 +5,6 @@ import { guestAction, ApiError } from "@/lib/client";
 import { inviteFacts, inviteMessage, type Invite } from "@/lib/invite";
 import { repliesCsv, rsvpMessage, suggestedGuests, summarize } from "@/lib/rsvp";
 import type { EventInput } from "@/lib/schemas";
-import type { Seating } from "@/lib/seating";
 import { AllReplies, ComingCounts, FoodCount, GuestLinkCard, GuestNeeds } from "./guests/GuestsSectionParts";
 import type { Replies } from "./useReplies";
 
@@ -22,10 +21,6 @@ interface Props {
   onShare: (() => void) | null;
   /** Re-plans for a new guest count, with What changed and Undo. */
   onUseGuests: (guests: number) => void;
-  seating?: Seating;
-  onSeating: (next: Seating) => void;
-  /** Kept for the Guests hub, which shows the seating plan itself. */
-  part?: "replies";
 }
 
 /** The line at the top of the Replies part. */
@@ -93,9 +88,9 @@ function useGuestLink(planId: string | null, replies: Replies) {
 }
 
 /** Guests tab: the reply link, live counts, food and needs, and every reply. */
-export function GuestsSection({ planId, input, title, invite, busy, onShare, onUseGuests, ...props }: Props) {
+export function GuestsSection({ planId, replies: loaded, input, title, invite, busy, onShare, onUseGuests }: Props) {
   const id = useId();
-  const { state, replies, error, refresh, working, run } = useGuestLink(planId, props.replies);
+  const { state, replies, error, refresh, working, run } = useGuestLink(planId, loaded);
   const summary = useMemo(() => summarize(replies), [replies]);
 
   if (!planId) return <NeedsSharing busy={busy} onShare={onShare} />;
